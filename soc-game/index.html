@@ -177,6 +177,18 @@ body::after {
 }
 #pause-btn:hover { background: var(--amber); color: var(--bg); }
 .header-spacer { flex: 1; }
+#day-progress-bar {
+  height: 2px;
+  background: var(--border);
+  width: 100%;
+  flex-shrink: 0;
+}
+#day-progress-fill {
+  height: 100%;
+  background: var(--green);
+  transition: width 0.5s linear;
+  width: 0%;
+}
 #budget-display {
   color: var(--green);
   font-size: 13px;
@@ -375,6 +387,23 @@ body::after {
   animation: none;
   opacity: 1;
 }
+/* SIEM filter states */
+#siem-popout-feed.filter-alerts .siem-entry[data-sev="INFO"],
+#siem-popout-feed.filter-alerts .siem-entry[data-sev="OK"] { display: none; }
+#siem-popout-feed.filter-incidents .siem-entry[data-cat="ops"],
+#siem-popout-feed.filter-incidents .siem-entry[data-cat="system"] { display: none; }
+.siem-filter-btn {
+  font-family: var(--font);
+  font-size: 9px;
+  padding: 1px 6px;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--green-dim);
+  cursor: pointer;
+  letter-spacing: 1px;
+}
+.siem-filter-btn:hover { border-color: var(--green); color: var(--green); }
+.siem-filter-btn.active { background: var(--green-dark); border-color: var(--green); color: var(--green); }
 .incident-card {
   border: 1px solid var(--green-dark);
   margin: 2px 0;
@@ -453,6 +482,28 @@ body::after {
   color: var(--green-dim);
   margin-top: 3px;
 }
+.actor-intel-btn {
+  background: none;
+  border: none;
+  color: var(--green-dark);
+  font-family: var(--font);
+  font-size: 9px;
+  padding: 1px 0;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-top: 2px;
+}
+.actor-intel-btn:hover { color: var(--green-dim); }
+.actor-intel-panel {
+  background: rgba(0,255,65,0.03);
+  border-top: 1px solid var(--green-dark);
+  margin-top: 3px;
+  padding: 3px 4px;
+  font-size: 9px;
+  color: var(--green-dim);
+  line-height: 1.5;
+}
 .no-incidents {
   color: var(--green-dark);
   font-size: 11px;
@@ -473,6 +524,7 @@ body::after {
   border: 1px solid var(--green);
   color: var(--green);
   font-family: var(--font);
+
   font-size: 9px;
   padding: 2px 8px;
   cursor: pointer;
@@ -487,6 +539,18 @@ body::after {
   color: var(--bg);
   animation: none;
 }
+.lessons-btn.warn {
+  border-color: var(--amber);
+  color: var(--amber);
+  background: rgba(255,176,0,0.08);
+}
+.lessons-btn.warn:hover { background: var(--amber); color: var(--bg); }
+.lessons-btn.crit {
+  border-color: var(--red);
+  color: var(--red);
+  background: rgba(255,51,51,0.08);
+}
+.lessons-btn.crit:hover { background: var(--red); color: var(--bg); }
 
 /* ===================== OPERATIONS PANEL ===================== */
 #ops-panel {
@@ -500,6 +564,18 @@ body::after {
   border-bottom: 1px solid var(--green-dark);
   padding: 6px 8px;
 }
+.analyst-slot-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  padding: 1px 0;
+  color: var(--green-dim);
+  letter-spacing: 0.5px;
+}
+.analyst-slot-row span { font-size: 9px; }
+.analyst-slot-row.free span { color: var(--green); }
+.analyst-slot-row.busy span { color: var(--amber); }
+.analyst-slot-row.training span { color: var(--green-dim); font-style: italic; }
 .ops-section-title {
   color: var(--green-dim);
   font-size: 9px;
@@ -874,6 +950,11 @@ body::after {
   0%,100%{opacity:1} 92%{opacity:1} 93%{opacity:0.7} 94%{opacity:1} 96%{opacity:0.8} 97%{opacity:1}
 }
 .crit-flash { animation: flicker 3s infinite; }
+@keyframes breach-pulse {
+  0%,100% { box-shadow: inset 0 0 0 1px transparent; }
+  50% { box-shadow: inset 0 0 0 2px var(--red); }
+}
+#game-screen.breach-critical { animation: breach-pulse 1.2s ease-in-out infinite; }
 
 /* ===================== DIFFICULTY SCREEN ===================== */
 #difficulty-screen {
@@ -1127,7 +1208,7 @@ body::after {
     <div id="header-title">PumaSOC</div>
     <div id="diff-badge"></div>
     <div id="live-indicator" class="live">■ LIVE</div>
-    <div class="header-stat">DAY <span id="hdr-day">1</span></div>
+    <div class="header-stat">DAY <span id="hdr-day">1</span><span style="color:var(--green-dim)">/7</span></div>
     <div class="header-stat"><span id="hdr-time">00:00</span></div>
     <div class="header-stat">BREACHES: <span id="hdr-breaches" class="stat-val">0</span>/3</div>
     <div class="header-stat">RESOLVED: <span id="hdr-resolved">0</span></div>
@@ -1143,6 +1224,7 @@ body::after {
     <button class="speed-btn" id="newgame-btn" onclick="newGameClick()">NEW GAME</button>
     <div id="budget-display" style="display:none"></div>
   </div>
+  <div id="day-progress-bar"><div id="day-progress-fill"></div></div>
 
   <!-- Three column main -->
   <div id="main">
@@ -1234,6 +1316,7 @@ body::after {
       </div>
       <div class="ops-section">
         <div class="ops-section-title">── STAFFING ─────────────</div>
+        <div id="analyst-roster"></div>
         <button class="action-btn" id="hire-btn" onclick="hireAnalyst()">▶ HIRE ANALYST<span class="btn-cost" id="hire-cost">$75k</span></button>
         <button class="action-btn" id="training-btn" onclick="startTraining()">▶ SEND TO TRAINING<span class="btn-cost">$30k</span></button>
       </div>
@@ -1273,7 +1356,12 @@ body::after {
       <div class="panel-title-dot"></div>
       <span style="color:var(--green);font-size:11px;letter-spacing:2px;text-shadow:0 0 6px var(--green)">SIEM CORRELATION ENGINE</span>
       <span style="color:var(--green-dark);font-size:9px" id="siem-popout-count"></span>
-      <button class="modal-close" style="margin-left:auto" onclick="closeSiemPopout()">✕ CLOSE</button>
+      <div style="margin-left:auto;display:flex;gap:4px;align-items:center">
+        <button class="siem-filter-btn active" id="sfbtn-all" onclick="setSiemFilter('all')">ALL</button>
+        <button class="siem-filter-btn" id="sfbtn-alerts" onclick="setSiemFilter('alerts')">ALERTS</button>
+        <button class="siem-filter-btn" id="sfbtn-incidents" onclick="setSiemFilter('incidents')">INCIDENTS</button>
+      </div>
+      <button class="modal-close" style="margin-left:8px" onclick="closeSiemPopout()">✕ CLOSE</button>
     </div>
     <div id="siem-popout-feed"></div>
   </div>
@@ -1517,14 +1605,12 @@ const INCOME_INTERVAL_MINS = 360;
 const DIFFICULTIES = {
   apprentice: {
     label: 'APPRENTICE',
-    budget: 1200000,
+    budget: 800000,
     incomeAmount: 75000,
     analystTotal: 3,
     coverage: 45,
     vulnScore: 45,
-    // Pre-deploy some detection rules (values 0-5 per category)
-    rules: { 'Initial Access':2, 'Execution':1, 'Persistence':1, 'Lateral Movement':2,
-             'Command & Control':1, 'Exfiltration':1 },
+    rules: {},
   },
   analyst: {
     label: 'ANALYST',
@@ -1804,6 +1890,9 @@ function initState() {
     nextIncidentId: 1,
     nextVulnId: 1000,
     lastVulnDay: 1, // skip day-1 spawn; new vulns start appearing day 2
+    _lastSitrepDay: 1,
+    _dayResolved: 0,
+    suppressedTechniques: [], // [{ category, expiresAt }]
     // analyst tracking — sized to analystTotal
     analystSlots: Array(diff.analystTotal).fill(null),
     // training
@@ -1939,6 +2028,13 @@ function soundResolve() {
 
 const SIEM_STRIP_MAX = 12; // entries that fit in the 210px strip without squishing
 const siemHistory = []; // full history for popout
+const expandedActorCards = new Set(); // incident IDs with actor profile expanded
+
+function siemCategory(source) {
+  if (/^SOC-A|^BREACH/.test(source)) return 'incident';
+  if (source === 'FINANCE' || source === 'HR') return 'ops';
+  return 'system';
+}
 
 function makeSiemEntry(severity, source, msg, extra, animated) {
   const t = fmtTime(G ? G.gameTime : 0);
@@ -1946,6 +2042,8 @@ function makeSiemEntry(severity, source, msg, extra, animated) {
   const badge = `<span class="siem-badge badge-${severity.toLowerCase()}">${severity}</span>`;
   const el = document.createElement('div');
   el.className = 'siem-entry';
+  el.dataset.sev = severity;
+  el.dataset.cat = siemCategory(source);
   if (!animated) el.style.cssText = 'opacity:1;animation:none';
   el.innerHTML = `<span class="siem-time">[${t.str}]</span> ${badge} <span class="${sevClass}">${source}</span> → ${msg}` +
     (extra ? ` <span style="color:var(--green-dark)"> // ${extra}</span>` : '');
@@ -1985,6 +2083,16 @@ function openSiemPopout() {
 
 function closeSiemPopout() {
   document.getElementById('siem-popout').classList.remove('visible');
+}
+
+function setSiemFilter(f) {
+  const feed = document.getElementById('siem-popout-feed');
+  feed.classList.remove('filter-alerts', 'filter-incidents');
+  if (f === 'alerts') feed.classList.add('filter-alerts');
+  if (f === 'incidents') feed.classList.add('filter-incidents');
+  ['all','alerts','incidents'].forEach(k => {
+    document.getElementById(`sfbtn-${k}`).classList.toggle('active', k === f);
+  });
 }
 
 // ================================================================
@@ -2057,9 +2165,10 @@ function spawnThreat() {
     breachTriggered: false,
   };
 
-  // Detection check
-  const detChance = getThreatDetectionChance(threat);
-  if (Math.random() < detChance) {
+  // Detection check — suppressed categories are always detected
+  const isSuppressed = G.suppressedTechniques.some(s => s.category === cat && G.gameTime < s.expiresAt);
+  const detChance = isSuppressed ? 1 : getThreatDetectionChance(threat);
+  if (isSuppressed || Math.random() < detChance) {
     threat.detected = true;
     siemLog('CRIT', threat.actor,
       `${technique} detected targeting ${targetId}`,
@@ -2128,6 +2237,23 @@ function tick() {
 
   const delta = GAME_MINS_PER_TICK_BASE * G.speed;
   G.gameTime += delta;
+
+  // Expire suppression windows
+  if (G.suppressedTechniques && G.suppressedTechniques.length > 0) {
+    const expired = G.suppressedTechniques.filter(s => G.gameTime >= s.expiresAt);
+    expired.forEach(s => siemLog('WARN','RED-TEAM',`${s.category} suppression window expired — threat actors may resume activity`));
+    G.suppressedTechniques = G.suppressedTechniques.filter(s => G.gameTime < s.expiresAt);
+  }
+
+  // End-of-day sitrep
+  const currentDay = Math.floor(G.gameTime / 1440) + 1;
+  if (currentDay > (G._lastSitrepDay || 1)) {
+    const completedDay = currentDay - 1;
+    const cov = Math.round(calcCoverage());
+    siemLog('INFO', 'EOD', `Day ${completedDay} complete — ${G._dayResolved} resolved, ${G.breaches} breach${G.breaches !== 1 ? 'es' : ''}, coverage ${cov}%, budget ${fmt$(G.budget)}`);
+    G._lastSitrepDay = currentDay;
+    G._dayResolved = 0;
+  }
 
   // Income
   G.nextIncomeIn -= delta;
@@ -2262,9 +2388,9 @@ function tick() {
   G.vulnScore = calcVulnScore();
 
   // Daily vulnerability accumulation
-  const currentDay = fmtTime(G.gameTime).day;
-  if (currentDay > G.lastVulnDay) {
-    G.lastVulnDay = currentDay;
+  const vulnDay = fmtTime(G.gameTime).day;
+  if (vulnDay > G.lastVulnDay) {
+    G.lastVulnDay = vulnDay;
     const newCount = rnd(1, 3);
     const vulnNames = [
       'Remote Code Execution','Privilege Escalation','SQL Injection','Buffer Overflow',
@@ -2299,12 +2425,12 @@ function tick() {
 
   // Consultant daily briefing
   if (G.consultant) {
-    const currentDay = fmtTime(G.gameTime).day;
-    if (currentDay > G.consultant.lastAdviceDay) {
-      G.consultant.lastAdviceDay = currentDay;
+    const consultDay = fmtTime(G.gameTime).day;
+    if (consultDay > G.consultant.lastAdviceDay) {
+      G.consultant.lastAdviceDay = consultDay;
       G.consultant.advice = generateConsultantAdvice();
       const c = CONSULTANTS.find(c => c.id === G.consultant.id);
-      siemLog('INFO', c.name.split(' ')[0], `Day ${currentDay} briefing: ${G.consultant.advice.text.substring(0,90)}...`);
+      siemLog('WARN', 'CONSULTANT', `[${c.name.split(' ')[0]}] Day ${currentDay} briefing ready — priority: ${G.consultant.advice.priority} → ${G.consultant.advice.action}`);
     }
   }
 
@@ -2322,6 +2448,7 @@ function resolveIncident(inc, earnReward = true) {
   inc.status = 'RESOLVED';
   G.totalResolved++;
   G.resolvedToday++;
+  G._dayResolved++;
   soundResolve();
 
   // Free analyst
@@ -2388,6 +2515,8 @@ function triggerBreach(threat, reason, incident) {
 
   if (G.breaches >= MAX_BREACHES) {
     triggerGameOver(`${G.breaches} successful breaches — attacker persistence established in managed estate.`);
+  } else if (G.breaches === MAX_BREACHES - 1) {
+    siemLog('CRIT', 'BREACH-CTRL', `⚠ ONE BREACH FROM GAME OVER — DEFEND ALL ASSETS`);
   }
 }
 
@@ -2606,12 +2735,17 @@ function completeRedTeam(job) {
   const vulnsFound = rnd(1, 4);
   // Improve coverage slightly
   G.coverage = Math.min(95, G.coverage + detGap * 2);
-  // Discover hidden vulns
+  // Discover hidden vulns (and auto-scan — red teamers document what they find)
   let discovered = 0;
   G.vulns.filter(v => !v.discovered).slice(0, vulnsFound).forEach(v => { v.discovered = true; discovered++; });
+  // Spawn suppression: red team findings suppress one technique category for 48 game hours
+  const suppressCat = pick(TECHNIQUE_CATS);
+  const expiresAt = G.gameTime + 2880; // 48 game hours
+  G.suppressedTechniques = G.suppressedTechniques.filter(s => s.category !== suppressCat);
+  G.suppressedTechniques.push({ category: suppressCat, expiresAt });
   siemLog('OK','RED-TEAM',`ENGAGEMENT COMPLETE: ${job.name}`);
-  siemLog('WARN','RED-TEAM',`Findings: ${detGap} detection gaps identified, ${discovered} new vulnerabilities`);
-  siemLog('INFO','RED-TEAM',`Recommendations report delivered — review in Vuln Management`);
+  siemLog('WARN','RED-TEAM',`Findings: ${detGap} detection gaps, ${discovered} new vulns, 1 suppression window`);
+  siemLog('INFO','RED-TEAM',`${suppressCat} threat actors suppressed for 48h — IOCs distributed to sensors`);
   document.getElementById('redteam-jobs-section').style.display = '';
   updateRedTeamJobsUI();
 }
@@ -2876,12 +3010,40 @@ function updateNodeStatuses() {
 // UI UPDATE
 // ================================================================
 
+function renderAnalystRoster() {
+  const el = document.getElementById('analyst-roster');
+  if (!el) return;
+  let html = '';
+  for (let i = 0; i < G.analystTotal; i++) {
+    const slot = G.analystSlots[i];
+    const num = i + 1;
+    if (slot === 'TRAINING') {
+      const remaining = G.trainingJob ? Math.max(0, G.trainingJob.completesAt - G.gameTime) : 0;
+      const h = Math.floor(remaining / 60);
+      const m = Math.floor(remaining % 60);
+      html += `<div class="analyst-slot-row training"><span>A-${num}</span><span>TRAINING — ${h}h ${m}m</span></div>`;
+    } else if (slot === null) {
+      html += `<div class="analyst-slot-row free"><span>A-${num}</span><span>FREE</span></div>`;
+    } else {
+      const inc = G.incidents.find(i => i.id === slot);
+      if (inc) {
+        const stage = inc.status === 'LESSONS_PENDING' ? 'SIGN-OFF' : inc.status;
+        html += `<div class="analyst-slot-row busy"><span>A-${num}</span><span>${stage} — ${inc.actor}</span></div>`;
+      }
+    }
+  }
+  el.innerHTML = html;
+}
+
 function updateUI() {
   const t = fmtTime(G.gameTime);
   document.getElementById('hdr-day').textContent = t.day;
+  const dayPct = Math.min(100, (G.gameTime / (WIN_DAYS * 1440)) * 100);
+  document.getElementById('day-progress-fill').style.width = `${dayPct}%`;
   document.getElementById('hdr-time').textContent = t.str;
   document.getElementById('hdr-breaches').textContent = G.breaches;
   document.getElementById('hdr-breaches').className = G.breaches >= 2 ? 'stat-val crit' : G.breaches >= 1 ? 'stat-val warn' : 'stat-val';
+  document.getElementById('game-screen').classList.toggle('breach-critical', G.breaches >= MAX_BREACHES - 1);
   document.getElementById('hdr-resolved').textContent = G.totalResolved;
   document.getElementById('budget-display').textContent = fmt$(G.budget);
   document.getElementById('budget-display-large').textContent = fmt$(G.budget);
@@ -2930,6 +3092,8 @@ function updateUI() {
   } else {
     trainingBtn.innerHTML = '▶ SEND TO TRAINING<span class="btn-cost">$30k</span>';
   }
+
+  renderAnalystRoster();
 
   // MSSP btn
   const msspBtn = document.getElementById('mssp-btn');
@@ -2982,6 +3146,7 @@ function renderIncidents() {
       const remaining = Math.max(0, inc.lessonsPendingUntil - G.gameTime);
       const windowPct = Math.round((remaining / 120) * 100);
       const urgent = remaining < 30;
+      const warning = remaining < 60;
       card.classList.add('lessons-pending');
       if (urgent) card.classList.add('critical');
       const lessonCount = G.lessonsLearned[inc.techniqueCategory] || 0;
@@ -2991,7 +3156,10 @@ function renderIncidents() {
         : `+${Math.min(25, (lessonCount + 1) * 10)}% IR speed for ${inc.techniqueCategory}`;
       const stagesHtml = IR_STAGES.map(s => `<span class="ir-stage done">${s.name}</span>`).join('');
       const timeColor = urgent ? 'var(--red)' : 'var(--amber)';
-      const timeLabel = `${Math.round(remaining)}m remaining`;
+      const h = Math.floor(remaining / 60);
+      const m = Math.floor(remaining % 60);
+      const countdown = `${h}:${String(m).padStart(2, '0')}`;
+      const btnClass = urgent ? 'lessons-btn crit' : warning ? 'lessons-btn warn' : 'lessons-btn';
       card.innerHTML = `
         <div class="incident-header">
           <span class="incident-actor">✓ ${inc.actor}</span>
@@ -3000,10 +3168,10 @@ function renderIncidents() {
         <div class="incident-technique">${inc.technique} [${inc.techniqueCategory}]</div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px">
           <div class="ir-stages">${stagesHtml}</div>
-          <span class="incident-dwell" style="color:${timeColor}">⏱ ${timeLabel}</span>
+          <span class="incident-dwell" style="color:${timeColor}">⏱ window closes in ${countdown}</span>
         </div>
         <div class="progress-bar"><div class="progress-fill" style="width:${windowPct}%;background:${timeColor};transition:width 0.1s linear"></div></div>
-        <button class="lessons-btn" data-lessons-id="${inc.id}">▶ LESSONS LEARNED — ${bonusPreview}</button>
+        <button class="${btnClass}" data-lessons-id="${inc.id}">▶ LESSONS LEARNED [${countdown}] — ${bonusPreview}</button>
       `;
       list.appendChild(card);
       return;
@@ -3036,6 +3204,13 @@ function renderIncidents() {
         ? `<button class="assign-btn" disabled title="All analysts busy — hire more or wait for one to finish">⚠ ALL ANALYSTS BUSY</button>`
         : `<button class="assign-btn" data-incident-id="${inc.id}">ASSIGN ANALYST</button>`;
 
+    const actorData = ACTORS.find(a => a.name === inc.actor);
+    const actorExpanded = expandedActorCards.has(inc.id);
+    const actorIntelHtml = actorExpanded && actorData ? `
+      <div class="actor-intel-panel">
+        <span style="color:var(--green)">${actorData.name}</span> // ${actorData.aka} — ${actorData.origin}<br>
+        Skill: ${'█'.repeat(actorData.skill)}${'░'.repeat(5 - actorData.skill)} ${actorData.skill}/5 &nbsp;|&nbsp; TTPs: ${inc.techniqueCategory}
+      </div>` : '';
     card.innerHTML = `
       <div class="incident-header">
         <span class="incident-actor">▶ ${inc.actor}</span>
@@ -3048,6 +3223,8 @@ function renderIncidents() {
       </div>
       <div class="progress-bar"><div class="progress-fill" style="width:${stagePct}%"></div></div>
       ${assignedHtml}
+      <button class="actor-intel-btn" data-actor-toggle="${inc.id}">${actorExpanded ? '▼' : '▶'} ACTOR INTEL</button>
+      ${actorIntelHtml}
     `;
     list.appendChild(card);
   });
@@ -3353,6 +3530,13 @@ document.getElementById('incidents-list').addEventListener('mousedown', e => {
   if (assignBtn && !assignBtn.disabled) { assignAnalystToIncident(parseInt(assignBtn.dataset.incidentId)); return; }
   const lessonsBtn = e.target.closest('[data-lessons-id]');
   if (lessonsBtn && !lessonsBtn.disabled) completeLessonsLearned(parseInt(lessonsBtn.dataset.lessonsId));
+  const actorToggle = e.target.closest('[data-actor-toggle]');
+  if (actorToggle) {
+    const id = parseInt(actorToggle.dataset.actorToggle);
+    if (expandedActorCards.has(id)) expandedActorCards.delete(id);
+    else expandedActorCards.add(id);
+    renderIncidents();
+  }
 });
 
 // Close modals on overlay click
