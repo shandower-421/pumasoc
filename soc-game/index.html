@@ -1191,6 +1191,119 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
   background: rgba(255,176,0,0.04);
 }
 
+/* ===================== RESPONSIVE ===================== */
+
+/* Mobile tab bar — hidden on desktop */
+#mobile-tabs { display: none; }
+
+/* TABLET: two-column layout (incidents + ops) */
+@media (max-width: 1023px) and (min-width: 768px) {
+  #main { grid-template-columns: 1fr 240px; }
+  #status-panel { display: none; }
+  .modal-window { width: 90vw; max-width: 90vw; }
+}
+
+/* MOBILE: single column with tab navigation */
+@media (max-width: 767px) {
+  /* Header compression */
+  #header { height: auto; min-height: 30px; padding: 3px 6px; gap: 0; }
+  #header-title { font-size: 10px; margin-right: 6px; letter-spacing: 1px; }
+  #diff-badge { display: none; }
+  #live-indicator { display: none; }
+  .header-stat { margin-right: 8px; font-size: 10px; }
+  #hdr-resolved-wrap { display: none; }
+  .header-spacer { display: none; }
+
+  /* Single-column main: panels overlap, JS controls which is visible */
+  #main {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+    overflow: hidden;
+  }
+  #status-panel, #incidents-panel, #ops-panel {
+    display: none;
+    grid-column: 1;
+    grid-row: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #status-panel.mobile-active,
+  #incidents-panel.mobile-active,
+  #ops-panel.mobile-active {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Mobile tab bar */
+  #mobile-tabs {
+    display: flex;
+    flex-shrink: 0;
+    height: 44px;
+    border-top: 1px solid var(--border);
+    background: var(--bg2);
+  }
+  .mobile-tab {
+    flex: 1;
+    background: none;
+    border: none;
+    border-right: 1px solid var(--border);
+    color: var(--green-dim);
+    font-family: var(--font);
+    font-size: 9px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    position: relative;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-tab:last-child { border-right: none; }
+  .mobile-tab.active { color: var(--green); background: rgba(0,255,65,0.06); }
+  .mobile-tab-icon { font-size: 11px; line-height: 1; }
+  .mobile-tab-badge {
+    display: none;
+    position: absolute;
+    top: 5px;
+    right: calc(50% - 22px);
+    background: var(--red);
+    color: var(--bg);
+    font-family: var(--font);
+    font-size: 7px;
+    padding: 1px 3px;
+    min-width: 12px;
+    text-align: center;
+  }
+  .mobile-tab-badge.visible { display: inline-block; }
+
+  /* Compact SIEM strip */
+  #siem-strip { height: 120px; }
+  #siem-strip-header { padding: 2px 6px; }
+
+  /* Touch-friendly interactive elements */
+  .action-btn { padding: 8px 8px; min-height: 38px; font-size: 11px; }
+  .assign-btn { padding: 6px 10px; min-height: 36px; font-size: 10px; }
+  .speed-btn { padding: 3px 7px; min-height: 24px; }
+  button#pause-btn { padding: 3px 8px; min-height: 24px; }
+  button#mute-btn { padding: 3px 8px; min-height: 24px; }
+  button#newgame-btn { padding: 3px 6px; min-height: 24px; font-size: 9px; }
+
+  /* Full-width modals */
+  .modal-window { width: 98vw; max-width: 98vw; max-height: 82vh; overflow-y: auto; }
+  #help-overlay > div { width: 98vw; max-width: 98vw; max-height: 90vh; overflow-y: auto; }
+
+  /* Difficulty screen on mobile */
+  #difficulty-screen { padding: 20px 12px; }
+  .diff-options { flex-direction: column; gap: 8px; }
+  .diff-option { padding: 10px 12px; }
+
+  /* Analyst roster more readable */
+  .analyst-slot-row { font-size: 10px; padding: 2px 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   #breach-flash.active,
   .incident-card.incident-enter,
@@ -1291,7 +1404,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
     <div class="header-stat">DAY <span id="hdr-day">1</span><span style="color:var(--green-dim)">/7</span></div>
     <div class="header-stat"><span id="hdr-time">00:00</span></div>
     <div class="header-stat">BREACHES: <span id="hdr-breaches" class="stat-val">0</span>/3</div>
-    <div class="header-stat">RESOLVED: <span id="hdr-resolved">0</span></div>
+    <div class="header-stat" id="hdr-resolved-wrap">RESOLVED: <span id="hdr-resolved">0</span></div>
     <div class="header-spacer"></div>
     <button class="speed-btn active" id="spd-1" onclick="setSpeed(1)">1×</button>
     <button class="speed-btn" id="spd-2" onclick="setSpeed(2)">2×</button>
@@ -1414,6 +1527,20 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
       </div>
     </div>
   </div><!-- /#main -->
+
+  <!-- Mobile tab bar — hidden on desktop via CSS -->
+  <div id="mobile-tabs">
+    <button class="mobile-tab active" id="tab-incidents" onclick="switchTab('incidents')">
+      <span class="mobile-tab-icon">⬛</span>INCIDENTS
+      <span class="mobile-tab-badge" id="incident-tab-badge"></span>
+    </button>
+    <button class="mobile-tab" id="tab-ops" onclick="switchTab('ops')">
+      <span class="mobile-tab-icon">▶</span>OPERATIONS
+    </button>
+    <button class="mobile-tab" id="tab-status" onclick="switchTab('status')">
+      <span class="mobile-tab-icon">■</span>STATUS
+    </button>
+  </div>
 
   <!-- SIEM Strip — full width flex child of #game-screen, click to expand -->
   <div id="siem-strip" onclick="openSiemPopout()">
@@ -3203,6 +3330,7 @@ function updateUI() {
   }
 
   renderAnalystRoster();
+  updateTabBadge();
 
   // MSSP btn
   const msspBtn = document.getElementById('mssp-btn');
@@ -3661,6 +3789,36 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
   });
 });
 
+// ================================================================
+// MOBILE TAB NAVIGATION
+// ================================================================
+
+let _activeTab = 'incidents';
+
+function switchTab(tab) {
+  _activeTab = tab;
+  const panelMap = { incidents: 'incidents-panel', ops: 'ops-panel', status: 'status-panel' };
+  ['incidents-panel', 'ops-panel', 'status-panel'].forEach(id =>
+    document.getElementById(id).classList.remove('mobile-active'));
+  ['tab-incidents', 'tab-ops', 'tab-status'].forEach(id =>
+    document.getElementById(id).classList.remove('active'));
+  document.getElementById(panelMap[tab]).classList.add('mobile-active');
+  document.getElementById(`tab-${tab}`).classList.add('active');
+}
+
+function updateTabBadge() {
+  const badge = document.getElementById('incident-tab-badge');
+  if (!badge || !G) return;
+  const count = G.incidents.filter(i => !i.resolved && !i.breachTriggered).length;
+  badge.textContent = count;
+  badge.classList.toggle('visible', count > 0 && _activeTab !== 'incidents');
+}
+
+function initMobileTabs() {
+  // Default: show incidents panel on mobile
+  document.getElementById('incidents-panel').classList.add('mobile-active');
+}
+
 let _newGameConfirmTimer = null;
 function newGameClick() {
   const btn = document.getElementById('newgame-btn');
@@ -3695,6 +3853,7 @@ function restartGame() {
   _newIncidentIds.clear();
   _prevBudget = null;
   _prevCoverage = 0;
+  _activeTab = 'incidents';
   document.getElementById('gameover-overlay').classList.remove('visible');
   document.getElementById('win-overlay').classList.remove('visible');
   document.getElementById('game-screen').classList.remove('visible');
@@ -3755,6 +3914,7 @@ function runBootSequence() {
           siemLog('INFO', 'SYSTEM', 'Session restored — resuming operations');
           tickInterval = setInterval(tick, TICK_MS);
           scheduleCrtFlicker();
+          initMobileTabs();
           return;
         }
         document.getElementById('boot-prompt').style.display = 'block';
@@ -3800,6 +3960,7 @@ function openDifficultyScreen(e) {
     siemLog('INFO', 'SYSTEM', 'Session restored — resuming operations');
     tickInterval = setInterval(tick, TICK_MS);
     scheduleCrtFlicker();
+    initMobileTabs();
     return;
   }
 
@@ -3884,6 +4045,7 @@ function startGame() {
 
   tickInterval = setInterval(tick, TICK_MS);
   scheduleCrtFlicker();
+  initMobileTabs();
 }
 
 function scheduleCrtFlicker() {
