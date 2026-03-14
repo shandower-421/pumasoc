@@ -355,7 +355,7 @@ body::after {
   to   { opacity: 1; transform: translateY(0); background: transparent; }
 }
 .siem-entry[data-sev="CRIT"] { animation: siem-slide-crit 0.3s ease forwards; }
-.siem-time { color: #336633; }
+.siem-time { color: var(--green-dim); opacity: 0.6; }
 .siem-info { color: var(--green-dim); }
 .siem-warn { color: var(--amber); }
 .siem-crit { color: var(--red); text-shadow: 0 0 4px var(--red); }
@@ -1172,7 +1172,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 .help-col:last-child .help-section-title:first-child { margin-top: 0; }
 #help-body p, #help-body li { line-height: 1.55; margin-bottom: 5px; font-size: 11px; color: var(--green); }
 #help-body ol, #help-body ul { padding-left: 16px; margin-bottom: 6px; }
-#help-body strong { color: #fff; }
+#help-body strong { color: var(--green); }
 #help-body em { color: var(--amber); font-style: normal; }
 .help-cap-row { display: flex; flex-direction: column; margin-bottom: 7px; border-left: 2px solid var(--green-dark); padding-left: 8px; }
 .help-cap-name { font-size: 10px; letter-spacing: 1px; color: var(--amber); margin-bottom: 1px; }
@@ -1302,7 +1302,6 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
     <button class="speed-btn active" id="mute-btn" onclick="toggleMute()">SOUND</button>
     <div class="header-spacer" style="max-width:12px"></div>
     <button class="speed-btn" id="newgame-btn" onclick="newGameClick()">NEW GAME</button>
-    <div id="budget-display" style="display:none"></div>
   </div>
   <div id="day-progress-bar"><div id="day-progress-fill"></div></div>
 
@@ -1880,7 +1879,11 @@ function saveState() {
       G, selectedDifficulty, siemHistory, siemEntryCount,
       consultantBriefingCollapsed, _muted,
     }));
-  } catch(e) {}
+  } catch(e) {
+    if (e && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+      siemLog('CRIT', 'SYSTEM', '⚠ SAVE FAILED — browser storage quota exceeded. Clear site data to re-enable autosave.');
+    }
+  }
 }
 
 function loadSavedState() {
@@ -1890,6 +1893,10 @@ function loadSavedState() {
     const save = JSON.parse(raw);
     if (!save.G || save.G.gameOver) return false;
     G = save.G;
+    // Migrate typo: analyistId → analystId (old saves)
+    if (G.incidents) G.incidents.forEach(i => {
+      if ('analyistId' in i) { i.analystId = i.analyistId; delete i.analyistId; }
+    });
     G.paused = false; // never restore into a paused state
     G.speed = G.speed || 1;
     selectedDifficulty = save.selectedDifficulty || 'analyst';
@@ -2112,6 +2119,7 @@ const expandedActorCards = new Set(); // incident IDs with actor profile expande
 const _newIncidentIds = new Set();    // IDs for entrance animation, cleared after first render
 let _prevBudget = null;               // for budget flash
 let _prevCoverage = 0;                // for coverage bar level-up flash
+let _crtFlickerTimeout = null;        // for cancellation on new game
 
 function siemCategory(source) {
   if (/^SOC-A|^BREACH/.test(source)) return 'incident';
@@ -2135,6 +2143,7 @@ function makeSiemEntry(severity, source, msg, extra, animated) {
 
 function siemLog(severity, source, msg, extra) {
   siemHistory.push({ severity, source, msg, extra });
+  if (siemHistory.length > 1000) siemHistory.shift(); // cap to prevent localStorage overflow
   siemEntryCount++;
   if (severity === 'CRIT') soundCrit();
   else if (severity === 'WARN') soundWarn();
@@ -2278,7 +2287,7 @@ function createIncident(threat) {
     targetId: threat.targetId,
     stageIdx: 0,
     stageProgress: 0,
-    analyistId: null,
+    analystId: null,
     dwell: 0,
     status: 'DETECTED',
     resolved: false,
@@ -2290,7 +2299,7 @@ function createIncident(threat) {
 
 function assignAnalystToIncident(incidentId) {
   const inc = G.incidents.find(i => i.id === incidentId);
-  if (!inc || inc.analyistId !== null) return;
+  if (!inc || inc.analystId !== null) return;
   if (!G.analystSlots.some(s => s === null)) {
     siemLog('WARN', 'OPS', `No analysts available — incident ${incidentId} queued`);
     return;
@@ -2300,9 +2309,9 @@ function assignAnalystToIncident(incidentId) {
   if (slotIdx === -1) return;
   G.analystSlots[slotIdx] = incidentId;
   G.analystBusy++;
-  inc.analyistId = slotIdx + 1;
+  inc.analystId = slotIdx + 1;
   inc.status = 'TRIAGING';
-  siemLog('OK', 'SOC-ANALYST', `Analyst ${inc.analyistId} assigned to incident #${incidentId} — ${inc.actor}::${inc.technique}`);
+  siemLog('OK', 'SOC-ANALYST', `Analyst ${inc.analystId} assigned to incident #${incidentId} — ${inc.actor}::${inc.technique}`);
   updateUI();
 }
 
@@ -2400,14 +2409,14 @@ function tick() {
     if (inc.resolved || inc.breachTriggered) return;
     if (inc.status === 'LESSONS_PENDING') {
       if (G.gameTime >= inc.lessonsPendingUntil) {
-        siemLog('WARN', `SOC-A${inc.analyistId}`, `LESSONS LEARNED window expired: ${inc.actor}::${inc.technique} — debrief not filed, no bonus`);
+        siemLog('WARN', `SOC-A${inc.analystId}`, `LESSONS LEARNED window expired: ${inc.actor}::${inc.technique} — debrief not filed, no bonus`);
         resolveIncident(inc, false);
       }
       return;
     }
     inc.dwell += delta;
 
-    if (inc.analyistId === null) {
+    if (inc.analystId === null) {
       // Unhandled — check for breach
       if (inc.dwell >= UNHANDLED_BREACH_MINS) {
         triggerBreach(null, 'UNHANDLED', inc);
@@ -2428,10 +2437,10 @@ function tick() {
         // IR complete — wait for analyst to file lessons learned
         inc.status = 'LESSONS_PENDING';
         inc.lessonsPendingUntil = G.gameTime + 120; // 2 game hours to file debrief
-        siemLog('OK', `SOC-A${inc.analyistId}`, `IR COMPLETE: ${inc.actor}::${inc.technique} — lessons learned window open (2h)`);
+        siemLog('OK', `SOC-A${inc.analystId}`, `IR COMPLETE: ${inc.actor}::${inc.technique} — lessons learned window open (2h)`);
       } else {
         inc.status = IR_STAGES[inc.stageIdx].name;
-        siemLog('INFO', `SOC-A${inc.analyistId}`, `${inc.actor} :: ${inc.technique} → ${inc.status}`);
+        siemLog('INFO', `SOC-A${inc.analystId}`, `${inc.actor} :: ${inc.technique} → ${inc.status}`);
       }
     }
   });
@@ -2450,7 +2459,7 @@ function tick() {
   // MSSP auto-assignment
   if (G.mssp) {
     G.incidents.forEach(inc => {
-      if (!inc.resolved && !inc.breachTriggered && inc.analyistId === null && inc.status !== 'LESSONS_PENDING') {
+      if (!inc.resolved && !inc.breachTriggered && inc.analystId === null && inc.status !== 'LESSONS_PENDING') {
         if (G.analystSlots.some(s => s === null)) assignAnalystToIncident(inc.id);
       }
     });
@@ -2536,8 +2545,8 @@ function resolveIncident(inc, earnReward = true) {
   soundResolve();
 
   // Free analyst
-  if (inc.analyistId !== null) {
-    G.analystSlots[inc.analyistId - 1] = null;
+  if (inc.analystId !== null) {
+    G.analystSlots[inc.analystId - 1] = null;
     G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING').length;
   }
 
@@ -2549,7 +2558,7 @@ function resolveIncident(inc, earnReward = true) {
   const stillAttacked = G.incidents.some(i => !i.resolved && i.targetId === inc.targetId);
   if (!stillAttacked) getNode(inc.targetId).status = 'healthy';
 
-  siemLog('OK', `SOC-A${inc.analyistId}`, `INCIDENT RESOLVED: ${inc.actor}::${inc.technique} on ${inc.targetId}`, `Dwell: ${fmtDwell(inc.dwell)}`);
+  siemLog('OK', `SOC-A${inc.analystId}`, `INCIDENT RESOLVED: ${inc.actor}::${inc.technique} on ${inc.targetId}`, `Dwell: ${fmtDwell(inc.dwell)}`);
 
   // Budget reward (not awarded if lessons window expired without filing)
   if (earnReward) {
@@ -2569,15 +2578,15 @@ function completeLessonsLearned(incidentId) {
   const prev = G.lessonsLearned[cat] || 0;
 
   if (prev >= 3) {
-    siemLog('INFO', `SOC-A${inc.analyistId}`, `LESSONS LEARNED filed: ${cat} — team already at peak proficiency for this category`);
+    siemLog('INFO', `SOC-A${inc.analystId}`, `LESSONS LEARNED filed: ${cat} — team already at peak proficiency for this category`);
   } else {
     // 55% chance the debrief yields actionable improvement
     if (Math.random() < 0.55) {
       G.lessonsLearned[cat] = prev + 1;
       const newBonus = Math.min(25, (prev + 1) * 10);
-      siemLog('OK', `SOC-A${inc.analyistId}`, `LESSONS LEARNED: ${cat} — IR speed +${newBonus}% bonus applied`);
+      siemLog('OK', `SOC-A${inc.analystId}`, `LESSONS LEARNED: ${cat} — IR speed +${newBonus}% bonus applied`);
     } else {
-      siemLog('WARN', `SOC-A${inc.analyistId}`, `LESSONS LEARNED filed: ${cat} — no actionable findings from this debrief`);
+      siemLog('WARN', `SOC-A${inc.analystId}`, `LESSONS LEARNED filed: ${cat} — no actionable findings from this debrief`);
     }
   }
 
@@ -2773,7 +2782,6 @@ function fireRandomEvent() {
     const cat = pick(TECHNIQUE_CATS);
     const technique = pick(TECHNIQUES[cat]);
     const targetId = pick(TARGET_NODES);
-    const fakeThreats = G.threats;
     const threat = {
       id: G.nextThreatId++,
       actor: 'INSIDER', actorDesc: 'Malicious insider — privileged access',
@@ -2853,7 +2861,7 @@ function generateConsultantAdvice() {
   };
 
   // Priority 2: Incidents piling up, analysts maxed
-  const unhandled = G.incidents.filter(i => !i.resolved && !i.breachTriggered && i.analyistId === null);
+  const unhandled = G.incidents.filter(i => !i.resolved && !i.breachTriggered && i.analystId === null);
   if (unhandled.length >= 2 && G.analystBusy >= G.analystTotal) return {
     priority: 'CRITICAL',
     action: 'HIRE ANALYST',
@@ -3133,7 +3141,6 @@ function updateUI() {
   document.getElementById('hdr-breaches').className = G.breaches >= 2 ? 'stat-val crit' : G.breaches >= 1 ? 'stat-val warn' : 'stat-val';
   document.getElementById('game-screen').classList.toggle('breach-critical', G.breaches >= MAX_BREACHES - 1);
   document.getElementById('hdr-resolved').textContent = G.totalResolved;
-  document.getElementById('budget-display').textContent = fmt$(G.budget);
   const budgetLargeEl = document.getElementById('budget-display-large');
   budgetLargeEl.textContent = fmt$(G.budget);
   budgetLargeEl.style.color = G.budget < 50000 ? 'var(--red)' : G.budget < 150000 ? 'var(--amber)' : 'var(--green)';
@@ -3290,19 +3297,19 @@ function renderIncidents() {
     IR_STAGES.forEach((s, i) => {
       let cls = 'pending';
       if (i < inc.stageIdx) cls = 'done';
-      else if (i === inc.stageIdx && inc.analyistId !== null) cls = 'active';
+      else if (i === inc.stageIdx && inc.analystId !== null) cls = 'active';
       stagesHtml += `<span class="ir-stage ${cls}">${s.name}</span>`;
     });
 
     // Progress within current stage
     const currentStage = IR_STAGES[inc.stageIdx];
-    const stagePct = currentStage && inc.analyistId !== null
+    const stagePct = currentStage && inc.analystId !== null
       ? Math.min(100, Math.round((inc.stageProgress / currentStage.durationMins) * 100))
       : 0;
 
     const noAnalysts = !G.analystSlots.some(s => s === null);
-    const assignedHtml = inc.analyistId !== null
-      ? `<div class="analyst-tag">ANALYST-${inc.analyistId} assigned</div>`
+    const assignedHtml = inc.analystId !== null
+      ? `<div class="analyst-tag">ANALYST-${inc.analystId} assigned</div>`
       : noAnalysts
         ? `<button class="assign-btn" disabled title="All analysts busy — hire more or wait for one to finish">⚠ ALL ANALYSTS BUSY</button>`
         : `<button class="assign-btn" data-incident-id="${inc.id}">ASSIGN ANALYST</button>`;
@@ -3601,7 +3608,7 @@ function togglePause() {
 
 function openHelp() {
   document.getElementById('help-overlay').classList.add('visible');
-  if (G && !G.paused && !G.gameOver) { G._modalPaused = true; togglePause(); }
+  // Help is read-only — don't pause the game
 }
 function closeHelp() {
   document.getElementById('help-overlay').classList.remove('visible');
@@ -3609,15 +3616,18 @@ function closeHelp() {
 }
 
 document.addEventListener('keydown', e => {
-  if (e.code === 'Space') {
+  const modalBlocked = anyModalOpen() || document.getElementById('help-overlay').classList.contains('visible');
+  if (e.code === 'Space' && !modalBlocked) {
     e.preventDefault();
     if (G && !G.gameOver) togglePause();
   }
-  if (e.key === '1' && G && !G.gameOver) setSpeed(1);
-  if (e.key === '2' && G && !G.gameOver) setSpeed(2);
-  if (e.key === '3' && G && !G.gameOver) setSpeed(3);
-  if (e.key === '4' && G && !G.gameOver) setSpeed(4);
-  if (e.key === '?' ) openHelp();
+  if (!modalBlocked && G && !G.gameOver) {
+    if (e.key === '1') setSpeed(1);
+    if (e.key === '2') setSpeed(2);
+    if (e.key === '3') setSpeed(3);
+    if (e.key === '4') setSpeed(4);
+  }
+  if (e.key === '?') openHelp();
 });
 
 // Delegated listener for briefing toggle — survives DOM re-renders every tick
@@ -3679,6 +3689,12 @@ function newGameClick() {
 function restartGame() {
   clearSavedState();
   clearInterval(tickInterval);
+  tickInterval = null;
+  if (_crtFlickerTimeout) { clearTimeout(_crtFlickerTimeout); _crtFlickerTimeout = null; }
+  expandedActorCards.clear();
+  _newIncidentIds.clear();
+  _prevBudget = null;
+  _prevCoverage = 0;
   document.getElementById('gameover-overlay').classList.remove('visible');
   document.getElementById('win-overlay').classList.remove('visible');
   document.getElementById('game-screen').classList.remove('visible');
@@ -3871,7 +3887,7 @@ function startGame() {
 }
 
 function scheduleCrtFlicker() {
-  setTimeout(() => {
+  _crtFlickerTimeout = setTimeout(() => {
     document.body.classList.add('crt-flicker');
     setTimeout(() => document.body.classList.remove('crt-flicker'), 220);
     scheduleCrtFlicker();
