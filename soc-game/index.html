@@ -3212,10 +3212,11 @@ function renderIncidents() {
         Skill: ${'█'.repeat(actorData.skill)}${'░'.repeat(5 - actorData.skill)} ${actorData.skill}/5 &nbsp;|&nbsp; TTPs: ${inc.techniqueCategory}
       </div>` : '';
     card.innerHTML = `
-      <div class="incident-header">
-        <span class="incident-actor">▶ ${inc.actor}</span>
+      <div class="incident-header" data-actor-toggle="${inc.id}" style="cursor:pointer">
+        <span class="incident-actor">${actorExpanded ? '▼' : '▶'} ${inc.actor}</span>
         <span class="incident-target">${inc.targetId}</span>
       </div>
+      ${actorIntelHtml}
       <div class="incident-technique">${inc.technique} [${inc.techniqueCategory}]</div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px">
         <div class="ir-stages">${stagesHtml}</div>
@@ -3223,8 +3224,6 @@ function renderIncidents() {
       </div>
       <div class="progress-bar"><div class="progress-fill" style="width:${stagePct}%"></div></div>
       ${assignedHtml}
-      <button class="actor-intel-btn" data-actor-toggle="${inc.id}">${actorExpanded ? '▼' : '▶'} ACTOR INTEL</button>
-      ${actorIntelHtml}
     `;
     list.appendChild(card);
   });
