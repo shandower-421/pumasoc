@@ -72,7 +72,7 @@ body::after {
   text-align: center;
   margin-bottom: 30px;
 }
-#boot-logo-text {
+.logo-ascii {
   font-size: 13px;
   letter-spacing: 0;
   color: var(--green);
@@ -83,7 +83,7 @@ body::after {
   font-family: var(--font);
   text-align: left;
 }
-#boot-logo-sub {
+.logo-sub {
   font-size: 11px;
   letter-spacing: 3px;
   color: var(--green-dim);
@@ -200,6 +200,7 @@ body::after {
 }
 #pause-btn:hover { background: var(--amber); color: var(--bg); }
 .header-spacer { flex: 1; }
+.header-gap { flex-shrink: 0; width: 12px; }
 #day-progress-bar {
   height: 2px;
   background: var(--border);
@@ -555,7 +556,6 @@ body::after {
   border: 1px solid var(--green);
   color: var(--green);
   font-family: var(--font);
-
   font-size: 9px;
   padding: 2px 8px;
   cursor: pointer;
@@ -613,6 +613,7 @@ body::after {
   letter-spacing: 1px;
   margin-bottom: 6px;
 }
+.ops-section-title-crit { color: var(--red); }
 .stat-row {
   display: flex;
   justify-content: space-between;
@@ -1297,7 +1298,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 
   /* Difficulty screen on mobile */
   #difficulty-screen { padding: 20px 12px; }
-  .diff-options { flex-direction: column; gap: 8px; }
+  #diff-options { flex-direction: column; gap: 8px; }
   .diff-option { padding: 10px 12px; }
 
   /* Analyst roster more readable */
@@ -1325,12 +1326,12 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 <!-- ===================== BOOT SCREEN ===================== -->
 <div id="boot-screen">
   <div id="boot-logo">
-    <div id="boot-logo-text"> ____  _   _ __  __   _    ____   ___   ____
+    <div class="logo-ascii"> ____  _   _ __  __   _    ____   ___   ____
 |  _ \| | | |  \/  | / \  / ___| / _ \ / ___|
 | |_) | | | | |\/| |/ _ \ \___ \| | | | |
 |  __/| |_| | |  | / ___ \ ___) | |_| | |___
 |_|    \___/|_|  |_/_/   \_\____/ \___/ \____|</div>
-    <div id="boot-logo-sub">SECURITY OPERATIONS CENTER  //  THREAT MANAGEMENT PLATFORM v2.4.1</div>
+    <div class="logo-sub">SECURITY OPERATIONS CENTER  //  THREAT MANAGEMENT PLATFORM v2.4.1</div>
   </div>
   <div id="boot-log"></div>
   <div id="boot-prompt" style="display:none">▋ PRESS ANY KEY TO BEGIN OPERATIONS</div>
@@ -1339,12 +1340,12 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 <!-- ===================== DIFFICULTY SCREEN ===================== -->
 <div id="difficulty-screen" style="display:none">
   <div id="diff-logo">
-    <div id="boot-logo-text"> ____  _   _ __  __   _    ____   ___   ____
+    <div class="logo-ascii"> ____  _   _ __  __   _    ____   ___   ____
 |  _ \| | | |  \/  | / \  / ___| / _ \ / ___|
 | |_) | | | | |\/| |/ _ \ \___ \| | | | |
 |  __/| |_| | |  | / ___ \ ___) | |_| | |___
 |_|    \___/|_|  |_/_/   \_\____/ \___/ \____|</div>
-    <div id="boot-logo-sub">SECURITY OPERATIONS CENTER  //  THREAT MANAGEMENT PLATFORM v2.4.1</div>
+    <div class="logo-sub">SECURITY OPERATIONS CENTER  //  THREAT MANAGEMENT PLATFORM v2.4.1</div>
   </div>
   <div id="diff-box">
     <div id="diff-title">── SELECT ENGAGEMENT PROFILE ──────────────────────────────</div>
@@ -1401,9 +1402,9 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
     <div id="header-title">PumaSOC</div>
     <div id="diff-badge"></div>
     <div id="live-indicator" class="live">■ LIVE</div>
-    <div class="header-stat">DAY <span id="hdr-day">1</span><span style="color:var(--green-dim)">/7</span></div>
+    <div class="header-stat">DAY <span id="hdr-day">1</span><span style="color:var(--green-dim)" id="hdr-day-max">/7</span></div>
     <div class="header-stat"><span id="hdr-time">00:00</span></div>
-    <div class="header-stat">BREACHES: <span id="hdr-breaches" class="stat-val">0</span>/3</div>
+    <div class="header-stat">BREACHES: <span id="hdr-breaches" class="stat-val">0</span><span id="hdr-breach-max">/3</span></div>
     <div class="header-stat" id="hdr-resolved-wrap">RESOLVED: <span id="hdr-resolved">0</span></div>
     <div class="header-spacer"></div>
     <button class="speed-btn active" id="spd-1" onclick="setSpeed(1)">1×</button>
@@ -1411,9 +1412,9 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
     <button class="speed-btn" id="spd-3" onclick="setSpeed(3)">3×</button>
     <button class="speed-btn" id="spd-4" onclick="setSpeed(4)">4×</button>
     <button id="pause-btn" onclick="togglePause()">PAUSE</button>
-    <div class="header-spacer" style="max-width:12px"></div>
+    <div class="header-gap"></div>
     <button class="speed-btn active" id="mute-btn" onclick="toggleMute()">SOUND</button>
-    <div class="header-spacer" style="max-width:12px"></div>
+    <div class="header-gap"></div>
     <button class="speed-btn" id="newgame-btn" onclick="newGameClick()">NEW GAME</button>
   </div>
   <div id="day-progress-bar"><div id="day-progress-fill"></div></div>
@@ -1483,7 +1484,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
         <div id="redteam-jobs-list"></div>
       </div>
       <div class="ops-section" id="active-events-section" style="display:none">
-        <div class="ops-section-title" style="color:var(--red)">── ACTIVE EVENTS ─────────</div>
+        <div class="ops-section-title ops-section-title-crit">── ACTIVE EVENTS ─────────</div>
         <div id="active-events-list"></div>
       </div>
     </div>
@@ -3743,7 +3744,26 @@ function closeHelp() {
   if (G && G._modalPaused && !anyModalOpen()) { G._modalPaused = false; togglePause(); }
 }
 
+const _KONAMI_SEQ = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+let _konamiIdx = 0;
+
 document.addEventListener('keydown', e => {
+  // Konami code
+  if (e.key === _KONAMI_SEQ[_konamiIdx]) {
+    _konamiIdx++;
+    if (_konamiIdx === _KONAMI_SEQ.length) {
+      _konamiIdx = 0;
+      if (G && !G.gameOver) {
+        G.budget += 500000;
+        siemLog('CRIT', 'SYSTEM', '[ UNAUTHORIZED BUDGET INJECTION DETECTED ] — +$500k — this incident will be logged.');
+        siemLog('INFO', 'SYSTEM', '...just kidding. good taste in input sequences. — dev team');
+        updateUI();
+      }
+    }
+  } else {
+    _konamiIdx = (e.key === _KONAMI_SEQ[0]) ? 1 : 0;
+  }
+
   const modalBlocked = anyModalOpen() || document.getElementById('help-overlay').classList.contains('visible');
   if (e.code === 'Space' && !modalBlocked) {
     e.preventDefault();
@@ -4028,6 +4048,10 @@ function startGame() {
   const badge = document.getElementById('diff-badge');
   badge.textContent = DIFFICULTIES[selectedDifficulty].label;
   badge.className = selectedDifficulty;
+
+  // Sync header denominators from constants
+  document.getElementById('hdr-day-max').textContent = `/${WIN_DAYS}`;
+  document.getElementById('hdr-breach-max').textContent = `/${MAX_BREACHES}`;
 
   updateUI();
 
