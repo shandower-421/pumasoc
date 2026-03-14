@@ -73,12 +73,15 @@ body::after {
   margin-bottom: 30px;
 }
 #boot-logo-text {
-  font-size: 72px;
-  letter-spacing: 14px;
+  font-size: 13px;
+  letter-spacing: 0;
   color: var(--green);
-  text-shadow: 0 0 20px var(--green), 0 0 50px rgba(0,255,65,0.35), 0 0 80px rgba(0,255,65,0.15);
-  line-height: 1;
-  margin-bottom: 10px;
+  text-shadow: 0 0 8px var(--green), 0 0 20px rgba(0,255,65,0.4);
+  line-height: 1.2;
+  margin-bottom: 12px;
+  white-space: pre;
+  font-family: var(--font);
+  text-align: left;
 }
 #boot-logo-sub {
   font-size: 11px;
@@ -180,11 +183,30 @@ body::after {
   font-weight: bold;
   text-shadow: 0 0 6px var(--green);
 }
+#budget-panel {
+  padding: 10px 10px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+#budget-panel .budget-label {
+  font-size: 9px;
+  color: var(--green-dark);
+  letter-spacing: 2px;
+  margin-bottom: 3px;
+}
+#budget-display-large {
+  font-size: 28px;
+  font-weight: bold;
+  color: var(--green);
+  text-shadow: 0 0 10px var(--green), 0 0 20px rgba(0,255,65,0.3);
+  letter-spacing: 1px;
+  line-height: 1;
+}
 
 /* Main layout */
 #main {
   display: grid;
-  grid-template-columns: 240px 1fr 280px;
+  grid-template-columns: 220px 1fr 260px;
   grid-template-rows: 1fr;
   flex: 1;
   overflow: hidden;
@@ -221,43 +243,13 @@ body::after {
 }
 
 /* ===================== NETWORK MAP ===================== */
-#map-panel { }
-#map-svg-container {
-  flex: 1;
-  overflow: hidden;
-  padding: 8px;
-  position: relative;
+#status-panel {
+  overflow-y: auto;
+  border-left: none;
 }
-#map-svg {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-.node-circle {
-  transition: fill 0.5s;
-}
-.node-label {
-  font-family: var(--font);
-  font-size: 8px;
-  fill: var(--green-dim);
-  text-anchor: middle;
-  pointer-events: none;
-}
-.node-label.active { fill: var(--green); }
-.edge-line {
-  stroke: var(--green-dark);
-  stroke-width: 1;
-  opacity: 0.6;
-}
-.edge-line.active {
-  stroke: var(--green-dim);
-  opacity: 1;
-}
-.threat-packet {
-  r: 3;
-  fill: var(--red);
-  box-shadow: 0 0 6px var(--red);
-}
+#status-panel::-webkit-scrollbar { width: 4px; }
+#status-panel::-webkit-scrollbar-track { background: var(--bg); }
+#status-panel::-webkit-scrollbar-thumb { background: var(--border); }
 
 /* ===================== INCIDENTS (now the full center column) ===================== */
 #incidents-panel {
@@ -1059,7 +1051,11 @@ body::after {
 <!-- ===================== BOOT SCREEN ===================== -->
 <div id="boot-screen">
   <div id="boot-logo">
-    <div id="boot-logo-text">PumaSOC</div>
+    <div id="boot-logo-text"> ____  _   _ __  __   _    ____   ___   ____
+|  _ \| | | |  \/  | / \  / ___| / _ \ / ___|
+| |_) | | | | |\/| |/ _ \ \___ \| | | | |
+|  __/| |_| | |  | / ___ \ ___) | |_| | |___
+|_|    \___/|_|  |_/_/   \_\____/ \___/ \____|</div>
     <div id="boot-logo-sub">SECURITY OPERATIONS CENTER  //  THREAT MANAGEMENT PLATFORM v2.4.1</div>
   </div>
   <div id="boot-log"></div>
@@ -1069,7 +1065,11 @@ body::after {
 <!-- ===================== DIFFICULTY SCREEN ===================== -->
 <div id="difficulty-screen" style="display:none">
   <div id="diff-logo">
-    <div id="boot-logo-text">PumaSOC</div>
+    <div id="boot-logo-text"> ____  _   _ __  __   _    ____   ___   ____
+|  _ \| | | |  \/  | / \  / ___| / _ \ / ___|
+| |_) | | | | |\/| |/ _ \ \___ \| | | | |
+|  __/| |_| | |  | / ___ \ ___) | |_| | |___
+|_|    \___/|_|  |_/_/   \_\____/ \___/ \____|</div>
     <div id="boot-logo-sub">SECURITY OPERATIONS CENTER  //  THREAT MANAGEMENT PLATFORM v2.4.1</div>
   </div>
   <div id="diff-box">
@@ -1137,54 +1137,21 @@ body::after {
     <button class="speed-btn" id="spd-4" onclick="setSpeed(4)">4×</button>
     <button id="pause-btn" onclick="togglePause()">PAUSE</button>
     <div class="header-spacer" style="max-width:12px"></div>
-    <div id="budget-display">$500k</div>
+    <button class="speed-btn active" id="mute-btn" onclick="toggleMute()">SOUND</button>
+    <div id="budget-display" style="display:none"></div>
   </div>
 
   <!-- Three column main -->
   <div id="main">
-    <!-- LEFT: Network Map -->
-    <div class="panel" id="map-panel">
+    <!-- LEFT: Status -->
+    <div class="panel" id="status-panel">
       <div class="panel-title">
-        <div class="panel-title-dot"></div>
-        NETWORK TOPOLOGY — CLIENT ESTATE
-      </div>
-      <div id="map-svg-container">
-        <svg id="map-svg" viewBox="0 0 232 385" preserveAspectRatio="xMidYMid meet">
-          <defs>
-            <filter id="glow">
-              <feGaussianBlur stdDeviation="1.5" result="blur"/>
-              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-            <filter id="glow-red">
-              <feGaussianBlur stdDeviation="3" result="blur"/>
-              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
-          <!-- Edges and nodes rendered by JS -->
-          <g id="edges-layer"></g>
-          <g id="nodes-layer"></g>
-          <g id="packets-layer"></g>
-        </svg>
-      </div>
-    </div>
-
-    <!-- CENTER: Incidents (full height) -->
-    <div id="incidents-panel">
-      <div class="panel-title">
-        <div class="panel-title-dot" style="background:var(--amber)"></div>
-        ACTIVE INCIDENTS
-        <span style="margin-left:auto;color:var(--green-dark);font-size:9px" id="incident-count">0 active</span>
-      </div>
-      <div id="incidents-list">
-        <div class="no-incidents">NO ACTIVE INCIDENTS — MONITORING...</div>
-      </div>
-    </div>
-
-    <!-- RIGHT: Operations -->
-    <div class="panel" id="ops-panel">
-      <div class="panel-title" style="border-right:none">
         <div class="panel-title-dot" style="background:var(--green)"></div>
-        OPERATIONS
+        STATUS
+      </div>
+      <div id="budget-panel">
+        <div class="budget-label">AVAILABLE BUDGET</div>
+        <div id="budget-display-large">$500k</div>
       </div>
       <div class="ops-section">
         <div class="ops-section-title">── POSTURE ──────────────</div>
@@ -1210,23 +1177,14 @@ body::after {
           <span class="stat-label">ACTIVE THREATS</span>
           <span class="stat-val" id="stat-threats">0</span>
         </div>
-      </div>
-      <div class="ops-section">
-        <div class="ops-section-title">── CAPABILITIES ─────────</div>
-        <button class="action-btn" onclick="openModal('detection')">▶ DETECTION ENG<span class="btn-cost">$25k</span></button>
-        <button class="action-btn" onclick="openModal('vuln')">▶ VULN MGMT<span class="btn-cost">$10k</span></button>
-        <button class="action-btn" onclick="openModal('redteam')">▶ RED TEAM<span class="btn-cost">$50k+</span></button>
-        <button class="action-btn" onclick="openModal('intel')">▶ THREAT INTEL<span class="btn-cost">$100k</span></button>
-        <button class="action-btn" id="hire-btn" onclick="hireAnalyst()">▶ HIRE ANALYST<span class="btn-cost" id="hire-cost">$75k</span></button>
-      </div>
-      <div class="ops-section" id="consultant-ops-section">
-        <div class="ops-section-title">── CONSULTANT ───────────</div>
-        <div id="consultant-card"><div style="color:var(--green-dark);font-size:10px;margin-bottom:4px">No consultant on retainer.</div></div>
-        <button class="action-btn" id="hire-consultant-btn" onclick="openModal('consultant')">▶ HIRE CONSULTANT<span class="btn-cost">$150k</span></button>
-      </div>
-      <div class="ops-section" id="redteam-jobs-section" style="display:none">
-        <div class="ops-section-title">── ACTIVE ENGAGEMENTS ───</div>
-        <div id="redteam-jobs-list"></div>
+        <div class="stat-row" id="row-mssp" style="display:none">
+          <span class="stat-label">MSSP</span>
+          <span class="stat-val" id="stat-mssp">ACTIVE</span>
+        </div>
+        <div class="stat-row" id="row-ir-bonus" style="display:none">
+          <span class="stat-label">IR SPEED BONUS</span>
+          <span class="stat-val" id="stat-ir-bonus">+0%</span>
+        </div>
       </div>
       <div class="ops-section">
         <div class="ops-section-title">── INTEL ─────────────────</div>
@@ -1242,6 +1200,52 @@ body::after {
           <span class="stat-label">WIN PROGRESS</span>
           <span class="stat-val" id="stat-progress">Day 1/30</span>
         </div>
+      </div>
+      <div class="ops-section" id="redteam-jobs-section" style="display:none">
+        <div class="ops-section-title">── ACTIVE ENGAGEMENTS ───</div>
+        <div id="redteam-jobs-list"></div>
+      </div>
+      <div class="ops-section" id="active-events-section" style="display:none">
+        <div class="ops-section-title" style="color:var(--red)">── ACTIVE EVENTS ─────────</div>
+        <div id="active-events-list"></div>
+      </div>
+    </div>
+
+    <!-- CENTER: Incidents (full height) -->
+    <div id="incidents-panel">
+      <div class="panel-title">
+        <div class="panel-title-dot" style="background:var(--amber)"></div>
+        ACTIVE INCIDENTS
+        <span style="margin-left:auto;color:var(--green-dark);font-size:9px" id="incident-count">0 active</span>
+      </div>
+      <div id="incidents-list">
+        <div class="no-incidents">NO ACTIVE INCIDENTS — MONITORING...</div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Operations (purchases only) -->
+    <div class="panel" id="ops-panel">
+      <div class="panel-title" style="border-right:none">
+        <div class="panel-title-dot" style="background:var(--green)"></div>
+        OPERATIONS
+      </div>
+      <div class="ops-section">
+        <div class="ops-section-title">── STAFFING ─────────────</div>
+        <button class="action-btn" id="hire-btn" onclick="hireAnalyst()">▶ HIRE ANALYST<span class="btn-cost" id="hire-cost">$75k</span></button>
+        <button class="action-btn" id="training-btn" onclick="startTraining()">▶ SEND TO TRAINING<span class="btn-cost">$30k</span></button>
+      </div>
+      <div class="ops-section">
+        <div class="ops-section-title">── CAPABILITIES ─────────</div>
+        <button class="action-btn" onclick="openModal('detection')">▶ DETECTION ENG<span class="btn-cost">$25k</span></button>
+        <button class="action-btn" onclick="openModal('vuln')">▶ VULN MGMT<span class="btn-cost">$10k</span></button>
+        <button class="action-btn" onclick="openModal('intel')">▶ THREAT INTEL<span class="btn-cost">$100k</span></button>
+      </div>
+      <div class="ops-section" id="consultant-ops-section">
+        <div class="ops-section-title">── PARTNERS ─────────────</div>
+        <button class="action-btn" onclick="openModal('redteam')">▶ RED TEAM<span class="btn-cost">$50k+</span></button>
+        <button class="action-btn" id="mssp-btn" onclick="hireMSSP()">▶ HIRE MSSP<span class="btn-cost">$150k</span></button>
+        <div id="consultant-card"><div style="color:var(--green-dark);font-size:10px;margin-bottom:4px">No consultant on retainer.</div></div>
+        <button class="action-btn" id="hire-consultant-btn" onclick="openModal('consultant')">▶ HIRE CONSULTANT<span class="btn-cost">$150k</span></button>
       </div>
     </div>
   </div><!-- /#main -->
@@ -1628,6 +1632,14 @@ const NOISE_EVENTS = [
   ['WARN','NET','Unusual outbound DNS query volume from WORK-03 — investigating'],
 ];
 
+const RANDOM_EVENTS = [
+  { type:'ddos',    sev:'CRIT', name:'DDoS Barrage',          msg:'Massive DDoS targeting perimeter — detection coverage degraded',    duration:480,  coveragePenalty:20, vulnPenalty:0  },
+  { type:'outage',  sev:'CRIT', name:'Tool Outage',           msg:'EDR/SIEM platform degraded — CrowdStrike-style sensor failure',      duration:240,  coveragePenalty:15, vulnPenalty:0  },
+  { type:'zeroday', sev:'CRIT', name:'Zero-Day In the Wild',  msg:'Unpatched zero-day being actively exploited — expect imminent intrusion', duration:0, coveragePenalty:0, vulnPenalty:0, spawnSkill5:true },
+  { type:'insider', sev:'CRIT', name:'Insider Threat',        msg:'Anomalous insider activity detected — privileged account misuse',    duration:0,    coveragePenalty:0, vulnPenalty:0, insiderSpawn:true },
+  { type:'audit',   sev:'WARN', name:'Emergency Budget Audit', msg:'Regulatory audit triggered — emergency reserve funds seized',       duration:0,    coveragePenalty:0, vulnPenalty:0, budgetHit:20000 },
+];
+
 const REDTEAM_OPTIONS = [
   { id:'ext',     name:'External Network Pentest',   desc:'Simulate external attacker targeting internet-facing assets',      cost:50000,  durationMins:1440 },
   { id:'int',     name:'Internal Network Assessment', desc:'Assume-breach simulation — lateral movement and privilege escalation', cost:75000, durationMins:2880 },
@@ -1740,8 +1752,17 @@ function initState() {
     nextThreatId: 1,
     nextIncidentId: 1,
     nextVulnId: 1000,
+    lastVulnDay: 1, // skip day-1 spawn; new vulns start appearing day 2
     // analyst tracking — sized to analystTotal
     analystSlots: Array(diff.analystTotal).fill(null),
+    // training
+    trainingJob: null,      // null | { completesAt: gameTimeMinutes }
+    analystSpeedBonus: 0,   // 0.0 → 0.30, applied globally to IR stage progression
+    // MSSP
+    mssp: false,
+    // random events
+    nextRandomEventIn: rndF(1440 * 3, 1440 * 5),
+    activeRandomEvents: [],
   };
 }
 
@@ -1802,6 +1823,13 @@ function getNode(id) { return G.nodes.find(n => n.id === id); }
 // ================================================================
 
 let _audioCtx = null;
+let _muted = false;
+function toggleMute() {
+  _muted = !_muted;
+  const muteBtn = document.getElementById('mute-btn');
+  muteBtn.textContent = _muted ? 'MUTE' : 'SOUND';
+  muteBtn.classList.toggle('active', !_muted);
+}
 function getAudioCtx() {
   if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (_audioCtx.state === 'suspended') _audioCtx.resume();
@@ -1809,6 +1837,7 @@ function getAudioCtx() {
 }
 
 function playTone(freq, type, duration, gain, delay = 0) {
+  if (_muted) return;
   try {
     const ctx = getAudioCtx();
     const osc = ctx.createOscillator();
@@ -1921,7 +1950,8 @@ function calcCoverage() {
     const feed = INTEL_FEEDS.find(f => f.id === fid);
     if (feed) intelBonus += feed.detectionBonus;
   });
-  return Math.min(95, 25 + avgBonus + intelBonus + getConsultantBonuses().coverageBonus);
+  const eventPenalty = (G.activeRandomEvents || []).reduce((s, e) => s + (e.coveragePenalty || 0), 0);
+  return Math.min(95, Math.max(0, 25 + avgBonus + intelBonus + getConsultantBonuses().coverageBonus - eventPenalty));
 }
 
 function calcMTTD() {
@@ -2046,6 +2076,11 @@ function tick() {
     G.budget += G.incomeAmount;
     G.nextIncomeIn = INCOME_INTERVAL_MINS;
     siemLog('OK', 'FINANCE', `Client retainer payment received: +${fmt$(G.incomeAmount)}`, `Total: ${fmt$(G.budget)}`);
+    if (G.mssp) {
+      const msspFee = 15000;
+      G.budget -= msspFee;
+      siemLog('INFO','FINANCE',`MSSP retainer fee deducted: -${fmt$(msspFee)}`);
+    }
   }
 
   // Noise events
@@ -2056,12 +2091,13 @@ function tick() {
     G.nextNoiseIn = rndF(30, 90);
   }
 
-  // Threat spawning
+  // Threat spawning — rate increases with time and with unpatched vuln score
   G.nextThreatIn -= delta;
   if (G.nextThreatIn <= 0) {
     spawnThreat();
     const dayFactor = Math.min(2, 1 + G.gameTime / (1440 * 4)); // ramp up over 4 game days
-    G.nextThreatIn = rndF(THREAT_SPAWN_MIN_MINS, THREAT_SPAWN_MAX_MINS) / dayFactor;
+    const vulnFactor = 1 + (G.vulnScore - 50) * 0.01; // score 80 → 1.3× spawns; score 20 → 0.7×
+    G.nextThreatIn = rndF(THREAT_SPAWN_MIN_MINS, THREAT_SPAWN_MAX_MINS) / (dayFactor * Math.max(0.5, vulnFactor));
   }
 
   // Advance threat progress & detect undetected threats
@@ -2093,7 +2129,13 @@ function tick() {
   // Advance incidents
   G.incidents.forEach(inc => {
     if (inc.resolved || inc.breachTriggered) return;
-    if (inc.status === 'LESSONS_PENDING') return; // waiting for analyst sign-off
+    if (inc.status === 'LESSONS_PENDING') {
+      if (G.gameTime >= inc.lessonsPendingUntil) {
+        siemLog('WARN', `SOC-A${inc.analyistId}`, `LESSONS LEARNED window expired: ${inc.actor}::${inc.technique} — debrief not filed, no bonus`);
+        resolveIncident(inc, false);
+      }
+      return;
+    }
     inc.dwell += delta;
 
     if (inc.analyistId === null) {
@@ -2108,7 +2150,7 @@ function tick() {
     const stage = IR_STAGES[inc.stageIdx];
     // Apply lessons learned speed bonus (up to +25% per category)
     const lessonCount = G.lessonsLearned[inc.techniqueCategory] || 0;
-    const speedMult = 1 + Math.min(0.25, lessonCount * 0.10);
+    const speedMult = (1 + G.analystSpeedBonus) * (1 + Math.min(0.25, lessonCount * 0.10));
     inc.stageProgress += delta * speedMult;
     if (inc.stageProgress >= stage.durationMins) {
       inc.stageProgress = 0;
@@ -2116,13 +2158,34 @@ function tick() {
       if (inc.stageIdx >= IR_STAGES.length) {
         // IR complete — wait for analyst to file lessons learned
         inc.status = 'LESSONS_PENDING';
-        siemLog('OK', `SOC-A${inc.analyistId}`, `IR COMPLETE: ${inc.actor}::${inc.technique} — awaiting lessons learned sign-off`);
+        inc.lessonsPendingUntil = G.gameTime + 120; // 2 game hours to file debrief
+        siemLog('OK', `SOC-A${inc.analyistId}`, `IR COMPLETE: ${inc.actor}::${inc.technique} — lessons learned window open (2h)`);
       } else {
         inc.status = IR_STAGES[inc.stageIdx].name;
         siemLog('INFO', `SOC-A${inc.analyistId}`, `${inc.actor} :: ${inc.technique} → ${inc.status}`);
       }
     }
   });
+
+  // Training completion
+  if (G.trainingJob && G.gameTime >= G.trainingJob.completesAt) {
+    const idx = G.analystSlots.indexOf('TRAINING');
+    if (idx !== -1) G.analystSlots[idx] = null;
+    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING').length;
+    G.analystSpeedBonus = Math.min(0.30, G.analystSpeedBonus + 0.10);
+    G.trainingJob = null;
+    const pct = Math.round(G.analystSpeedBonus * 100);
+    siemLog('OK','HR',`Training complete — analysts now ${pct}% faster on all IR stages`);
+  }
+
+  // MSSP auto-assignment
+  if (G.mssp) {
+    G.incidents.forEach(inc => {
+      if (!inc.resolved && !inc.breachTriggered && inc.analyistId === null && inc.status !== 'LESSONS_PENDING') {
+        if (G.analystSlots.some(s => s === null)) assignAnalystToIncident(inc.id);
+      }
+    });
+  }
 
   // Advance red team jobs
   G.redTeamJobs.forEach(job => {
@@ -2137,6 +2200,43 @@ function tick() {
   // Recalculate stats
   G.coverage = calcCoverage();
   G.mttd = calcMTTD();
+  G.vulnScore = calcVulnScore();
+
+  // Daily vulnerability accumulation
+  const currentDay = fmtTime(G.gameTime).day;
+  if (currentDay > G.lastVulnDay) {
+    G.lastVulnDay = currentDay;
+    const newCount = rnd(1, 3);
+    const vulnNames = [
+      'Remote Code Execution','Privilege Escalation','SQL Injection','Buffer Overflow',
+      'Authentication Bypass','Path Traversal','XXE Injection','Deserialization',
+      'Unpatched OpenSSL','Log4j Variant','SMB Relay','Kerberos Delegation',
+      'Outdated TLS','Default Credentials','Exposed API Key','SSRF',
+      'NTLM Relay','Insecure Deserialization','Open Redirect','XML External Entity',
+    ];
+    const sevWeights = ['HIGH','MED','MED','LOW','LOW'];
+    const targetNodes = G.nodes.filter(n => n.type !== 'internet');
+    for (let i = 0; i < newCount; i++) {
+      G.vulns.push({
+        id: `CVE-2025-${G.nextVulnId++}`,
+        nodeId: pick(targetNodes).id,
+        name: pick(vulnNames),
+        severity: pick(sevWeights),
+        patched: false,
+        discovered: false,
+      });
+    }
+    G.vulnScore = calcVulnScore();
+    siemLog('WARN', 'PATCH-MGR', `Day ${currentDay}: ${newCount} new CVE${newCount > 1 ? 's' : ''} published — run a scan to assess exposure`);
+  }
+
+  // Random events
+  G.nextRandomEventIn -= delta;
+  if (G.nextRandomEventIn <= 0) {
+    fireRandomEvent();
+    G.nextRandomEventIn = rndF(1440 * 3, 1440 * 5);
+  }
+  G.activeRandomEvents = G.activeRandomEvents.filter(e => G.gameTime < e.endsAt);
 
   // Consultant daily briefing
   if (G.consultant) {
@@ -2158,7 +2258,7 @@ function tick() {
   updateUI();
 }
 
-function resolveIncident(inc) {
+function resolveIncident(inc, earnReward = true) {
   inc.resolved = true;
   inc.status = 'RESOLVED';
   G.totalResolved++;
@@ -2168,7 +2268,7 @@ function resolveIncident(inc) {
   // Free analyst
   if (inc.analyistId !== null) {
     G.analystSlots[inc.analyistId - 1] = null;
-    G.analystBusy = G.analystSlots.filter(s => s !== null).length;
+    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING').length;
   }
 
   // Remove associated threat
@@ -2181,10 +2281,12 @@ function resolveIncident(inc) {
 
   siemLog('OK', `SOC-A${inc.analyistId}`, `INCIDENT RESOLVED: ${inc.actor}::${inc.technique} on ${inc.targetId}`, `Dwell: ${fmtDwell(inc.dwell)}`);
 
-  // Budget reward
-  const reward = rnd(5000, 20000);
-  G.budget += reward;
-  siemLog('OK', 'FINANCE', `Incident bonus credited: +${fmt$(reward)}`);
+  // Budget reward (not awarded if lessons window expired without filing)
+  if (earnReward) {
+    const reward = rnd(5000, 20000);
+    G.budget += reward;
+    siemLog('OK', 'FINANCE', `Incident bonus credited: +${fmt$(reward)}`);
+  }
 
   updateNodeStatuses();
 }
@@ -2316,7 +2418,8 @@ function calcVulnScore() {
   if (total === 0) return 0;
   const unpatched = G.vulns.filter(v => !v.patched);
   const raw = Math.round((unpatched.length / total) * 100);
-  return Math.max(0, raw - getConsultantBonuses().vulnBonus);
+  const eventPenalty = (G.activeRandomEvents || []).reduce((s, e) => s + (e.vulnPenalty || 0), 0);
+  return Math.max(0, raw - getConsultantBonuses().vulnBonus + eventPenalty);
 }
 
 let selectedRedTeam = null;
@@ -2326,6 +2429,95 @@ let consultantBriefingCollapsed = false;
 function toggleBriefing() {
   consultantBriefingCollapsed = !consultantBriefingCollapsed;
   renderConsultantCard();
+}
+
+function startTraining() {
+  if (G.trainingJob) return;
+  if (G.analystTotal <= 1) { siemLog('WARN','HR','Cannot send analyst to training — minimum staffing required'); return; }
+  const freeIdx = G.analystSlots.findIndex(s => s === null);
+  if (freeIdx === -1) { siemLog('WARN','HR','No free analyst available for training'); return; }
+  if (G.budget < 30000) { siemLog('WARN','HR','Insufficient budget for analyst training'); return; }
+  G.budget -= 30000;
+  G.analystSlots[freeIdx] = 'TRAINING';
+  G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING').length;
+  G.trainingJob = { completesAt: G.gameTime + 1440 };
+  siemLog('OK','HR','Analyst dispatched to training — team capacity reduced for 24h');
+}
+
+function hireMSSP() {
+  if (G.mssp) return;
+  if (G.budget < 150000) { siemLog('WARN','HR','Insufficient budget for MSSP contract'); return; }
+  G.budget -= 150000;
+  G.mssp = true;
+  siemLog('OK','HR','MSSP contracted — analyst assignment now automated');
+}
+
+function terminateMSSP() {
+  if (!G.mssp) return;
+  G.mssp = false;
+  siemLog('WARN','HR','MSSP contract terminated — manual analyst assignment required');
+}
+
+function fireRandomEvent() {
+  const ev = pick(RANDOM_EVENTS);
+  siemLog(ev.sev, 'THREAT-INTEL', `⚠ RANDOM EVENT: ${ev.name} — ${ev.msg}`);
+  if (ev.budgetHit) {
+    G.budget = Math.max(0, G.budget - ev.budgetHit);
+    siemLog('WARN','FINANCE',`Emergency funds seized: -${fmt$(ev.budgetHit)}`);
+  }
+  if (ev.spawnSkill5) {
+    // Spawn a high-skill threat immediately
+    const actor = pick(ACTORS);
+    const cat = pick(TECHNIQUE_CATS);
+    const technique = pick(TECHNIQUES[cat]);
+    const targetId = pick(TARGET_NODES);
+    const entryId = pick(ENTRY_NODES);
+    const threat = {
+      id: G.nextThreatId++,
+      actor: actor.name, actorDesc: actor.desc,
+      technique, techniqueCategory: cat,
+      targetId, entryId,
+      skill: 5,
+      detected: false, breachTriggered: false,
+      dwell: 0,
+      progress: 0,
+      progressRate: 1 / (actor.skill * 2),
+    };
+    G.threats.push(threat);
+    // Force detection immediately
+    threat.detected = true;
+    createIncident(threat);
+    getNode(targetId).status = 'under_attack';
+    siemLog('CRIT', actor.name, `ZERO-DAY EXPLOITATION: ${technique} targeting ${targetId}`);
+  }
+  if (ev.insiderSpawn) {
+    // Create incident directly (already inside, no detection check)
+    const cat = pick(TECHNIQUE_CATS);
+    const technique = pick(TECHNIQUES[cat]);
+    const targetId = pick(TARGET_NODES);
+    const fakeThreats = G.threats;
+    const threat = {
+      id: G.nextThreatId++,
+      actor: 'INSIDER', actorDesc: 'Malicious insider — privileged access',
+      technique, techniqueCategory: cat,
+      targetId, entryId: targetId,
+      skill: 3,
+      detected: true, breachTriggered: false,
+      dwell: 0, progress: 0,
+      progressRate: 1 / 6,
+    };
+    G.threats.push(threat);
+    createIncident(threat);
+    getNode(targetId).status = 'under_attack';
+  }
+  if (ev.duration > 0) {
+    G.activeRandomEvents.push({
+      type: ev.type, name: ev.name,
+      endsAt: G.gameTime + ev.duration,
+      coveragePenalty: ev.coveragePenalty || 0,
+      vulnPenalty: ev.vulnPenalty || 0,
+    });
+  }
 }
 
 function launchRedTeam() {
@@ -2488,6 +2680,7 @@ function purchaseIntelFeed(feedId) {
 function initMap() {
   const edgesLayer = document.getElementById('edges-layer');
   const nodesLayer = document.getElementById('nodes-layer');
+  if (!edgesLayer || !nodesLayer) return;
   edgesLayer.innerHTML = '';
   nodesLayer.innerHTML = '';
 
@@ -2534,6 +2727,7 @@ function initMap() {
 let pulsePhase = 0;
 
 function updateMap() {
+  if (!document.getElementById('nodes-layer')) return;
   pulsePhase += 0.05;
 
   // Update node colors based on status
@@ -2629,9 +2823,14 @@ function updateUI() {
   document.getElementById('hdr-breaches').className = G.breaches >= 2 ? 'stat-val crit' : G.breaches >= 1 ? 'stat-val warn' : 'stat-val';
   document.getElementById('hdr-resolved').textContent = G.totalResolved;
   document.getElementById('budget-display').textContent = fmt$(G.budget);
+  document.getElementById('budget-display-large').textContent = fmt$(G.budget);
+  document.getElementById('budget-display-large').style.color = G.budget < 50000 ? 'var(--red)' : G.budget < 150000 ? 'var(--amber)' : 'var(--green)';
+  document.getElementById('budget-display-large').style.textShadow = G.budget < 50000 ? '0 0 10px var(--red)' : G.budget < 150000 ? '0 0 10px var(--amber)' : '0 0 10px var(--green), 0 0 20px rgba(0,255,65,0.3)';
 
   // Stats panel
-  document.getElementById('stat-analysts').textContent = `${G.analystTotal - G.analystBusy}/${G.analystTotal}`;
+  const trainingSlots = G.analystSlots.filter(s => s === 'TRAINING').length;
+  const effectiveFree = G.analystTotal - G.analystBusy - trainingSlots;
+  document.getElementById('stat-analysts').textContent = `${effectiveFree}/${G.analystTotal}${trainingSlots > 0 ? ' (1 training)' : ''}`;
   const cov = Math.round(G.coverage);
   document.getElementById('stat-coverage').textContent = `${cov}%`;
   document.getElementById('bar-coverage').style.width = `${cov}%`;
@@ -2657,6 +2856,40 @@ function updateUI() {
   // Hire btn
   const hireBtn = document.getElementById('hire-btn');
   hireBtn.disabled = G.analystTotal >= MAX_ANALYSTS || G.budget < ANALYST_COST;
+
+  // Training btn
+  const trainingBtn = document.getElementById('training-btn');
+  const hasFreeAnalyst = G.analystSlots.some(s => s === null);
+  trainingBtn.disabled = !!G.trainingJob || !hasFreeAnalyst || G.analystTotal <= 1 || G.budget < 30000 || G.analystSpeedBonus >= 0.30;
+  if (G.analystSpeedBonus >= 0.30) {
+    trainingBtn.innerHTML = '▶ TRAINING MAXED<span class="btn-cost">+30%</span>';
+  } else if (G.trainingJob) {
+    const remaining = Math.max(0, G.trainingJob.completesAt - G.gameTime);
+    trainingBtn.innerHTML = `▶ IN TRAINING<span class="btn-cost">${Math.round(remaining/60)}h left</span>`;
+  } else {
+    trainingBtn.innerHTML = '▶ SEND TO TRAINING<span class="btn-cost">$30k</span>';
+  }
+
+  // MSSP btn
+  const msspBtn = document.getElementById('mssp-btn');
+  if (G.mssp) {
+    msspBtn.innerHTML = '▶ TERMINATE MSSP<span class="btn-cost">no refund</span>';
+    msspBtn.onclick = terminateMSSP;
+    msspBtn.disabled = false;
+  } else {
+    msspBtn.innerHTML = '▶ HIRE MSSP<span class="btn-cost">$150k</span>';
+    msspBtn.onclick = hireMSSP;
+    msspBtn.disabled = G.budget < 150000;
+  }
+
+  // MSSP & IR bonus posture indicators
+  document.getElementById('row-mssp').style.display = G.mssp ? '' : 'none';
+  const irBonusRow = document.getElementById('row-ir-bonus');
+  irBonusRow.style.display = G.analystSpeedBonus > 0 ? '' : 'none';
+  document.getElementById('stat-ir-bonus').textContent = `+${Math.round(G.analystSpeedBonus * 100)}%`;
+
+  // Active random events
+  updateActiveEventsUI();
 
   // Incidents
   renderIncidents();
@@ -2685,14 +2918,19 @@ function renderIncidents() {
     card.className = 'incident-card';
 
     if (inc.status === 'LESSONS_PENDING') {
+      const remaining = Math.max(0, inc.lessonsPendingUntil - G.gameTime);
+      const windowPct = Math.round((remaining / 120) * 100);
+      const urgent = remaining < 30;
       card.classList.add('lessons-pending');
+      if (urgent) card.classList.add('critical');
       const lessonCount = G.lessonsLearned[inc.techniqueCategory] || 0;
       const alreadyMaxed = lessonCount >= 3;
       const bonusPreview = alreadyMaxed
         ? `MAX PROFICIENCY REACHED`
         : `+${Math.min(25, (lessonCount + 1) * 10)}% IR speed for ${inc.techniqueCategory}`;
-      // All stages done
       const stagesHtml = IR_STAGES.map(s => `<span class="ir-stage done">${s.name}</span>`).join('');
+      const timeColor = urgent ? 'var(--red)' : 'var(--amber)';
+      const timeLabel = `${Math.round(remaining)}m remaining`;
       card.innerHTML = `
         <div class="incident-header">
           <span class="incident-actor">✓ ${inc.actor}</span>
@@ -2701,9 +2939,9 @@ function renderIncidents() {
         <div class="incident-technique">${inc.technique} [${inc.techniqueCategory}]</div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px">
           <div class="ir-stages">${stagesHtml}</div>
-          <span class="incident-dwell dwell-ok">IR COMPLETE</span>
+          <span class="incident-dwell" style="color:${timeColor}">⏱ ${timeLabel}</span>
         </div>
-        <div class="progress-bar"><div class="progress-fill" style="width:100%;background:var(--green)"></div></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${windowPct}%;background:${timeColor};transition:width 0.1s linear"></div></div>
         <button class="lessons-btn" data-lessons-id="${inc.id}">▶ LESSONS LEARNED — ${bonusPreview}</button>
       `;
       list.appendChild(card);
@@ -2770,6 +3008,28 @@ function updateRedTeamJobsUI() {
     d.className = 'redteam-job';
     d.innerHTML = `${job.name.substring(0,28)}${job.done ? ' [DONE]' : ` ${pct}%`}
       <div class="redteam-job-bar"><div class="redteam-job-fill" style="width:${pct}%"></div></div>`;
+    list.appendChild(d);
+  });
+}
+
+function updateActiveEventsUI() {
+  const section = document.getElementById('active-events-section');
+  const list = document.getElementById('active-events-list');
+  if (!G.activeRandomEvents || G.activeRandomEvents.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = '';
+  list.innerHTML = '';
+  G.activeRandomEvents.forEach(ev => {
+    const remaining = Math.max(0, ev.endsAt - G.gameTime);
+    const pct = Math.max(0, Math.round((remaining / (ev.endsAt - (ev.endsAt - (ev.coveragePenalty > 0 ? 480 : 240)))) * 100));
+    const d = document.createElement('div');
+    d.className = 'redteam-job';
+    d.style.color = 'var(--red)';
+    const hrs = Math.round(remaining / 60);
+    d.innerHTML = `${ev.name} — ${hrs}h remaining
+      <div class="redteam-job-bar"><div class="redteam-job-fill" style="width:${Math.min(100, Math.round((remaining / (ev.type === 'ddos' ? 480 : 240)) * 100))}%;background:var(--red)"></div></div>`;
     list.appendChild(d);
   });
 }
