@@ -1134,10 +1134,13 @@ body::after {
     <div class="header-spacer"></div>
     <button class="speed-btn active" id="spd-1" onclick="setSpeed(1)">1×</button>
     <button class="speed-btn" id="spd-2" onclick="setSpeed(2)">2×</button>
+    <button class="speed-btn" id="spd-3" onclick="setSpeed(3)">3×</button>
     <button class="speed-btn" id="spd-4" onclick="setSpeed(4)">4×</button>
     <button id="pause-btn" onclick="togglePause()">PAUSE</button>
     <div class="header-spacer" style="max-width:12px"></div>
     <button class="speed-btn active" id="mute-btn" onclick="toggleMute()">SOUND</button>
+    <div class="header-spacer" style="max-width:12px"></div>
+    <button class="speed-btn" id="newgame-btn" onclick="newGameClick()">NEW GAME</button>
     <div id="budget-display" style="display:none"></div>
   </div>
 
@@ -1411,14 +1414,11 @@ body::after {
           </ol>
           <p>You start with <strong>2 analysts</strong>. Each handles one incident at a time.</p>
 
-          <div class="help-section-title">NETWORK MAP</div>
-          <p>Shows your client estate. Node colours change as threats land:</p>
-          <ul>
-            <li><span class="help-ok">● Green</span> — healthy</li>
-            <li><span class="help-warn">● Amber</span> — known vulnerabilities present</li>
-            <li><span class="help-crit">● Red</span> — under active attack</li>
-          </ul>
-          <p>Moving <span class="help-crit">red packets</span> on the map are threats in transit to a target.</p>
+          <div class="help-section-title">RANDOM EVENTS</div>
+          <p>Periodically the game throws a crisis your way — a DDoS barrage, tool outage, zero-day, insider threat, or emergency budget audit. These appear as <span class="help-crit">ACTIVE THREATS</span> in the left panel and may temporarily cut your Coverage % or spawn extra incidents. Ride them out.</p>
+
+          <div class="help-section-title">PERSISTENCE</div>
+          <p>Your session auto-saves every ~10 real seconds and on page close. Reload or navigate away freely — the game picks up where you left off. Use <strong>NEW GAME</strong> in the header to start over.</p>
 
           <div class="help-section-title">SIEM FEED</div>
           <p>The strip at the bottom shows the last 8 events. <strong>Click it</strong> to expand the full scrollable history. CRIT alerts need immediate attention.</p>
@@ -1448,6 +1448,14 @@ body::after {
             <span class="help-cap-desc">More analysts = more incidents handled simultaneously. Essential as threat tempo escalates. Max 8.</span>
           </div>
           <div class="help-cap-row">
+            <span class="help-cap-name">SEND TO TRAINING</span>
+            <span class="help-cap-desc">Takes one analyst offline for ~6 real hours but permanently boosts all analyst IR speed by 20%. Worth it early when incident pressure is low.</span>
+          </div>
+          <div class="help-cap-row">
+            <span class="help-cap-name">MSSP</span>
+            <span class="help-cap-desc">Retains a Managed Security Service Provider. Auto-assigns to unhandled incidents when all your analysts are busy — a safety net, not a substitute.</span>
+          </div>
+          <div class="help-cap-row">
             <span class="help-cap-name">CONSULTANT</span>
             <span class="help-cap-desc">Retains an expert who adds a passive defensive bonus and delivers a <strong>daily briefing</strong> — one prioritised recommendation telling you the single best action to take next.</span>
           </div>
@@ -1463,7 +1471,7 @@ body::after {
           <div class="help-section-title">CONTROLS</div>
           <ul>
             <li><strong>SPACE</strong> — pause / resume</li>
-            <li><strong>1× 2× 4×</strong> — game speed</li>
+            <li><strong>1 2 3 4</strong> — game speed (1×–4×)</li>
             <li><strong>?</strong> — this screen</li>
           </ul>
         </div>
@@ -1485,7 +1493,7 @@ body::after {
 </div>
 <div id="win-overlay">
   <div class="title">■ MISSION COMPLETE ■</div>
-  <div class="overlay-text">30 days survived. Client estate secured.</div>
+  <div class="overlay-text">7 days survived. Client estate secured.</div>
   <div class="overlay-text" id="win-stats"></div>
   <button class="overlay-btn" onclick="restartGame()">↺ NEW OPERATION</button>
 </div>
@@ -1697,6 +1705,49 @@ let G = null; // game state
 let tickInterval = null;
 let siemEntryCount = 0;
 
+const SAVE_KEY = 'pumasoc_save';
+
+function saveState() {
+  if (!G || G.gameOver) return;
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      G, selectedDifficulty, siemHistory, siemEntryCount,
+      consultantBriefingCollapsed, _muted,
+    }));
+  } catch(e) {}
+}
+
+function loadSavedState() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const save = JSON.parse(raw);
+    if (!save.G || save.G.gameOver) return false;
+    G = save.G;
+    G.paused = false; // never restore into a paused state
+    G.speed = G.speed || 1;
+    selectedDifficulty = save.selectedDifficulty || 'analyst';
+    siemHistory.length = 0;
+    siemHistory.push(...(save.siemHistory || []));
+    siemEntryCount = save.siemEntryCount || 0;
+    consultantBriefingCollapsed = !!save.consultantBriefingCollapsed;
+    _muted = !!save._muted;
+    return true;
+  } catch(e) { return false; }
+}
+
+function clearSavedState() {
+  localStorage.removeItem(SAVE_KEY);
+}
+
+function restoreSiemStrip() {
+  const strip = document.getElementById('siem-strip-list');
+  strip.innerHTML = '';
+  const recent = siemHistory.slice(-SIEM_STRIP_MAX);
+  recent.forEach(e => strip.appendChild(makeSiemEntry(e.severity, e.source, e.msg, e.extra, false)));
+  document.getElementById('siem-count').textContent = `${siemEntryCount} events`;
+}
+
 function initState() {
   const diff = DIFFICULTIES[selectedDifficulty];
 
@@ -1824,11 +1875,15 @@ function getNode(id) { return G.nodes.find(n => n.id === id); }
 
 let _audioCtx = null;
 let _muted = false;
+function updateMuteBtn() {
+  const btn = document.getElementById('mute-btn');
+  if (!btn) return;
+  btn.textContent = _muted ? 'MUTE' : 'SOUND';
+  btn.classList.toggle('active', !_muted);
+}
 function toggleMute() {
   _muted = !_muted;
-  const muteBtn = document.getElementById('mute-btn');
-  muteBtn.textContent = _muted ? 'MUTE' : 'SOUND';
-  muteBtn.classList.toggle('active', !_muted);
+  updateMuteBtn();
 }
 function getAudioCtx() {
   if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2066,6 +2121,10 @@ let lastRealTime = null;
 
 function tick() {
   if (G.paused || G.gameOver) return;
+
+  // Periodic auto-save (~every 10 real seconds)
+  G._saveTick = (G._saveTick || 0) + 1;
+  if (G._saveTick >= 100) { G._saveTick = 0; saveState(); }
 
   const delta = GAME_MINS_PER_TICK_BASE * G.speed;
   G.gameTime += delta;
@@ -2333,6 +2392,7 @@ function triggerBreach(threat, reason, incident) {
 }
 
 function triggerGameOver(reason) {
+  clearSavedState();
   G.gameOver = true;
   G.gameOverReason = reason;
   document.getElementById('gameover-reason').textContent = reason;
@@ -2343,6 +2403,7 @@ function triggerGameOver(reason) {
 }
 
 function triggerWin() {
+  clearSavedState();
   G.gameOver = true;
   G.won = true;
   document.getElementById('win-stats').textContent =
@@ -3240,7 +3301,7 @@ function renderConsultantModal() {
 
 function setSpeed(s) {
   G.speed = s;
-  [1,2,4].forEach(v => {
+  [1,2,3,4].forEach(v => {
     document.getElementById(`spd-${v}`).classList.toggle('active', v === s);
   });
 }
@@ -3273,7 +3334,11 @@ document.addEventListener('keydown', e => {
     e.preventDefault();
     if (G && !G.gameOver) togglePause();
   }
-  if (e.key === '?') openHelp();
+  if (e.key === '1' && G && !G.gameOver) setSpeed(1);
+  if (e.key === '2' && G && !G.gameOver) setSpeed(2);
+  if (e.key === '3' && G && !G.gameOver) setSpeed(3);
+  if (e.key === '4' && G && !G.gameOver) setSpeed(4);
+  if (e.key === '?' ) openHelp();
 });
 
 // Delegated listener for briefing toggle — survives DOM re-renders every tick
@@ -3300,7 +3365,33 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
   });
 });
 
+let _newGameConfirmTimer = null;
+function newGameClick() {
+  const btn = document.getElementById('newgame-btn');
+  if (_newGameConfirmTimer) {
+    // Second click — confirmed
+    clearTimeout(_newGameConfirmTimer);
+    _newGameConfirmTimer = null;
+    btn.textContent = 'NEW GAME';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+    restartGame();
+  } else {
+    // First click — ask for confirmation
+    btn.textContent = 'CONFIRM?';
+    btn.style.color = 'var(--red)';
+    btn.style.borderColor = 'var(--red)';
+    _newGameConfirmTimer = setTimeout(() => {
+      _newGameConfirmTimer = null;
+      btn.textContent = 'NEW GAME';
+      btn.style.color = '';
+      btn.style.borderColor = '';
+    }, 3000);
+  }
+}
+
 function restartGame() {
+  clearSavedState();
   clearInterval(tickInterval);
   document.getElementById('gameover-overlay').classList.remove('visible');
   document.getElementById('win-overlay').classList.remove('visible');
@@ -3348,6 +3439,21 @@ function runBootSequence() {
   function nextLine() {
     if (i >= BOOT_LINES.length) {
       setTimeout(() => {
+        // Auto-restore if a save exists — no keypress required
+        if (loadSavedState()) {
+          document.getElementById('boot-screen').style.display = 'none';
+          document.getElementById('game-screen').classList.add('visible');
+          const diff = DIFFICULTIES[selectedDifficulty];
+          const badge = document.getElementById('diff-badge');
+          badge.textContent = diff.label;
+          badge.className = selectedDifficulty;
+          updateMuteBtn();
+          restoreSiemStrip();
+          updateUI();
+          siemLog('INFO', 'SYSTEM', 'Session restored — resuming operations');
+          tickInterval = setInterval(tick, TICK_MS);
+          return;
+        }
         document.getElementById('boot-prompt').style.display = 'block';
         document.addEventListener('keydown', openDifficultyScreen, { once: true });
         document.addEventListener('click', openDifficultyScreen, { once: true });
@@ -3376,6 +3482,23 @@ let diffIdx = 1; // default: analyst
 function openDifficultyScreen(e) {
   // Don't intercept if it was a modifier key or similar
   if (e && e.type === 'keydown' && (e.key === 'Tab' || e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt')) return;
+
+  // Silent restore — if a saved game exists, skip difficulty screen entirely
+  if (loadSavedState()) {
+    document.getElementById('boot-screen').style.display = 'none';
+    document.getElementById('game-screen').classList.add('visible');
+    const diff = DIFFICULTIES[selectedDifficulty];
+    const badge = document.getElementById('diff-badge');
+    badge.textContent = diff.label;
+    badge.className = selectedDifficulty;
+    updateMuteBtn();
+    restoreSiemStrip();
+    updateUI();
+    siemLog('INFO', 'SYSTEM', 'Session restored — resuming operations');
+    tickInterval = setInterval(tick, TICK_MS);
+    return;
+  }
+
   document.getElementById('boot-screen').style.display = 'none';
   document.getElementById('difficulty-screen').style.display = 'flex';
   renderDifficultySelection();
@@ -3462,6 +3585,7 @@ function startGame() {
 // INIT
 // ================================================================
 
+window.addEventListener('beforeunload', saveState);
 window.addEventListener('load', () => {
   runBootSequence();
 });
