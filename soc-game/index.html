@@ -1,0 +1,2737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<title>PumaSOC — Security Operations Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --green: #00ff41;
+  --green-dim: #00aa2b;
+  --green-dark: #003d0e;
+  --amber: #ffb000;
+  --amber-dim: #aa7500;
+  --red: #ff3333;
+  --red-dim: #aa0000;
+  --bg: #020c03;
+  --bg2: #040f05;
+  --border: #00aa2b;
+  --font: 'Share Tech Mono', 'Courier New', monospace;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  color: var(--green);
+  font-family: var(--font);
+  font-size: 12px;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* CRT Overlay */
+body::before {
+  content: '';
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.08) 2px,
+    rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 10000;
+}
+body::after {
+  content: '';
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.5) 100%);
+  pointer-events: none;
+  z-index: 10001;
+}
+
+/* ===================== BOOT SCREEN ===================== */
+#boot-screen {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 40px;
+}
+#boot-logo {
+  text-align: center;
+  margin-bottom: 30px;
+}
+#boot-logo-text {
+  font-size: 72px;
+  letter-spacing: 14px;
+  color: var(--green);
+  text-shadow: 0 0 20px var(--green), 0 0 50px rgba(0,255,65,0.35), 0 0 80px rgba(0,255,65,0.15);
+  line-height: 1;
+  margin-bottom: 10px;
+}
+#boot-logo-sub {
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--green-dim);
+}
+#boot-log {
+  width: 560px;
+  max-width: 90vw;
+}
+.boot-line {
+  display: flex;
+  justify-content: space-between;
+  margin: 2px 0;
+  opacity: 0;
+  animation: fadeIn 0.1s ease forwards;
+}
+.boot-line .ok { color: var(--green); }
+.boot-line .warn { color: var(--amber); }
+.boot-line .label { color: var(--green-dim); }
+#boot-prompt {
+  margin-top: 20px;
+  color: var(--green);
+  animation: blink 1s step-end infinite;
+  font-size: 14px;
+  text-shadow: 0 0 8px var(--green);
+}
+@keyframes fadeIn { to { opacity: 1; } }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ===================== LAYOUT ===================== */
+#game-screen {
+  display: none;
+  width: 100vw;
+  height: 100vh;
+  flex-direction: column;
+}
+#game-screen.visible { display: flex; }
+
+/* Header */
+#header {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 4px 8px;
+  background: var(--bg2);
+  flex-shrink: 0;
+  height: 28px;
+}
+#header-title {
+  color: var(--green);
+  font-size: 13px;
+  font-weight: bold;
+  text-shadow: 0 0 8px var(--green);
+  margin-right: 16px;
+  letter-spacing: 2px;
+}
+.header-stat {
+  margin-right: 16px;
+  color: var(--green-dim);
+  font-size: 11px;
+}
+.header-stat span { color: var(--green); }
+#live-indicator {
+  margin-right: 16px;
+  font-size: 11px;
+}
+#live-indicator.live { color: var(--green); animation: blink 1.5s step-end infinite; }
+#live-indicator.paused { color: var(--amber); }
+.speed-btn {
+  background: none; border: 1px solid var(--border); color: var(--green-dim);
+  font-family: var(--font); font-size: 10px;
+  padding: 1px 6px; cursor: pointer; margin-right: 2px;
+}
+.speed-btn:hover { color: var(--green); border-color: var(--green); }
+.speed-btn.active { color: var(--bg); background: var(--green); border-color: var(--green); }
+#pause-btn {
+  background: none; border: 1px solid var(--amber); color: var(--amber);
+  font-family: var(--font); font-size: 10px;
+  padding: 1px 8px; cursor: pointer; margin-left: 4px;
+}
+#pause-btn:hover { background: var(--amber); color: var(--bg); }
+.header-spacer { flex: 1; }
+#budget-display {
+  color: var(--green);
+  font-size: 13px;
+  font-weight: bold;
+  text-shadow: 0 0 6px var(--green);
+}
+
+/* Main layout */
+#main {
+  display: grid;
+  grid-template-columns: 240px 1fr 200px;
+  grid-template-rows: 1fr;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ASCII panel borders */
+.panel {
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.panel-title {
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--green-dim);
+  font-size: 10px;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+  background: var(--bg2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.panel-title-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%,100% { opacity: 1; box-shadow: 0 0 4px var(--green); }
+  50% { opacity: 0.4; box-shadow: none; }
+}
+
+/* ===================== NETWORK MAP ===================== */
+#map-panel { }
+#map-svg-container {
+  flex: 1;
+  overflow: hidden;
+  padding: 8px;
+  position: relative;
+}
+#map-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.node-circle {
+  transition: fill 0.5s;
+}
+.node-label {
+  font-family: var(--font);
+  font-size: 8px;
+  fill: var(--green-dim);
+  text-anchor: middle;
+  pointer-events: none;
+}
+.node-label.active { fill: var(--green); }
+.edge-line {
+  stroke: var(--green-dark);
+  stroke-width: 1;
+  opacity: 0.6;
+}
+.edge-line.active {
+  stroke: var(--green-dim);
+  opacity: 1;
+}
+.threat-packet {
+  r: 3;
+  fill: var(--red);
+  box-shadow: 0 0 6px var(--red);
+}
+
+/* ===================== INCIDENTS (now the full center column) ===================== */
+#incidents-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--border);
+}
+#incidents-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px;
+  /* grid of cards: 1 col normally, 2 cols when wide */
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+#incidents-list::-webkit-scrollbar { width: 4px; }
+#incidents-list::-webkit-scrollbar-track { background: var(--bg); }
+#incidents-list::-webkit-scrollbar-thumb { background: var(--border); }
+
+/* ===================== SIEM STRIP (bottom flex child of #game-screen) ===================== */
+#siem-strip {
+  flex-shrink: 0;
+  height: 145px;
+  border-top: 1px solid var(--border);
+  background: var(--bg2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+#siem-strip:hover { border-top-color: var(--green); }
+#siem-strip-header {
+  display: flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-bottom: 1px solid var(--green-dark);
+  flex-shrink: 0;
+  gap: 6px;
+}
+#siem-strip-list {
+  flex: 1;
+  overflow: hidden;
+  padding: 2px 6px;
+  display: flex;
+  flex-direction: column;
+}
+.siem-entry {
+  padding: 0;
+  line-height: 1.45;
+  font-size: 11px;
+  opacity: 0;
+  animation: siem-slide 0.15s ease forwards;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+@keyframes siem-slide {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.siem-time { color: #336633; }
+.siem-info { color: var(--green-dim); }
+.siem-warn { color: var(--amber); }
+.siem-crit { color: var(--red); text-shadow: 0 0 4px var(--red); }
+.siem-success { color: var(--green); text-shadow: 0 0 4px var(--green); }
+.siem-badge {
+  display: inline-block;
+  padding: 0 3px;
+  font-size: 9px;
+  margin: 0 2px;
+}
+.badge-info { border: 1px solid var(--green-dark); color: var(--green-dim); }
+.badge-warn { border: 1px solid var(--amber-dim); color: var(--amber); }
+.badge-crit { border: 1px solid var(--red-dim); color: var(--red); }
+.badge-ok { border: 1px solid var(--green-dim); color: var(--green); }
+
+/* ===================== SIEM POPOUT ===================== */
+#siem-popout {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,8,2,0.88);
+  z-index: 500;
+  align-items: flex-end;
+}
+#siem-popout.visible { display: flex; }
+#siem-popout-window {
+  width: 100%;
+  height: 65vh;
+  background: var(--bg);
+  border-top: 1px solid var(--green);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 -10px 40px rgba(0,255,65,0.08);
+  animation: slide-up 0.18s ease;
+}
+@keyframes slide-up {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+#siem-popout-header {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+  flex-shrink: 0;
+  gap: 8px;
+}
+#siem-popout-feed {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 10px;
+}
+#siem-popout-feed::-webkit-scrollbar { width: 4px; }
+#siem-popout-feed::-webkit-scrollbar-track { background: var(--bg); }
+#siem-popout-feed::-webkit-scrollbar-thumb { background: var(--border); }
+#siem-popout-feed .siem-entry {
+  animation: none;
+  opacity: 1;
+}
+.incident-card {
+  border: 1px solid var(--green-dark);
+  margin: 2px 0;
+  padding: 5px 7px;
+  background: rgba(0,20,5,0.5);
+  position: relative;
+  transition: border-color 0.3s;
+}
+.incident-card.critical { border-color: var(--red); }
+.incident-card.warning { border-color: var(--amber); }
+.incident-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3px;
+}
+.incident-actor { color: var(--red); font-size: 11px; font-weight: bold; }
+.incident-target { color: var(--amber); font-size: 10px; }
+.incident-technique { color: var(--green-dim); font-size: 10px; }
+.incident-dwell { font-size: 10px; }
+.dwell-ok { color: var(--green-dim); }
+.dwell-warn { color: var(--amber); }
+.dwell-crit { color: var(--red); animation: blink 0.7s step-end infinite; }
+.ir-stages {
+  display: flex;
+  gap: 3px;
+  margin: 3px 0;
+  align-items: center;
+}
+.ir-stage {
+  font-size: 9px;
+  padding: 1px 5px;
+  border: 1px solid var(--green-dark);
+  color: var(--green-dark);
+}
+.ir-stage.active {
+  border-color: var(--amber);
+  color: var(--amber);
+  animation: blink 1s step-end infinite;
+}
+.ir-stage.done {
+  border-color: var(--green-dim);
+  color: var(--green-dim);
+}
+.ir-stage.pending { border-color: var(--green-dark); color: var(--green-dark); }
+.progress-bar {
+  height: 3px;
+  background: var(--green-dark);
+  margin-top: 2px;
+  position: relative;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--amber);
+  transition: width 0.2s;
+}
+.assign-btn {
+  background: none;
+  border: 1px solid var(--green-dim);
+  color: var(--green);
+  font-family: var(--font);
+  font-size: 9px;
+  padding: 1px 6px;
+  cursor: pointer;
+  margin-top: 3px;
+}
+.assign-btn:hover { background: var(--green); color: var(--bg); }
+.assign-btn:disabled {
+  border-color: var(--amber-dim);
+  color: var(--amber-dim);
+  cursor: not-allowed;
+}
+.analyst-tag {
+  font-size: 9px;
+  color: var(--green-dim);
+  margin-top: 3px;
+}
+.no-incidents {
+  color: var(--green-dark);
+  font-size: 11px;
+  padding: 12px 8px;
+  text-align: center;
+}
+
+/* ===================== OPERATIONS PANEL ===================== */
+#ops-panel {
+  border-right: none;
+  overflow-y: auto;
+}
+#ops-panel::-webkit-scrollbar { width: 4px; }
+#ops-panel::-webkit-scrollbar-track { background: var(--bg); }
+#ops-panel::-webkit-scrollbar-thumb { background: var(--border); }
+.ops-section {
+  border-bottom: 1px solid var(--green-dark);
+  padding: 6px 8px;
+}
+.ops-section-title {
+  color: var(--green-dim);
+  font-size: 9px;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 3px 0;
+  font-size: 11px;
+}
+.stat-label { color: var(--green-dim); }
+.stat-val { color: var(--green); }
+.stat-val.warn { color: var(--amber); }
+.stat-val.crit { color: var(--red); }
+.mini-bar {
+  height: 3px;
+  background: var(--green-dark);
+  margin: 2px 0 4px;
+  position: relative;
+}
+.mini-bar-fill {
+  height: 100%;
+  background: var(--green);
+  transition: width 0.5s;
+}
+.mini-bar-fill.warn { background: var(--amber); }
+.mini-bar-fill.crit { background: var(--red); }
+.action-btn {
+  display: block;
+  width: 100%;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--green);
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 5px 8px;
+  cursor: pointer;
+  text-align: left;
+  margin-bottom: 3px;
+  letter-spacing: 0.5px;
+  transition: background 0.1s, color 0.1s;
+}
+.action-btn:hover { background: var(--green); color: var(--bg); }
+.action-btn:disabled { border-color: var(--green-dark); color: var(--green-dark); cursor: not-allowed; }
+.action-btn .btn-cost { float: right; color: var(--amber-dim); font-size: 10px; }
+.action-btn:hover .btn-cost { color: var(--bg); }
+.action-btn:disabled .btn-cost { color: var(--green-dark); }
+
+/* ===================== MODALS ===================== */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,8,2,0.85);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.visible { display: flex; }
+.modal-window {
+  background: var(--bg);
+  border: 1px solid var(--green);
+  width: 640px;
+  max-width: 95vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 30px rgba(0,255,65,0.15), 0 0 60px rgba(0,255,65,0.05);
+  animation: modal-in 0.15s ease;
+}
+@keyframes modal-in {
+  from { transform: scale(0.97); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  padding: 8px 12px;
+  background: var(--bg2);
+  flex-shrink: 0;
+}
+.modal-title {
+  color: var(--green);
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-shadow: 0 0 6px var(--green);
+}
+.modal-close {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--green-dim);
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.modal-close:hover { background: var(--red); color: var(--bg); border-color: var(--red); }
+.modal-body {
+  overflow-y: auto;
+  padding: 12px;
+  flex: 1;
+}
+.modal-body::-webkit-scrollbar { width: 4px; }
+.modal-body::-webkit-scrollbar-track { background: var(--bg); }
+.modal-body::-webkit-scrollbar-thumb { background: var(--border); }
+.modal-desc {
+  color: var(--green-dim);
+  font-size: 10px;
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+.rule-row {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--green-dark);
+  padding: 6px 0;
+  gap: 8px;
+}
+.rule-name { width: 160px; font-size: 10px; color: var(--green-dim); }
+.rule-stars { flex: 1; }
+.star { color: var(--green-dark); font-size: 12px; }
+.star.filled { color: var(--amber); text-shadow: 0 0 4px var(--amber); }
+.rule-upgrade-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--green);
+  font-family: var(--font);
+  font-size: 10px;
+  padding: 2px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.rule-upgrade-btn:hover { background: var(--green); color: var(--bg); }
+.rule-upgrade-btn:disabled { border-color: var(--green-dark); color: var(--green-dark); cursor: not-allowed; }
+.vuln-row {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--green-dark);
+  padding: 6px 0;
+  gap: 8px;
+  font-size: 10px;
+}
+.vuln-id { color: var(--red); width: 140px; }
+.vuln-node { color: var(--amber); width: 80px; }
+.vuln-sev { width: 60px; }
+.sev-high { color: var(--red); }
+.sev-med { color: var(--amber); }
+.sev-low { color: var(--green-dim); }
+.vuln-status { flex: 1; color: var(--green-dark); font-size: 9px; }
+.vuln-patch-btn {
+  background: none; border: 1px solid var(--border); color: var(--green);
+  font-family: var(--font); font-size: 9px; padding: 1px 6px; cursor: pointer;
+}
+.vuln-patch-btn:hover { background: var(--green); color: var(--bg); }
+.vuln-patch-btn:disabled { border-color: var(--green-dark); color: var(--green-dark); cursor: not-allowed; }
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--green-dark);
+}
+.modal-action-btn {
+  background: none; border: 1px solid var(--green); color: var(--green);
+  font-family: var(--font); font-size: 11px; padding: 5px 14px; cursor: pointer;
+}
+.modal-action-btn:hover { background: var(--green); color: var(--bg); }
+.modal-action-btn:disabled { border-color: var(--green-dark); color: var(--green-dark); cursor: not-allowed; }
+.modal-action-btn.danger { border-color: var(--red); color: var(--red); }
+.modal-action-btn.danger:hover { background: var(--red); color: var(--bg); }
+.redteam-option {
+  border: 1px solid var(--green-dark);
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: border-color 0.1s;
+}
+.redteam-option:hover { border-color: var(--green); }
+.redteam-option.selected { border-color: var(--green); background: rgba(0,50,10,0.3); }
+.redteam-name { color: var(--green); font-size: 11px; margin-bottom: 3px; }
+.redteam-desc { color: var(--green-dim); font-size: 10px; }
+.redteam-meta { color: var(--amber); font-size: 10px; margin-top: 3px; }
+.intel-option {
+  border: 1px solid var(--green-dark);
+  padding: 8px 12px;
+  margin-bottom: 6px;
+}
+.intel-name { color: var(--green); font-size: 11px; }
+.intel-desc { color: var(--green-dim); font-size: 10px; margin: 3px 0; }
+.intel-btn {
+  background: none; border: 1px solid var(--border); color: var(--green);
+  font-family: var(--font); font-size: 10px; padding: 2px 10px; cursor: pointer; margin-top: 4px;
+}
+.intel-btn:hover { background: var(--green); color: var(--bg); }
+.intel-btn:disabled { border-color: var(--green-dark); color: var(--green-dark); cursor: not-allowed; }
+.intel-active { color: var(--green); font-size: 10px; }
+.section-header {
+  color: var(--green-dim);
+  font-size: 9px;
+  letter-spacing: 1px;
+  border-bottom: 1px solid var(--green-dark);
+  padding-bottom: 3px;
+  margin-bottom: 8px;
+  margin-top: 8px;
+}
+
+/* ===================== OVERLAYS ===================== */
+#gameover-overlay, #win-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.9);
+  z-index: 600;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+#gameover-overlay.visible, #win-overlay.visible { display: flex; }
+#gameover-overlay .title {
+  color: var(--red);
+  font-size: 28px;
+  text-shadow: 0 0 20px var(--red);
+  letter-spacing: 4px;
+  margin-bottom: 16px;
+}
+#win-overlay .title {
+  color: var(--green);
+  font-size: 28px;
+  text-shadow: 0 0 20px var(--green);
+  letter-spacing: 4px;
+  margin-bottom: 16px;
+}
+.overlay-text { color: var(--green-dim); font-size: 12px; margin: 4px 0; }
+.overlay-btn {
+  margin-top: 20px;
+  background: none;
+  border: 1px solid var(--green);
+  color: var(--green);
+  font-family: var(--font);
+  font-size: 13px;
+  padding: 8px 24px;
+  cursor: pointer;
+  text-shadow: 0 0 6px var(--green);
+  letter-spacing: 1px;
+}
+.overlay-btn:hover { background: var(--green); color: var(--bg); }
+
+/* ===================== CONSULTANT ===================== */
+.consultant-card {
+  border: 1px solid var(--green-dim);
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  background: rgba(0,30,8,0.4);
+}
+.consultant-name {
+  color: var(--green);
+  font-size: 11px;
+  text-shadow: 0 0 6px var(--green);
+  letter-spacing: 1px;
+}
+.consultant-title {
+  color: var(--green-dim);
+  font-size: 9px;
+  margin: 1px 0 4px;
+}
+.consultant-bonus {
+  color: var(--green);
+  font-size: 9px;
+  border-top: 1px solid var(--green-dark);
+  padding-top: 3px;
+  margin-top: 3px;
+}
+.consultant-advice {
+  margin-top: 6px;
+  border-top: 1px solid var(--green-dark);
+  padding-top: 5px;
+}
+.advice-day {
+  font-size: 9px;
+  letter-spacing: 1px;
+  margin-bottom: 3px;
+}
+.advice-priority-critical { color: var(--red); }
+.advice-priority-high     { color: var(--amber); }
+.advice-priority-medium   { color: var(--green); }
+.advice-priority-low      { color: var(--green-dim); }
+.advice-text {
+  font-size: 10px;
+  color: var(--green-dim);
+  line-height: 1.55;
+  white-space: normal;
+}
+.advice-action {
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--green);
+  text-shadow: 0 0 4px var(--green);
+}
+/* consultant profile cards in modal */
+.consultant-profile {
+  border: 1px solid var(--green-dark);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color 0.1s, background 0.1s;
+}
+.consultant-profile:hover { border-color: var(--green); }
+.consultant-profile.selected {
+  border-color: var(--green);
+  background: rgba(0,50,10,0.35);
+}
+.cp-name { color: var(--green); font-size: 12px; letter-spacing: 1px; margin-bottom: 2px; }
+.cp-title { color: var(--green-dim); font-size: 9px; margin-bottom: 5px; }
+.cp-flavor { color: var(--green-dim); font-size: 10px; line-height: 1.5; margin-bottom: 5px; }
+.cp-bonus { color: var(--amber); font-size: 10px; }
+.cp-cost  { color: var(--green-dim); font-size: 9px; margin-top: 4px; }
+
+/* Red team job progress in ops panel */
+.redteam-job {
+  font-size: 10px;
+  color: var(--amber);
+  margin: 3px 0;
+  border-left: 2px solid var(--amber-dim);
+  padding-left: 5px;
+}
+.redteam-job-bar {
+  height: 2px;
+  background: var(--green-dark);
+  margin-top: 2px;
+}
+.redteam-job-fill {
+  height: 100%;
+  background: var(--amber);
+  transition: width 0.5s;
+}
+
+/* Flicker animation for critical alerts */
+@keyframes flicker {
+  0%,100%{opacity:1} 92%{opacity:1} 93%{opacity:0.7} 94%{opacity:1} 96%{opacity:0.8} 97%{opacity:1}
+}
+.crit-flash { animation: flicker 3s infinite; }
+
+/* ===================== HELP OVERLAY ===================== */
+#help-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,8,2,0.92);
+  z-index: 600;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+#help-overlay.visible { display: flex; }
+#help-window {
+  background: var(--bg);
+  border: 1px solid var(--green);
+  width: 820px;
+  max-width: 96vw;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 40px rgba(0,255,65,0.18), 0 0 80px rgba(0,255,65,0.06);
+  animation: modal-in 0.15s ease;
+  cursor: default;
+  overflow: hidden;
+}
+#help-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--bg2);
+}
+#help-body {
+  padding: 14px 16px 10px;
+  overflow-y: auto;
+  flex: 1;
+  scrollbar-width: thin;
+  scrollbar-color: var(--green-dim) var(--bg2);
+}
+#help-body::-webkit-scrollbar { width: 6px; }
+#help-body::-webkit-scrollbar-track { background: var(--bg2); }
+#help-body::-webkit-scrollbar-thumb { background: var(--green-dim); }
+.help-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 24px;
+}
+.help-col { display: flex; flex-direction: column; gap: 0; }
+.help-section-title {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--green-dim);
+  border-bottom: 1px solid var(--green-dark);
+  padding-bottom: 2px;
+  margin: 12px 0 6px;
+  text-transform: uppercase;
+}
+.help-col:first-child .help-section-title:first-child { margin-top: 0; }
+.help-col:last-child .help-section-title:first-child { margin-top: 0; }
+#help-body p, #help-body li { line-height: 1.55; margin-bottom: 5px; font-size: 11px; color: var(--green); }
+#help-body ol, #help-body ul { padding-left: 16px; margin-bottom: 6px; }
+#help-body strong { color: #fff; }
+#help-body em { color: var(--amber); font-style: normal; }
+.help-cap-row { display: flex; flex-direction: column; margin-bottom: 7px; border-left: 2px solid var(--green-dark); padding-left: 8px; }
+.help-cap-name { font-size: 10px; letter-spacing: 1px; color: var(--amber); margin-bottom: 1px; }
+.help-cap-desc { font-size: 11px; color: var(--green); line-height: 1.45; }
+.help-stage { color: var(--amber); font-size: 11px; }
+.help-ok   { color: var(--green); }
+.help-warn { color: var(--amber); }
+.help-crit { color: var(--red); }
+.help-tip {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--amber-dim);
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--amber);
+  background: rgba(255,176,0,0.04);
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== BOOT SCREEN ===================== -->
+<div id="boot-screen">
+  <div id="boot-logo">
+    <div id="boot-logo-text">PumaSOC</div>
+    <div id="boot-logo-sub">SECURITY OPERATIONS CENTER  //  THREAT MANAGEMENT PLATFORM v2.4.1</div>
+  </div>
+  <div id="boot-log"></div>
+  <div id="boot-prompt" style="display:none">▋ PRESS ANY KEY TO BEGIN OPERATIONS</div>
+</div>
+
+<!-- ===================== GAME SCREEN ===================== -->
+<div id="game-screen">
+  <!-- Header -->
+  <div id="header">
+    <div id="header-title">PumaSOC</div>
+    <div id="live-indicator" class="live">■ LIVE</div>
+    <div class="header-stat">DAY <span id="hdr-day">1</span></div>
+    <div class="header-stat"><span id="hdr-time">00:00</span></div>
+    <div class="header-stat">BREACHES: <span id="hdr-breaches" class="stat-val">0</span>/3</div>
+    <div class="header-stat">RESOLVED: <span id="hdr-resolved">0</span></div>
+    <div class="header-spacer"></div>
+    <button class="speed-btn active" id="spd-1" onclick="setSpeed(1)">1×</button>
+    <button class="speed-btn" id="spd-2" onclick="setSpeed(2)">2×</button>
+    <button class="speed-btn" id="spd-4" onclick="setSpeed(4)">4×</button>
+    <button id="pause-btn" onclick="togglePause()">PAUSE</button>
+    <div class="header-spacer" style="max-width:12px"></div>
+    <div id="budget-display">$500k</div>
+  </div>
+
+  <!-- Three column main -->
+  <div id="main">
+    <!-- LEFT: Network Map -->
+    <div class="panel" id="map-panel">
+      <div class="panel-title">
+        <div class="panel-title-dot"></div>
+        NETWORK TOPOLOGY — CLIENT ESTATE
+      </div>
+      <div id="map-svg-container">
+        <svg id="map-svg" viewBox="0 0 232 385" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="1.5" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <filter id="glow-red">
+              <feGaussianBlur stdDeviation="3" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <!-- Edges and nodes rendered by JS -->
+          <g id="edges-layer"></g>
+          <g id="nodes-layer"></g>
+          <g id="packets-layer"></g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- CENTER: Incidents (full height) -->
+    <div id="incidents-panel">
+      <div class="panel-title">
+        <div class="panel-title-dot" style="background:var(--amber)"></div>
+        ACTIVE INCIDENTS
+        <span style="margin-left:auto;color:var(--green-dark);font-size:9px" id="incident-count">0 active</span>
+      </div>
+      <div id="incidents-list">
+        <div class="no-incidents">NO ACTIVE INCIDENTS — MONITORING...</div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Operations -->
+    <div class="panel" id="ops-panel">
+      <div class="panel-title" style="border-right:none">
+        <div class="panel-title-dot" style="background:var(--green)"></div>
+        OPERATIONS
+      </div>
+      <div class="ops-section">
+        <div class="ops-section-title">── POSTURE ──────────────</div>
+        <div class="stat-row">
+          <span class="stat-label">ANALYSTS FREE</span>
+          <span class="stat-val" id="stat-analysts">2/2</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">COVERAGE</span>
+          <span class="stat-val" id="stat-coverage">25%</span>
+        </div>
+        <div class="mini-bar"><div class="mini-bar-fill" id="bar-coverage" style="width:25%"></div></div>
+        <div class="stat-row">
+          <span class="stat-label">MTTD</span>
+          <span class="stat-val warn" id="stat-mttd">240 min</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">VULN SCORE</span>
+          <span class="stat-val warn" id="stat-vuln">65</span>
+        </div>
+        <div class="mini-bar"><div class="mini-bar-fill warn" id="bar-vuln" style="width:65%"></div></div>
+        <div class="stat-row">
+          <span class="stat-label">ACTIVE THREATS</span>
+          <span class="stat-val" id="stat-threats">0</span>
+        </div>
+      </div>
+      <div class="ops-section">
+        <div class="ops-section-title">── CAPABILITIES ─────────</div>
+        <button class="action-btn" onclick="openModal('detection')">▶ DETECTION ENG<span class="btn-cost">$25k</span></button>
+        <button class="action-btn" onclick="openModal('vuln')">▶ VULN MGMT<span class="btn-cost">$10k</span></button>
+        <button class="action-btn" onclick="openModal('redteam')">▶ RED TEAM<span class="btn-cost">$50k+</span></button>
+        <button class="action-btn" onclick="openModal('intel')">▶ THREAT INTEL<span class="btn-cost">$100k</span></button>
+        <button class="action-btn" id="hire-btn" onclick="hireAnalyst()">▶ HIRE ANALYST<span class="btn-cost" id="hire-cost">$75k</span></button>
+      </div>
+      <div class="ops-section" id="consultant-ops-section">
+        <div class="ops-section-title">── CONSULTANT ───────────</div>
+        <div id="consultant-card"><div style="color:var(--green-dark);font-size:10px;margin-bottom:4px">No consultant on retainer.</div></div>
+        <button class="action-btn" id="hire-consultant-btn" onclick="openModal('consultant')">▶ HIRE CONSULTANT<span class="btn-cost">$150k</span></button>
+      </div>
+      <div class="ops-section" id="redteam-jobs-section" style="display:none">
+        <div class="ops-section-title">── ACTIVE ENGAGEMENTS ───</div>
+        <div id="redteam-jobs-list"></div>
+      </div>
+      <div class="ops-section">
+        <div class="ops-section-title">── INTEL ─────────────────</div>
+        <div class="stat-row">
+          <span class="stat-label">THREAT ACTORS</span>
+          <span class="stat-val" id="stat-actors">0 tracked</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">NEXT INCOME</span>
+          <span class="stat-val" id="stat-income">6h</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">WIN PROGRESS</span>
+          <span class="stat-val" id="stat-progress">Day 1/30</span>
+        </div>
+      </div>
+    </div>
+  </div><!-- /#main -->
+
+  <!-- SIEM Strip — full width flex child of #game-screen, click to expand -->
+  <div id="siem-strip" onclick="openSiemPopout()">
+    <div id="siem-strip-header">
+      <div class="panel-title-dot"></div>
+      <span style="color:var(--green-dim);font-size:10px;letter-spacing:1px">SIEM FEED</span>
+      <span style="color:var(--green-dark);font-size:9px" id="siem-count">0 events</span>
+      <span style="margin-left:auto;color:var(--green-dark);font-size:9px">▲ CLICK TO EXPAND</span>
+    </div>
+    <div id="siem-strip-list"></div>
+  </div>
+
+</div><!-- /#game-screen -->
+
+<!-- SIEM Popout -->
+<div id="siem-popout" onclick="closeSiemPopout()">
+  <div id="siem-popout-window" onclick="event.stopPropagation()">
+    <div id="siem-popout-header">
+      <div class="panel-title-dot"></div>
+      <span style="color:var(--green);font-size:11px;letter-spacing:2px;text-shadow:0 0 6px var(--green)">SIEM CORRELATION ENGINE</span>
+      <span style="color:var(--green-dark);font-size:9px" id="siem-popout-count"></span>
+      <button class="modal-close" style="margin-left:auto" onclick="closeSiemPopout()">✕ CLOSE</button>
+    </div>
+    <div id="siem-popout-feed"></div>
+  </div>
+</div>
+
+<!-- ===================== MODALS ===================== -->
+
+<!-- Detection Engineering Modal -->
+<div class="modal-overlay" id="modal-detection">
+  <div class="modal-window">
+    <div class="modal-header">
+      <div class="modal-title">// DETECTION ENGINEERING</div>
+      <button class="modal-close" onclick="closeModal('detection')">✕ CLOSE</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-desc">
+        Invest in SIEM correlation rules and detection analytics. Higher coverage per technique
+        category increases your probability of detecting attacks that use those techniques.
+        Each level costs $25–50k and improves overall detection coverage.
+      </div>
+      <div class="section-header">ATT&CK FRAMEWORK COVERAGE</div>
+      <div id="detection-rules-list"></div>
+      <div id="detection-coverage-summary" style="margin-top:10px;font-size:10px;color:var(--green-dim)"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Vulnerability Management Modal -->
+<div class="modal-overlay" id="modal-vuln">
+  <div class="modal-window">
+    <div class="modal-header">
+      <div class="modal-title">// VULNERABILITY MANAGEMENT</div>
+      <button class="modal-close" onclick="closeModal('vuln')">✕ CLOSE</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-desc">
+        Scan and patch vulnerabilities across the managed estate. A lower vulnerability score
+        means attackers take longer to succeed and have fewer paths to exploit. Patching reduces
+        the blast radius of any breach.
+      </div>
+      <div class="modal-actions">
+        <button class="modal-action-btn" id="scan-btn" onclick="runVulnScan()">▶ RUN SCAN ($10k)</button>
+        <button class="modal-action-btn" id="patch-crit-btn" onclick="patchCritical()">▶ PATCH CRITICAL ($25k)</button>
+        <button class="modal-action-btn" id="patch-all-btn" onclick="patchAll()">▶ PATCH ALL ($75k)</button>
+      </div>
+      <div class="section-header" style="margin-top:12px">VULNERABILITY REGISTER</div>
+      <div id="vuln-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Red Team Modal -->
+<div class="modal-overlay" id="modal-redteam">
+  <div class="modal-window">
+    <div class="modal-header">
+      <div class="modal-title">// RED TEAM OPERATIONS</div>
+      <button class="modal-close" onclick="closeModal('redteam')">✕ CLOSE</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-desc">
+        Commission penetration testing engagements to proactively identify vulnerabilities and
+        detection gaps before threat actors do. Results reveal hidden weaknesses and improve
+        your defensive posture.
+      </div>
+      <div class="section-header">SELECT ENGAGEMENT TYPE</div>
+      <div id="redteam-options"></div>
+      <div class="modal-actions">
+        <button class="modal-action-btn" id="launch-redteam-btn" onclick="launchRedTeam()">▶ LAUNCH ENGAGEMENT</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Threat Intel Modal -->
+<div class="modal-overlay" id="modal-intel">
+  <div class="modal-window">
+    <div class="modal-header">
+      <div class="modal-title">// THREAT INTELLIGENCE</div>
+      <button class="modal-close" onclick="closeModal('intel')">✕ CLOSE</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-desc">
+        Subscribe to commercial threat intelligence feeds. Active feeds provide advance warning
+        of known threat actor TTPs, increase detection rates, and reduce mean time to detect.
+      </div>
+      <div class="section-header">AVAILABLE FEEDS</div>
+      <div id="intel-options"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Consultant Modal -->
+<div class="modal-overlay" id="modal-consultant">
+  <div class="modal-window">
+    <div class="modal-header">
+      <div class="modal-title">// RETAIN A CONSULTANT</div>
+      <button class="modal-close" onclick="closeModal('consultant')">✕ CLOSE</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-desc">
+        Engage an external security consultant on retainer. They provide a passive defensive bonus
+        and deliver a daily operational briefing — one prioritized recommendation based on your
+        current threat posture and the most effective action you can take next.
+      </div>
+      <div class="section-header">SELECT CONSULTANT</div>
+      <div id="consultant-profiles-list"></div>
+      <div class="modal-actions">
+        <button class="modal-action-btn" id="hire-consultant-confirm-btn" onclick="hireConsultant(selectedConsultant)" disabled>▶ SELECT A CONSULTANT</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== HELP OVERLAY ===================== -->
+<div id="help-overlay" onclick="closeHelp()">
+  <div id="help-window" onclick="event.stopPropagation()">
+    <div id="help-header">
+      <span style="color:var(--green);font-size:12px;letter-spacing:2px;text-shadow:0 0 6px var(--green)">//&nbsp;HOW TO PLAY — PumaSOC</span>
+      <button class="modal-close" onclick="closeHelp()">✕ CLOSE</button>
+    </div>
+    <div id="help-body">
+      <div class="help-cols">
+        <div class="help-col">
+          <div class="help-section-title">OBJECTIVE</div>
+          <p>Survive <strong>7 game days</strong> as operator of a global Security Operations Center. Defend your client estate against nation-state and criminal threat actors. You lose if <strong>3 breaches</strong> succeed.</p>
+
+          <div class="help-section-title">THE THREAT LOOP</div>
+          <p>Threat actors continuously probe your estate. Each attack is checked against your <strong>Detection Coverage %</strong>. If detected, an incident appears and you must respond. If <em>not</em> detected, the threat dwells silently — and becomes a <span class="help-crit">BREACH</span> after ~2 real minutes undetected.</p>
+          <p>A detected incident left <strong>unassigned</strong> for ~4 minutes also breaches.</p>
+
+          <div class="help-section-title">RESPONDING TO INCIDENTS</div>
+          <ol>
+            <li>Alert fires in the <strong>SIEM strip</strong> at the bottom</li>
+            <li>Incident appears in the <strong>center panel</strong></li>
+            <li>Click <strong>ASSIGN ANALYST</strong> to start the IR clock</li>
+            <li>Analyst works through: <span class="help-stage">TRIAGE → CONTAIN → ERADICATE → RECOVER</span></li>
+            <li>Resolved incidents pay a small budget bonus</li>
+          </ol>
+          <p>You start with <strong>2 analysts</strong>. Each handles one incident at a time.</p>
+
+          <div class="help-section-title">NETWORK MAP</div>
+          <p>Shows your client estate. Node colours change as threats land:</p>
+          <ul>
+            <li><span class="help-ok">● Green</span> — healthy</li>
+            <li><span class="help-warn">● Amber</span> — known vulnerabilities present</li>
+            <li><span class="help-crit">● Red</span> — under active attack</li>
+          </ul>
+          <p>Moving <span class="help-crit">red packets</span> on the map are threats in transit to a target.</p>
+
+          <div class="help-section-title">SIEM FEED</div>
+          <p>The strip at the bottom shows the last 8 events. <strong>Click it</strong> to expand the full scrollable history. CRIT alerts need immediate attention.</p>
+        </div>
+
+        <div class="help-col">
+          <div class="help-section-title">YOUR CAPABILITIES</div>
+
+          <div class="help-cap-row">
+            <span class="help-cap-name">DETECTION ENG</span>
+            <span class="help-cap-desc">Invest in SIEM rules per ATT&amp;CK category. Each level raises your overall Coverage % — the single most impactful stat. Raise this first.</span>
+          </div>
+          <div class="help-cap-row">
+            <span class="help-cap-name">VULN MGMT</span>
+            <span class="help-cap-desc">Scan assets to find CVEs, then patch them. Lower Vuln Score means attacks succeed less often and take longer to land.</span>
+          </div>
+          <div class="help-cap-row">
+            <span class="help-cap-name">RED TEAM</span>
+            <span class="help-cap-desc">Commission a pentest. Takes time but reveals hidden detection gaps and undiscovered vulnerabilities your defenders missed.</span>
+          </div>
+          <div class="help-cap-row">
+            <span class="help-cap-name">THREAT INTEL</span>
+            <span class="help-cap-desc">Subscribe to intel feeds for passive boosts to Coverage % and Mean Time to Detect (MTTD).</span>
+          </div>
+          <div class="help-cap-row">
+            <span class="help-cap-name">HIRE ANALYST</span>
+            <span class="help-cap-desc">More analysts = more incidents handled simultaneously. Essential as threat tempo escalates. Max 8.</span>
+          </div>
+          <div class="help-cap-row">
+            <span class="help-cap-name">CONSULTANT</span>
+            <span class="help-cap-desc">Retains an expert who adds a passive defensive bonus and delivers a <strong>daily briefing</strong> — one prioritised recommendation telling you the single best action to take next.</span>
+          </div>
+
+          <div class="help-section-title">KEY STATS</div>
+          <ul>
+            <li><strong>Coverage %</strong> — chance of detecting any attack. Your most important number.</li>
+            <li><strong>MTTD</strong> — Mean Time to Detect. Lower = you see threats sooner.</li>
+            <li><strong>Vuln Score</strong> — attack surface exposure. Lower is better.</li>
+            <li><strong>Analysts</strong> — busy / total available responders.</li>
+          </ul>
+
+          <div class="help-section-title">CONTROLS</div>
+          <ul>
+            <li><strong>SPACE</strong> — pause / resume</li>
+            <li><strong>1× 2× 4×</strong> — game speed</li>
+            <li><strong>?</strong> — this screen</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="help-tip">
+        <span class="help-crit">▶ FIRST MOVE:</span> Hire a consultant immediately — their daily briefing tells you exactly where to spend next. Then focus on Detection Engineering until coverage exceeds 50%. You cannot respond to threats you cannot see.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== GAME OVER / WIN ===================== -->
+<div id="gameover-overlay">
+  <div class="title crit-flash">■■ BREACH CRITICAL ■■</div>
+  <div class="overlay-text" id="gameover-reason"></div>
+  <div class="overlay-text" id="gameover-stats"></div>
+  <button class="overlay-btn" onclick="restartGame()">↺ RESTART OPERATIONS</button>
+</div>
+<div id="win-overlay">
+  <div class="title">■ MISSION COMPLETE ■</div>
+  <div class="overlay-text">30 days survived. Client estate secured.</div>
+  <div class="overlay-text" id="win-stats"></div>
+  <button class="overlay-btn" onclick="restartGame()">↺ NEW OPERATION</button>
+</div>
+
+<script>
+'use strict';
+
+// ================================================================
+// CONSTANTS & DATA
+// ================================================================
+
+const TICK_MS = 100;
+// 0.5 game-mins per tick → 1 real-second = 5 game-mins; 1 game-day ≈ 4.8 real-minutes
+const GAME_MINS_PER_TICK_BASE = 0.5;
+const WIN_DAYS = 7;
+const MAX_BREACHES = 3;
+const BREACH_DWELL_MINS = 600;      // 2 real-minutes undetected → breach
+const UNHANDLED_BREACH_MINS = 1200; // 4 real-minutes unhandled → breach
+const INCOME_INTERVAL_MINS = 360;
+const INCOME_AMOUNT = 50000;
+const ANALYST_COST = 75000;
+const MAX_ANALYSTS = 8;
+const THREAT_SPAWN_MIN_MINS = 60;   // ~12 real-seconds between threats at 1x
+const THREAT_SPAWN_MAX_MINS = 150;
+
+const ACTORS = [
+  { name:'APT28',         aka:'Fancy Bear',        origin:'RU-GRU',  skill:4 },
+  { name:'APT29',         aka:'Cozy Bear',          origin:'RU-SVR',  skill:5 },
+  { name:'Lazarus',       aka:'Hidden Cobra',       origin:'DPRK',    skill:4 },
+  { name:'APT41',         aka:'Double Dragon',      origin:'CN-MSS',  skill:5 },
+  { name:'Sandworm',      aka:'Voodoo Bear',        origin:'RU-GRU',  skill:5 },
+  { name:'Volt Typhoon',  aka:'Bronze Silhouette',  origin:'CN-PLA',  skill:4 },
+  { name:'FIN7',          aka:'Carbanak',           origin:'Criminal',skill:3 },
+  { name:'REvil',         aka:'Sodinokibi',         origin:'Criminal',skill:3 },
+  { name:'BlackCat',      aka:'ALPHV',              origin:'Criminal',skill:3 },
+  { name:'LockBit',       aka:'LockBit 3.0',        origin:'Criminal',skill:3 },
+  { name:'TA505',         aka:'Evil Corp',          origin:'Criminal',skill:3 },
+  { name:'SkidNet',       aka:'Unknown',            origin:'Unknown', skill:1 },
+];
+
+const TECHNIQUE_CATS = [
+  'Initial Access','Execution','Persistence','Privilege Escalation',
+  'Defense Evasion','Credential Access','Discovery','Lateral Movement',
+  'Collection','Command & Control','Exfiltration','Impact'
+];
+const TECHNIQUES = {
+  'Initial Access':       ['Spearphishing Attachment','Valid Accounts','Exploit Public App','Drive-by Compromise'],
+  'Execution':            ['PowerShell Empire','WMI Execution','Malicious Macro','LOLBAS'],
+  'Persistence':          ['Registry Run Keys','Web Shell Implant','Scheduled Task','COM Hijacking'],
+  'Privilege Escalation': ['Token Impersonation','DLL Injection','UAC Bypass','Sudo Exploit'],
+  'Defense Evasion':      ['Obfuscated Payload','Timestomping','Disable AV/EDR','Code Signing'],
+  'Credential Access':    ['Pass-the-Hash','Mimikatz Dump','Kerberoasting','LSASS Memory'],
+  'Discovery':            ['BloodHound Recon','Network Port Scan','AD Enumeration','Browser Creds'],
+  'Lateral Movement':     ['PsExec Remote','RDP Lateral','Pass-the-Ticket','SMB Admin Share'],
+  'Collection':           ['Email Archive Collect','Screen Capture','Keylogger Install','File Staging'],
+  'Command & Control':    ['Cobalt Strike Beacon','DNS Tunneling','HTTPS C2','Domain Fronting'],
+  'Exfiltration':         ['Cloud Sync Exfil','FTP Exfiltration','DNS Data Exfil','HTTPS Exfil'],
+  'Impact':               ['Ransomware Deploy','Data Destruction','Web Defacement','Crypto Mining'],
+};
+
+const NODE_DEFS = [
+  { id:'INET',    type:'internet',   label:'INET',     x:115, y:22  },
+  { id:'FW-01',   type:'firewall',   label:'FW-01',    x:55,  y:80  },
+  { id:'FW-02',   type:'firewall',   label:'FW-02',    x:175, y:80  },
+  { id:'WEB-01',  type:'server',     label:'WEB-01',   x:18,  y:150 },
+  { id:'WEB-02',  type:'server',     label:'WEB-02',   x:82,  y:150 },
+  { id:'CLOUD-01',type:'cloud',      label:'CLOUD-01', x:150, y:145 },
+  { id:'CLOUD-02',type:'cloud',      label:'CLOUD-02', x:212, y:145 },
+  { id:'CORE-SW', type:'switch',     label:'CORE-SW',  x:115, y:218 },
+  { id:'AD-01',   type:'server',     label:'AD-01',    x:35,  y:288 },
+  { id:'DB-01',   type:'database',   label:'DB-01',    x:115, y:288 },
+  { id:'DB-02',   type:'database',   label:'DB-02',    x:195, y:288 },
+  { id:'WORK-01', type:'workstation',label:'WRK-01',   x:35,  y:358 },
+  { id:'WORK-02', type:'workstation',label:'WRK-02',   x:115, y:362 },
+  { id:'WORK-03', type:'workstation',label:'WRK-03',   x:195, y:358 },
+];
+const EDGE_DEFS = [
+  ['INET','FW-01'],['INET','FW-02'],
+  ['FW-01','WEB-01'],['FW-01','WEB-02'],['FW-01','CORE-SW'],
+  ['FW-02','CLOUD-01'],['FW-02','CLOUD-02'],['FW-02','CORE-SW'],
+  ['WEB-02','CORE-SW'],['CORE-SW','AD-01'],['CORE-SW','DB-01'],
+  ['CORE-SW','DB-02'],['CORE-SW','WORK-02'],['AD-01','WORK-01'],
+  ['DB-01','WORK-02'],['DB-02','WORK-03'],
+];
+const ENTRY_NODES = ['INET','CLOUD-01','CLOUD-02'];
+const TARGET_NODES = ['WEB-01','WEB-02','AD-01','DB-01','DB-02','WORK-01','WORK-02','WORK-03','CLOUD-01','CLOUD-02'];
+
+const IR_STAGES = [
+  { name:'TRIAGE',    durationMins:60  }, // ~12s real at 1x
+  { name:'CONTAIN',   durationMins:120 }, // ~24s
+  { name:'ERADICATE', durationMins:90  }, // ~18s
+  { name:'RECOVER',   durationMins:60  }, // ~12s → total ~66s per incident
+];
+
+const NOISE_EVENTS = [
+  ['INFO','AUTH-SVC','User login: jsmith@corp.local from 10.0.1.45'],
+  ['INFO','AUTH-SVC','Successful MFA verification for admin account'],
+  ['INFO','PATCH-MGR','Patch KB2024-0411 applied to WORK-02'],
+  ['INFO','NET-PROBE','Routine network scan completed — 847 hosts alive'],
+  ['INFO','BACKUP','Scheduled backup of DB-01 completed successfully'],
+  ['INFO','AV-CLOUD','Signature update 24.11.002 deployed to all endpoints'],
+  ['WARN','FW-01','Blocked 1,247 connection attempts from 185.220.x.x/24'],
+  ['WARN','IDS-01','Port scan detected from 103.214.x.x — Blocked by FW'],
+  ['WARN','AUTH-SVC','Failed login attempt x3 for admin@corp — account locked'],
+  ['WARN','DLP','Large file upload detected: user mwilson — under review'],
+  ['INFO','SSL-INSP','Certificate transparency anomaly — benign, resolved'],
+  ['INFO','SIEM','Correlation rule tuning: reduced false positives by 12%'],
+  ['INFO','EDR','Memory scan completed on WORK-01 — clean'],
+  ['INFO','CLOUD-01','Auto-scaling event: 2 new instances launched'],
+  ['WARN','NET','Unusual outbound DNS query volume from WORK-03 — investigating'],
+];
+
+const REDTEAM_OPTIONS = [
+  { id:'ext',     name:'External Network Pentest',   desc:'Simulate external attacker targeting internet-facing assets',      cost:50000,  durationMins:1440 },
+  { id:'int',     name:'Internal Network Assessment', desc:'Assume-breach simulation — lateral movement and privilege escalation', cost:75000, durationMins:2880 },
+  { id:'phish',   name:'Phishing Simulation',        desc:'Social engineering exercise targeting all user accounts',         cost:30000,  durationMins:720  },
+  { id:'cloud',   name:'Cloud Security Review',      desc:'AWS/Azure configuration audit and privilege escalation testing',  cost:100000, durationMins:2160 },
+  { id:'red',     name:'Full Red Team Engagement',   desc:'Adversary simulation: end-to-end APT-style attack chain',        cost:150000, durationMins:4320 },
+];
+
+const INTEL_FEEDS = [
+  { id:'osint',  name:'OSINT Aggregator',       desc:'Open-source threat intelligence — low fidelity, broad coverage', cost:50000,  detectionBonus:5,  mttdBonus:15 },
+  { id:'ioc',    name:'IOC Feed Premium',       desc:'Real-time indicators of compromise from global sensor network',   cost:100000, detectionBonus:8,  mttdBonus:25 },
+  { id:'apt',    name:'Nation-State Intel Feed', desc:'Classified APT actor profiles and TTP attribution data',         cost:150000, detectionBonus:12, mttdBonus:40 },
+];
+
+const RULE_UPGRADE_COSTS = [25000, 30000, 35000, 40000, 50000];
+
+const CONSULTANTS = [
+  {
+    id: 'voss',
+    name: 'CASSANDRA VOSS',
+    title: 'Ex-NSA TAO / Threat Intelligence',
+    flavor: 'Seventeen years in NSA\'s Tailored Access Operations. Knows every APT playbook by heart. If it\'s in the threat landscape, she\'s seen it used against a nation-state.',
+    specialty: 'detection',
+    bonus: { coverageBonus: 8, mttdBonus: 20, vulnBonus: 0 },
+    bonusDesc: '+8% detection coverage, -20 min MTTD',
+    cost: 150000,
+  },
+  {
+    id: 'webb',
+    name: 'MARCUS WEBB',
+    title: 'Ex-USMC Red Team / Offensive Security',
+    flavor: 'Former Marine Force Recon turned adversary simulator. Thinks like an attacker because he was one. His assessments have exposed critical gaps in Fortune 500 security programs.',
+    specialty: 'redteam',
+    bonus: { coverageBonus: 3, mttdBonus: 0, vulnBonus: 20 },
+    bonusDesc: '-20 vuln score exposure, +3% coverage',
+    cost: 150000,
+  },
+  {
+    id: 'nair',
+    name: 'PRIYA NAIR',
+    title: 'Ex-CISO / Enterprise Risk & Resilience',
+    flavor: 'Ran security for a global bank through three major incidents. Understands that security is a business problem first. Optimizes for resilience, not just detection.',
+    specialty: 'risk',
+    bonus: { coverageBonus: 5, mttdBonus: 10, vulnBonus: 10 },
+    bonusDesc: '+5% coverage, -10 min MTTD, -10 vuln score',
+    cost: 150000,
+  },
+];
+
+// ================================================================
+// GAME STATE
+// ================================================================
+
+let G = null; // game state
+let tickInterval = null;
+let siemEntryCount = 0;
+
+function initState() {
+  const rules = {};
+  TECHNIQUE_CATS.forEach(c => rules[c] = 0);
+
+  const nodes = NODE_DEFS.map(d => ({
+    ...d,
+    status: 'healthy',
+    vulns: d.type === 'server' || d.type === 'database' ? rnd(1,4) : rnd(0,2),
+    known: true,
+  }));
+
+  const vulns = generateVulns(nodes);
+
+  G = {
+    budget: 500000,
+    analystTotal: 2,
+    analystBusy: 0,
+    coverage: 25,
+    mttd: 240,
+    vulnScore: 65,
+    gameTime: 0,
+    speed: 1,
+    paused: false,
+    breaches: 0,
+    resolvedToday: 0,
+    totalResolved: 0,
+    gameOver: false,
+    won: false,
+    gameOverReason: '',
+    rules,
+    nodes,
+    vulns,
+    threats: [],
+    incidents: [],
+    redTeamJobs: [],
+    activeIntelFeeds: [],
+    consultant: null, // { id, lastAdviceDay, advice: { priority, action, text } }
+    nextThreatIn: 180, // 36s grace period before first threat
+    nextIncomeIn: INCOME_INTERVAL_MINS,
+    nextNoiseIn: rndF(20, 60),
+    nextThreatId: 1,
+    nextIncidentId: 1,
+    nextVulnId: 1000,
+    // analyst tracking: set of incident IDs each analyst is working
+    analystSlots: [null, null], // index = analystId-1, value = incidentId
+  };
+}
+
+function generateVulns(nodes) {
+  const severities = ['HIGH','HIGH','MED','MED','LOW'];
+  const vulnNames = [
+    'Remote Code Execution','Privilege Escalation','SQL Injection','Buffer Overflow',
+    'Authentication Bypass','Path Traversal','XXE Injection','Deserialization',
+    'Unpatched OpenSSL','Log4j Variant','SMB Relay','Kerberos Delegation',
+    'Outdated TLS','Default Credentials','Exposed API Key','SSRF'
+  ];
+  const result = [];
+  let id = 1001;
+  nodes.forEach(n => {
+    const count = n.vulns;
+    for (let i = 0; i < count; i++) {
+      result.push({
+        id: `CVE-2024-${id++}`,
+        nodeId: n.id,
+        name: pick(vulnNames),
+        severity: pick(severities),
+        patched: false,
+        discovered: rnd(0,1) === 0, // 50% discovered at start
+      });
+    }
+  });
+  return result;
+}
+
+// ================================================================
+// UTILITIES
+// ================================================================
+
+function rnd(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function rndF(min, max) { return min + Math.random() * (max - min); }
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function fmt$(n) {
+  if (n >= 1e6) return `$${(n/1e6).toFixed(1)}M`;
+  if (n >= 1000) return `$${Math.round(n/1000)}k`;
+  return `$${n}`;
+}
+function fmtTime(mins) {
+  const m = Math.floor(mins);
+  const day = Math.floor(m / 1440) + 1;
+  const dm = m % 1440;
+  const h = Math.floor(dm / 60);
+  const mn = dm % 60;
+  return { day, str: `${String(h).padStart(2,'0')}:${String(mn).padStart(2,'0')}` };
+}
+function fmtDwell(mins) {
+  if (mins < 60) return `${Math.floor(mins)}m`;
+  return `${Math.floor(mins/60)}h${Math.floor(mins%60)}m`;
+}
+function getNode(id) { return G.nodes.find(n => n.id === id); }
+
+// ================================================================
+// SIEM FEED
+// ================================================================
+
+const SIEM_STRIP_MAX = 8; // entries that fit in the 145px strip without squishing
+const siemHistory = []; // full history for popout
+
+function makeSiemEntry(severity, source, msg, extra, animated) {
+  const t = fmtTime(G ? G.gameTime : 0);
+  const sevClass = { INFO:'siem-info', WARN:'siem-warn', CRIT:'siem-crit', OK:'siem-success' }[severity] || 'siem-info';
+  const badge = `<span class="siem-badge badge-${severity.toLowerCase()}">${severity}</span>`;
+  const el = document.createElement('div');
+  el.className = 'siem-entry';
+  if (!animated) el.style.cssText = 'opacity:1;animation:none';
+  el.innerHTML = `<span class="siem-time">[${t.str}]</span> ${badge} <span class="${sevClass}">${source}</span> → ${msg}` +
+    (extra ? ` <span style="color:var(--green-dark)"> // ${extra}</span>` : '');
+  return el;
+}
+
+function siemLog(severity, source, msg, extra) {
+  siemHistory.push({ severity, source, msg, extra });
+  siemEntryCount++;
+
+  // Update strip — keep last SIEM_STRIP_MAX entries
+  const strip = document.getElementById('siem-strip-list');
+  strip.appendChild(makeSiemEntry(severity, source, msg, extra, true));
+  while (strip.children.length > SIEM_STRIP_MAX) strip.removeChild(strip.firstChild);
+
+  // Update popout if open
+  const popoutFeed = document.getElementById('siem-popout-feed');
+  if (document.getElementById('siem-popout').classList.contains('visible')) {
+    popoutFeed.appendChild(makeSiemEntry(severity, source, msg, extra, true));
+    popoutFeed.scrollTop = popoutFeed.scrollHeight;
+  }
+
+  document.getElementById('siem-count').textContent = `${siemEntryCount} events`;
+}
+
+function openSiemPopout() {
+  const popout = document.getElementById('siem-popout');
+  const feed = document.getElementById('siem-popout-feed');
+  feed.innerHTML = '';
+  siemHistory.forEach(e => feed.appendChild(makeSiemEntry(e.severity, e.source, e.msg, e.extra, false)));
+  feed.scrollTop = feed.scrollHeight;
+  document.getElementById('siem-popout-count').textContent = `${siemEntryCount} events`;
+  popout.classList.add('visible');
+}
+
+function closeSiemPopout() {
+  document.getElementById('siem-popout').classList.remove('visible');
+}
+
+// ================================================================
+// DETECTION ENGINE
+// ================================================================
+
+function getConsultantBonuses() {
+  if (!G.consultant) return { coverageBonus: 0, mttdBonus: 0, vulnBonus: 0 };
+  return CONSULTANTS.find(c => c.id === G.consultant.id).bonus;
+}
+
+function calcCoverage() {
+  let bonus = 0;
+  TECHNIQUE_CATS.forEach(cat => { bonus += G.rules[cat] * 5; });
+  const avgBonus = bonus / TECHNIQUE_CATS.length;
+  let intelBonus = 0;
+  G.activeIntelFeeds.forEach(fid => {
+    const feed = INTEL_FEEDS.find(f => f.id === fid);
+    if (feed) intelBonus += feed.detectionBonus;
+  });
+  return Math.min(95, 25 + avgBonus + intelBonus + getConsultantBonuses().coverageBonus);
+}
+
+function calcMTTD() {
+  let base = 240;
+  let ruleBonus = 0;
+  TECHNIQUE_CATS.forEach(cat => { ruleBonus += G.rules[cat] * 8; });
+  let intelBonus = 0;
+  G.activeIntelFeeds.forEach(fid => {
+    const feed = INTEL_FEEDS.find(f => f.id === fid);
+    if (feed) intelBonus += feed.mttdBonus;
+  });
+  return Math.max(10, base - ruleBonus - intelBonus - getConsultantBonuses().mttdBonus);
+}
+
+function getThreatDetectionChance(threat) {
+  const catLevel = G.rules[threat.techniqueCategory] || 0;
+  const catBonus = catLevel * 10;
+  const total = Math.min(95, G.coverage + catBonus);
+  return total / 100;
+}
+
+// ================================================================
+// THREAT ENGINE
+// ================================================================
+
+function spawnThreat() {
+  const actor = pick(ACTORS);
+  const cat = pick(TECHNIQUE_CATS);
+  const technique = pick(TECHNIQUES[cat]);
+  const targetId = pick(TARGET_NODES);
+  const entryId = pick(ENTRY_NODES);
+  const skillMod = 1 + (actor.skill - 3) * 0.15; // skill 1-5, 1.0 base at skill 3
+
+  const threat = {
+    id: G.nextThreatId++,
+    actor: actor.name,
+    actorAka: actor.aka,
+    origin: actor.origin,
+    skill: actor.skill,
+    techniqueCategory: cat,
+    technique,
+    targetId,
+    entryId,
+    progress: 0,
+    progressRate: 0.002 / skillMod, // per game minute — will convert
+    dwell: 0,
+    detected: false,
+    breachTriggered: false,
+  };
+
+  // Detection check
+  const detChance = getThreatDetectionChance(threat);
+  if (Math.random() < detChance) {
+    threat.detected = true;
+    siemLog('CRIT', threat.actor,
+      `${technique} detected targeting ${targetId}`,
+      `${actor.aka} | ${actor.origin} | Skill-${actor.skill}`);
+    createIncident(threat);
+    getNode(targetId).status = 'under_attack';
+  } else {
+    // Not immediately detected — may be detected later or become breach
+    siemLog('WARN', 'IDS', `Anomalous activity pattern near ${entryId} — low confidence signal`);
+  }
+
+  G.threats.push(threat);
+  updateNodeStatuses();
+}
+
+function createIncident(threat) {
+  const incident = {
+    id: G.nextIncidentId++,
+    threatId: threat.id,
+    actor: threat.actor,
+    actorAka: threat.actorAka,
+    techniqueCategory: threat.techniqueCategory,
+    technique: threat.technique,
+    targetId: threat.targetId,
+    stageIdx: 0,
+    stageProgress: 0,
+    analyistId: null,
+    dwell: 0,
+    status: 'DETECTED',
+    resolved: false,
+    breachTriggered: false,
+  };
+  G.incidents.push(incident);
+}
+
+function assignAnalystToIncident(incidentId) {
+  const inc = G.incidents.find(i => i.id === incidentId);
+  if (!inc || inc.analyistId !== null) return;
+  if (G.analystBusy >= G.analystTotal) {
+    siemLog('WARN', 'OPS', `No analysts available — incident ${incidentId} queued`);
+    return;
+  }
+  // Find free analyst slot
+  const slotIdx = G.analystSlots.findIndex(s => s === null);
+  if (slotIdx === -1) return;
+  G.analystSlots[slotIdx] = incidentId;
+  G.analystBusy++;
+  inc.analyistId = slotIdx + 1;
+  inc.status = 'TRIAGING';
+  siemLog('OK', 'SOC-ANALYST', `Analyst ${inc.analyistId} assigned to incident #${incidentId} — ${inc.actor}::${inc.technique}`);
+  updateUI();
+}
+
+// ================================================================
+// GAME TICK
+// ================================================================
+
+let lastRealTime = null;
+
+function tick() {
+  if (G.paused || G.gameOver) return;
+
+  const delta = GAME_MINS_PER_TICK_BASE * G.speed;
+  G.gameTime += delta;
+
+  // Income
+  G.nextIncomeIn -= delta;
+  if (G.nextIncomeIn <= 0) {
+    G.budget += INCOME_AMOUNT;
+    G.nextIncomeIn = INCOME_INTERVAL_MINS;
+    siemLog('OK', 'FINANCE', `Client retainer payment received: +${fmt$(INCOME_AMOUNT)}`, `Total: ${fmt$(G.budget)}`);
+  }
+
+  // Noise events
+  G.nextNoiseIn -= delta;
+  if (G.nextNoiseIn <= 0) {
+    const ev = pick(NOISE_EVENTS);
+    siemLog(ev[0], ev[1], ev[2]);
+    G.nextNoiseIn = rndF(30, 90);
+  }
+
+  // Threat spawning
+  G.nextThreatIn -= delta;
+  if (G.nextThreatIn <= 0) {
+    spawnThreat();
+    const dayFactor = Math.min(2, 1 + G.gameTime / (1440 * 4)); // ramp up over 4 game days
+    G.nextThreatIn = rndF(THREAT_SPAWN_MIN_MINS, THREAT_SPAWN_MAX_MINS) / dayFactor;
+  }
+
+  // Advance threat progress & detect undetected threats
+  G.threats.forEach(t => {
+    if (t.breachTriggered) return;
+    t.dwell += delta;
+    t.progress += t.progressRate * delta * 60; // per minute
+
+    // Late detection for undetected threats
+    if (!t.detected && t.dwell > 0) {
+      const lateChance = (G.coverage / 100) * (delta / 10);
+      if (Math.random() < lateChance) {
+        t.detected = true;
+        const dStr = fmtDwell(t.dwell);
+        siemLog('CRIT', t.actor,
+          `LATE DETECTION: ${t.technique} on ${t.targetId} — dwell ${dStr}`,
+          `MTTD exceeded threshold`);
+        createIncident(t);
+        getNode(t.targetId).status = 'under_attack';
+      }
+    }
+
+    // Undetected breach
+    if (!t.detected && t.dwell >= BREACH_DWELL_MINS) {
+      triggerBreach(t, 'UNDETECTED');
+    }
+  });
+
+  // Advance incidents
+  G.incidents.forEach(inc => {
+    if (inc.resolved || inc.breachTriggered) return;
+    inc.dwell += delta;
+
+    if (inc.analyistId === null) {
+      // Unhandled — check for breach
+      if (inc.dwell >= UNHANDLED_BREACH_MINS) {
+        triggerBreach(null, 'UNHANDLED', inc);
+      }
+      return;
+    }
+
+    // Advance IR stage
+    const stage = IR_STAGES[inc.stageIdx];
+    inc.stageProgress += delta;
+    if (inc.stageProgress >= stage.durationMins) {
+      inc.stageProgress = 0;
+      inc.stageIdx++;
+      if (inc.stageIdx >= IR_STAGES.length) {
+        resolveIncident(inc);
+      } else {
+        inc.status = IR_STAGES[inc.stageIdx].name;
+        siemLog('INFO', `SOC-A${inc.analyistId}`, `${inc.actor} :: ${inc.technique} → ${inc.status}`);
+      }
+    }
+  });
+
+  // Advance red team jobs
+  G.redTeamJobs.forEach(job => {
+    if (job.done) return;
+    job.elapsedMins += delta;
+    if (job.elapsedMins >= job.durationMins) {
+      job.done = true;
+      completeRedTeam(job);
+    }
+  });
+
+  // Recalculate stats
+  G.coverage = calcCoverage();
+  G.mttd = calcMTTD();
+
+  // Consultant daily briefing
+  if (G.consultant) {
+    const currentDay = fmtTime(G.gameTime).day;
+    if (currentDay > G.consultant.lastAdviceDay) {
+      G.consultant.lastAdviceDay = currentDay;
+      G.consultant.advice = generateConsultantAdvice();
+      const c = CONSULTANTS.find(c => c.id === G.consultant.id);
+      siemLog('INFO', c.name.split(' ')[0], `Day ${currentDay} briefing: ${G.consultant.advice.text.substring(0,90)}...`);
+    }
+  }
+
+  // Check win condition
+  const t = fmtTime(G.gameTime);
+  if (t.day > WIN_DAYS && !G.gameOver) {
+    triggerWin();
+  }
+
+  updateUI();
+}
+
+function resolveIncident(inc) {
+  inc.resolved = true;
+  inc.status = 'RESOLVED';
+  G.totalResolved++;
+  G.resolvedToday++;
+
+  // Free analyst
+  if (inc.analyistId !== null) {
+    G.analystSlots[inc.analyistId - 1] = null;
+    G.analystBusy = G.analystSlots.filter(s => s !== null).length;
+  }
+
+  // Remove associated threat
+  const tIdx = G.threats.findIndex(t => t.id === inc.threatId);
+  if (tIdx !== -1) G.threats.splice(tIdx, 1);
+
+  // Restore node
+  const stillAttacked = G.incidents.some(i => !i.resolved && i.targetId === inc.targetId);
+  if (!stillAttacked) getNode(inc.targetId).status = 'healthy';
+
+  siemLog('OK', `SOC-A${inc.analyistId}`, `INCIDENT RESOLVED: ${inc.actor}::${inc.technique} on ${inc.targetId}`, `Dwell: ${fmtDwell(inc.dwell)}`);
+
+  // Budget reward
+  const reward = rnd(5000, 20000);
+  G.budget += reward;
+  siemLog('OK', 'FINANCE', `Incident bonus credited: +${fmt$(reward)}`);
+
+  updateNodeStatuses();
+}
+
+function triggerBreach(threat, reason, incident) {
+  G.breaches++;
+  const target = threat ? threat.targetId : (incident ? incident.targetId : 'UNKNOWN');
+  const actorName = threat ? threat.actor : (incident ? incident.actor : 'UNKNOWN');
+
+  if (threat) threat.breachTriggered = true;
+  if (incident) { incident.breachTriggered = true; incident.status = 'BREACHED'; }
+
+  getNode(target).status = 'breached';
+  siemLog('CRIT', 'BREACH', `CONFIRMED BREACH: ${actorName} has compromised ${target} [${reason}]`, `Breach count: ${G.breaches}/${MAX_BREACHES}`);
+
+  if (G.breaches >= MAX_BREACHES) {
+    triggerGameOver(`${G.breaches} successful breaches — attacker persistence established in managed estate.`);
+  }
+}
+
+function triggerGameOver(reason) {
+  G.gameOver = true;
+  G.gameOverReason = reason;
+  document.getElementById('gameover-reason').textContent = reason;
+  const t = fmtTime(G.gameTime);
+  document.getElementById('gameover-stats').textContent =
+    `Day ${t.day} | Incidents Resolved: ${G.totalResolved} | Budget Remaining: ${fmt$(G.budget)}`;
+  document.getElementById('gameover-overlay').classList.add('visible');
+}
+
+function triggerWin() {
+  G.gameOver = true;
+  G.won = true;
+  document.getElementById('win-stats').textContent =
+    `Breaches: ${G.breaches}/3 | Incidents Resolved: ${G.totalResolved} | Final Budget: ${fmt$(G.budget)}`;
+  document.getElementById('win-overlay').classList.add('visible');
+}
+
+// ================================================================
+// ACTIONS
+// ================================================================
+
+function hireAnalyst() {
+  if (G.budget < ANALYST_COST) { siemLog('WARN','OPS','Insufficient budget to hire analyst'); return; }
+  if (G.analystTotal >= MAX_ANALYSTS) { siemLog('WARN','OPS','Maximum analyst headcount reached'); return; }
+  G.budget -= ANALYST_COST;
+  G.analystTotal++;
+  G.analystSlots.push(null);
+  siemLog('OK','HR',`New SOC Analyst hired — team size: ${G.analystTotal}`, fmt$(ANALYST_COST));
+}
+
+function upgradeRule(cat) {
+  const current = G.rules[cat];
+  if (current >= 5) return;
+  const cost = RULE_UPGRADE_COSTS[current];
+  if (G.budget < cost) { siemLog('WARN','OPS',`Insufficient budget for detection rule upgrade: ${cat}`); return; }
+  G.budget -= cost;
+  G.rules[cat]++;
+  G.coverage = calcCoverage();
+  G.mttd = calcMTTD();
+  siemLog('OK','DET-ENG',`Detection rules upgraded: ${cat} → Level ${G.rules[cat]}`, `Coverage now ${Math.round(G.coverage)}%`);
+  renderDetectionModal();
+}
+
+function runVulnScan() {
+  if (G.budget < 10000) { siemLog('WARN','OPS','Insufficient budget for vulnerability scan'); return; }
+  G.budget -= 10000;
+  let found = 0;
+  G.vulns.forEach(v => {
+    if (!v.discovered) { v.discovered = true; found++; }
+  });
+  if (found === 0) {
+    siemLog('OK','VULN-SCAN','Vulnerability scan complete — no new vulnerabilities discovered');
+  } else {
+    siemLog('WARN','VULN-SCAN',`Scan complete — ${found} new vulnerabilities discovered`, `Total known: ${G.vulns.filter(v=>v.discovered&&!v.patched).length}`);
+  }
+  renderVulnModal();
+}
+
+function patchCritical() {
+  if (G.budget < 25000) { siemLog('WARN','OPS','Insufficient budget'); return; }
+  G.budget -= 25000;
+  const crits = G.vulns.filter(v => v.discovered && !v.patched && v.severity === 'HIGH');
+  crits.forEach(v => v.patched = true);
+  const oldScore = G.vulnScore;
+  G.vulnScore = calcVulnScore();
+  siemLog('OK','VULN-MGMT',`Critical patch cycle complete — ${crits.length} HIGH vulns patched`, `Score: ${oldScore} → ${G.vulnScore}`);
+  renderVulnModal();
+}
+
+function patchAll() {
+  if (G.budget < 75000) { siemLog('WARN','OPS','Insufficient budget'); return; }
+  G.budget -= 75000;
+  const unpatchedKnown = G.vulns.filter(v => v.discovered && !v.patched);
+  unpatchedKnown.forEach(v => v.patched = true);
+  const oldScore = G.vulnScore;
+  G.vulnScore = calcVulnScore();
+  siemLog('OK','VULN-MGMT',`Full patch cycle complete — ${unpatchedKnown.length} vulnerabilities patched`, `Score: ${oldScore} → ${G.vulnScore}`);
+  renderVulnModal();
+}
+
+function calcVulnScore() {
+  const total = G.vulns.length;
+  if (total === 0) return 0;
+  const unpatched = G.vulns.filter(v => !v.patched);
+  const raw = Math.round((unpatched.length / total) * 100);
+  return Math.max(0, raw - getConsultantBonuses().vulnBonus);
+}
+
+let selectedRedTeam = null;
+let selectedConsultant = null;
+
+function launchRedTeam() {
+  if (!selectedRedTeam) return;
+  const opt = REDTEAM_OPTIONS.find(o => o.id === selectedRedTeam);
+  if (!opt) return;
+  if (G.budget < opt.cost) { siemLog('WARN','OPS',`Insufficient budget for red team engagement: ${opt.name}`); return; }
+  G.budget -= opt.cost;
+  const job = {
+    id: Date.now(),
+    type: opt.id,
+    name: opt.name,
+    cost: opt.cost,
+    durationMins: opt.durationMins,
+    elapsedMins: 0,
+    done: false,
+  };
+  G.redTeamJobs.push(job);
+  siemLog('OK','RED-TEAM',`Engagement launched: ${opt.name}`, `Expected completion: ${Math.round(opt.durationMins/60)}h`);
+  closeModal('redteam');
+}
+
+function completeRedTeam(job) {
+  const detGap = rnd(1, 3);
+  const vulnsFound = rnd(1, 4);
+  // Improve coverage slightly
+  G.coverage = Math.min(95, G.coverage + detGap * 2);
+  // Discover hidden vulns
+  let discovered = 0;
+  G.vulns.filter(v => !v.discovered).slice(0, vulnsFound).forEach(v => { v.discovered = true; discovered++; });
+  siemLog('OK','RED-TEAM',`ENGAGEMENT COMPLETE: ${job.name}`);
+  siemLog('WARN','RED-TEAM',`Findings: ${detGap} detection gaps identified, ${discovered} new vulnerabilities`);
+  siemLog('INFO','RED-TEAM',`Recommendations report delivered — review in Vuln Management`);
+  document.getElementById('redteam-jobs-section').style.display = '';
+  updateRedTeamJobsUI();
+}
+
+// ================================================================
+// CONSULTANT
+// ================================================================
+
+function generateConsultantAdvice() {
+  const t = fmtTime(G.gameTime);
+
+  // Priority 1: Multiple breaches — everything else stops
+  if (G.breaches >= 2) return {
+    priority: 'CRITICAL',
+    action: 'INCIDENT RESPONSE',
+    text: `${G.breaches} confirmed breaches. You are in an active compromise. Every unresolved incident is an open door. Stop all non-essential investment and assign every analyst now.`
+  };
+
+  // Priority 2: Incidents piling up, analysts maxed
+  const unhandled = G.incidents.filter(i => !i.resolved && !i.breachTriggered && i.analyistId === null);
+  if (unhandled.length >= 2 && G.analystBusy >= G.analystTotal) return {
+    priority: 'CRITICAL',
+    action: 'HIRE ANALYST',
+    text: `${unhandled.length} incidents are sitting unassigned. At current threat tempo your team cannot keep up. Another analyst is not optional — it's the difference between containment and a breach.`
+  };
+
+  // Priority 3: Coverage critically low
+  if (G.coverage < 35) {
+    const minCat = Object.entries(G.rules).sort((a,b) => a[1]-b[1])[0][0];
+    return {
+      priority: 'HIGH',
+      action: 'DETECTION ENG',
+      text: `Coverage at ${Math.round(G.coverage)}% — you are functionally blind. Threat actors are operating freely in your environment. Invest in ${minCat} rules immediately. You cannot respond to what you cannot see.`
+    };
+  }
+
+  // Priority 4: Vuln score dangerously high
+  if (G.vulnScore > 65) {
+    const undiscovered = G.vulns.filter(v => !v.discovered).length;
+    if (undiscovered > 0) return {
+      priority: 'HIGH',
+      action: 'VULN MGMT',
+      text: `Vuln score at ${G.vulnScore} with ${undiscovered} unscanned assets. You have unknown exposures. Attackers may already know your attack surface better than you do. Scan now.`
+    };
+    const unpatchedCrit = G.vulns.filter(v => v.discovered && !v.patched && v.severity === 'HIGH').length;
+    return {
+      priority: 'HIGH',
+      action: 'VULN MGMT',
+      text: `${unpatchedCrit} critical vulnerabilities unpatched. Each one is a foothold waiting to be exploited. Patch the HIGH severity findings before the next attack wave hits.`
+    };
+  }
+
+  // Priority 5: No intel feeds active
+  if (G.activeIntelFeeds.length === 0 && G.budget >= 50000) return {
+    priority: 'MEDIUM',
+    action: 'THREAT INTEL',
+    text: `You have zero threat intelligence coverage. You're reacting to attacks you could have predicted. Even a basic OSINT feed cuts your MTTD significantly. Buy it before the next wave.`
+  };
+
+  // Priority 6: Never run a red team, have budget
+  const hasRedTeam = G.redTeamJobs.some(j => j.done);
+  if (!hasRedTeam && G.budget >= 75000) return {
+    priority: 'MEDIUM',
+    action: 'RED TEAM',
+    text: `No penetration test conducted. You don't know what you don't know. Commission an assessment — my experience says you have at least 3 gaps your defenders have missed. Find them before the adversary does.`
+  };
+
+  // Priority 7: Weakest detection category still low
+  const sortedCats = Object.entries(G.rules).sort((a,b) => a[1]-b[1]);
+  const weakCat = sortedCats[0];
+  if (weakCat[1] < 3 && G.budget >= 25000) return {
+    priority: 'MEDIUM',
+    action: 'DETECTION ENG',
+    text: `${weakCat[0]} detection is at Level ${weakCat[1]} — a known blind spot. Active threat actors target exactly these gaps. Get it to Level 3 and you'll catch the next campaign before it escalates.`
+  };
+
+  // Priority 8: Single analyst, multiple threats
+  if (G.analystTotal <= 2 && G.threats.length > 2) return {
+    priority: 'MEDIUM',
+    action: 'HIRE ANALYST',
+    text: `Threat volume is outpacing your team. With ${G.analystTotal} analysts you have no surge capacity. One complex incident leaves everything else unattended. Add headcount now while budget allows.`
+  };
+
+  // Default: posture is reasonable
+  const t2 = fmtTime(G.gameTime);
+  const daysLeft = WIN_DAYS - t2.day + 1;
+  return {
+    priority: 'LOW',
+    action: null,
+    text: `Posture is stabilizing — coverage ${Math.round(G.coverage)}%, MTTD ${G.mttd} min, vuln score ${G.vulnScore}. ${daysLeft > 3 ? 'Consider a full red team engagement to stress-test your defenses before the next escalation.' : 'Final stretch — maintain coverage and keep analysts available. Don\'t let your guard down.'}`
+  };
+}
+
+function hireConsultant(id) {
+  const c = CONSULTANTS.find(c => c.id === id);
+  if (!c) return;
+  if (G.budget < c.cost) { siemLog('WARN','OPS',`Insufficient budget to retain ${c.name}`); return; }
+  G.budget -= c.cost;
+  const advice = generateConsultantAdvice();
+  G.consultant = { id, lastAdviceDay: fmtTime(G.gameTime).day, advice };
+  G.coverage = calcCoverage();
+  G.mttd = calcMTTD();
+  G.vulnScore = calcVulnScore();
+  siemLog('OK','HR',`Consultant retained: ${c.name} — ${c.title}`, c.bonusDesc);
+  siemLog('INFO',c.name.split(' ')[0],`Day 1 briefing: ${advice.text.substring(0,80)}...`);
+  closeModal('consultant');
+  renderConsultantCard();
+}
+
+function purchaseIntelFeed(feedId) {
+  if (G.activeIntelFeeds.includes(feedId)) return;
+  const feed = INTEL_FEEDS.find(f => f.id === feedId);
+  if (!feed) return;
+  if (G.budget < feed.cost) { siemLog('WARN','OPS','Insufficient budget for intel feed'); return; }
+  G.budget -= feed.cost;
+  G.activeIntelFeeds.push(feedId);
+  G.coverage = calcCoverage();
+  G.mttd = calcMTTD();
+  siemLog('OK','THREAT-INTEL',`Feed activated: ${feed.name}`, `Detection: +${feed.detectionBonus}% | MTTD: -${feed.mttdBonus}min`);
+  renderIntelModal();
+}
+
+// ================================================================
+// NETWORK MAP SVG
+// ================================================================
+
+function initMap() {
+  const edgesLayer = document.getElementById('edges-layer');
+  const nodesLayer = document.getElementById('nodes-layer');
+  edgesLayer.innerHTML = '';
+  nodesLayer.innerHTML = '';
+
+  // Draw edges
+  EDGE_DEFS.forEach(([a, b]) => {
+    const na = NODE_DEFS.find(n => n.id === a);
+    const nb = NODE_DEFS.find(n => n.id === b);
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1', na.x); line.setAttribute('y1', na.y);
+    line.setAttribute('x2', nb.x); line.setAttribute('y2', nb.y);
+    line.setAttribute('class', 'edge-line');
+    line.setAttribute('id', `edge-${a}-${b}`);
+    edgesLayer.appendChild(line);
+  });
+
+  // Draw nodes
+  NODE_DEFS.forEach(nd => {
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('id', `node-g-${nd.id}`);
+
+    const nodeColors = { internet:'#003d0e', firewall:'#005500', server:'#003d0e', database:'#003322', cloud:'#002244', switch:'#003d0e', workstation:'#003d0e' };
+    const r = nd.type === 'internet' ? 14 : nd.type === 'switch' ? 10 : 8;
+
+    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx', nd.x); circle.setAttribute('cy', nd.y);
+    circle.setAttribute('r', r);
+    circle.setAttribute('fill', nodeColors[nd.type] || '#003d0e');
+    circle.setAttribute('stroke', '#00aa2b');
+    circle.setAttribute('stroke-width', '1');
+    circle.setAttribute('class', 'node-circle');
+    circle.setAttribute('id', `node-circle-${nd.id}`);
+
+    const label = document.createElementNS('http://www.w3.org/2000/svg','text');
+    label.setAttribute('x', nd.x); label.setAttribute('y', nd.y + r + 10);
+    label.setAttribute('class', 'node-label');
+    label.setAttribute('id', `node-label-${nd.id}`);
+    label.textContent = nd.label;
+
+    g.appendChild(circle); g.appendChild(label);
+    nodesLayer.appendChild(g);
+  });
+}
+
+let pulsePhase = 0;
+
+function updateMap() {
+  pulsePhase += 0.05;
+
+  // Update node colors based on status
+  G.nodes.forEach(n => {
+    const circle = document.getElementById(`node-circle-${n.id}`);
+    const label = document.getElementById(`node-label-${n.id}`);
+    if (!circle) return;
+
+    const colors = {
+      healthy: { fill:'#003d0e', stroke:'#00aa2b' },
+      vulnerable: { fill:'#3d2000', stroke:'#aa7500' },
+      under_attack: { fill:'#3d0000', stroke:'#ff3333' },
+      breached: { fill:'#5a0000', stroke:'#ff0000' },
+    };
+    const c = colors[n.status] || colors.healthy;
+    circle.setAttribute('fill', c.fill);
+    circle.setAttribute('stroke', c.stroke);
+
+    if (n.status === 'under_attack') {
+      const pulse = 0.7 + 0.3 * Math.sin(pulsePhase * 3);
+      circle.setAttribute('opacity', pulse.toFixed(2));
+      label.setAttribute('class', 'node-label active');
+      label.setAttribute('fill', '#ff3333');
+    } else if (n.status === 'breached') {
+      circle.setAttribute('opacity', '1');
+      label.setAttribute('class', 'node-label active');
+      label.setAttribute('fill', '#ff0000');
+    } else {
+      circle.setAttribute('opacity', '1');
+      label.setAttribute('class', 'node-label');
+      label.setAttribute('fill', '');
+    }
+  });
+
+  // Render threat packets
+  const packetsLayer = document.getElementById('packets-layer');
+  packetsLayer.innerHTML = '';
+
+  G.threats.forEach(t => {
+    if (t.breachTriggered) return;
+    const entry = NODE_DEFS.find(n => n.id === t.entryId);
+    const target = NODE_DEFS.find(n => n.id === t.targetId);
+    if (!entry || !target) return;
+
+    const prog = Math.min(1, t.progress);
+    const x = entry.x + (target.x - entry.x) * prog;
+    const y = entry.y + (target.y - entry.y) * prog;
+
+    const pkt = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    pkt.setAttribute('cx', x.toFixed(1));
+    pkt.setAttribute('cy', y.toFixed(1));
+    pkt.setAttribute('r', t.detected ? '4' : '3');
+    pkt.setAttribute('fill', t.detected ? '#ff3333' : '#ffb000');
+    pkt.setAttribute('opacity', '0.9');
+    pkt.setAttribute('filter', 'url(#glow-red)');
+    packetsLayer.appendChild(pkt);
+
+    // Trail
+    if (prog > 0.05) {
+      const tx = entry.x + (target.x - entry.x) * (prog - 0.05);
+      const ty = entry.y + (target.y - entry.y) * (prog - 0.05);
+      const trail = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      trail.setAttribute('cx', tx.toFixed(1)); trail.setAttribute('cy', ty.toFixed(1));
+      trail.setAttribute('r', '2'); trail.setAttribute('fill', t.detected ? '#ff3333' : '#ffb000');
+      trail.setAttribute('opacity', '0.3');
+      packetsLayer.appendChild(trail);
+    }
+  });
+}
+
+function updateNodeStatuses() {
+  G.nodes.forEach(n => {
+    if (n.id === 'INET' || n.id === 'CORE-SW' || n.id === 'FW-01' || n.id === 'FW-02') return;
+    const attacked = G.threats.some(t => t.targetId === n.id && !t.breachTriggered);
+    const breached = G.incidents.some(i => i.targetId === n.id && i.breachTriggered);
+    const hasVulns = G.vulns.some(v => v.nodeId === n.id && v.discovered && !v.patched);
+    if (breached) n.status = 'breached';
+    else if (attacked) n.status = 'under_attack';
+    else if (hasVulns) n.status = 'vulnerable';
+    else n.status = 'healthy';
+  });
+}
+
+// ================================================================
+// UI UPDATE
+// ================================================================
+
+function updateUI() {
+  const t = fmtTime(G.gameTime);
+  document.getElementById('hdr-day').textContent = t.day;
+  document.getElementById('hdr-time').textContent = t.str;
+  document.getElementById('hdr-breaches').textContent = G.breaches;
+  document.getElementById('hdr-breaches').className = G.breaches >= 2 ? 'stat-val crit' : G.breaches >= 1 ? 'stat-val warn' : 'stat-val';
+  document.getElementById('hdr-resolved').textContent = G.totalResolved;
+  document.getElementById('budget-display').textContent = fmt$(G.budget);
+
+  // Stats panel
+  document.getElementById('stat-analysts').textContent = `${G.analystTotal - G.analystBusy}/${G.analystTotal}`;
+  const cov = Math.round(G.coverage);
+  document.getElementById('stat-coverage').textContent = `${cov}%`;
+  document.getElementById('bar-coverage').style.width = `${cov}%`;
+  document.getElementById('bar-coverage').className = `mini-bar-fill${cov < 40 ? ' crit' : cov < 60 ? ' warn' : ''}`;
+
+  document.getElementById('stat-mttd').textContent = `${G.mttd} min`;
+  document.getElementById('stat-mttd').className = `stat-val${G.mttd > 120 ? ' warn' : ''}`;
+
+  const vs = G.vulnScore;
+  document.getElementById('stat-vuln').textContent = vs;
+  document.getElementById('stat-vuln').className = `stat-val${vs > 60 ? ' crit' : vs > 40 ? ' warn' : ''}`;
+  document.getElementById('bar-vuln').style.width = `${vs}%`;
+  document.getElementById('bar-vuln').className = `mini-bar-fill${vs > 60 ? ' crit' : vs > 40 ? ' warn' : ''}`;
+
+  const activeThreats = G.threats.filter(t => !t.breachTriggered).length;
+  document.getElementById('stat-threats').textContent = activeThreats;
+
+  const intelCount = G.activeIntelFeeds.length;
+  document.getElementById('stat-actors').textContent = intelCount > 0 ? `${ACTORS.length} tracked` : `${rnd(3,6)} tracked`;
+  document.getElementById('stat-income').textContent = `${Math.round(G.nextIncomeIn / 60)}h`;
+  document.getElementById('stat-progress').textContent = `Day ${t.day}/${WIN_DAYS}`;
+
+  // Hire btn
+  const hireBtn = document.getElementById('hire-btn');
+  hireBtn.disabled = G.analystTotal >= MAX_ANALYSTS || G.budget < ANALYST_COST;
+
+  // Incidents
+  renderIncidents();
+  updateMap();
+  updateRedTeamJobsUI();
+  renderConsultantCard();
+}
+
+function renderIncidents() {
+  const list = document.getElementById('incidents-list');
+  const active = G.incidents.filter(i => !i.resolved && !i.breachTriggered);
+  document.getElementById('incident-count').textContent = `${active.length} active`;
+
+  if (active.length === 0) {
+    list.innerHTML = '<div class="no-incidents">NO ACTIVE INCIDENTS — MONITORING...</div>';
+    return;
+  }
+
+  // Re-render incidents (keep it simple — re-render all)
+  list.innerHTML = '';
+  active.forEach(inc => {
+    const card = document.createElement('div');
+    card.className = 'incident-card';
+    if (inc.dwell > UNHANDLED_BREACH_MINS * 0.7) card.classList.add('critical');
+    else if (inc.dwell > UNHANDLED_BREACH_MINS * 0.4) card.classList.add('warning');
+
+    const dwellClass = inc.dwell > 20 ? 'dwell-crit' : inc.dwell > 10 ? 'dwell-warn' : 'dwell-ok';
+    const dwellStr = fmtDwell(inc.dwell);
+
+    let stagesHtml = '';
+    IR_STAGES.forEach((s, i) => {
+      let cls = 'pending';
+      if (i < inc.stageIdx) cls = 'done';
+      else if (i === inc.stageIdx && inc.analyistId !== null) cls = 'active';
+      stagesHtml += `<span class="ir-stage ${cls}">${s.name}</span>`;
+    });
+
+    // Progress within current stage
+    const currentStage = IR_STAGES[inc.stageIdx];
+    const stagePct = currentStage && inc.analyistId !== null
+      ? Math.min(100, Math.round((inc.stageProgress / currentStage.durationMins) * 100))
+      : 0;
+
+    const noAnalysts = G.analystBusy >= G.analystTotal;
+    const assignedHtml = inc.analyistId !== null
+      ? `<div class="analyst-tag">ANALYST-${inc.analyistId} assigned</div>`
+      : noAnalysts
+        ? `<button class="assign-btn" disabled title="All analysts busy — hire more or wait for one to finish">⚠ ALL ANALYSTS BUSY</button>`
+        : `<button class="assign-btn" data-incident-id="${inc.id}">ASSIGN ANALYST</button>`;
+
+    card.innerHTML = `
+      <div class="incident-header">
+        <span class="incident-actor">▶ ${inc.actor}</span>
+        <span class="incident-target">${inc.targetId}</span>
+      </div>
+      <div class="incident-technique">${inc.technique} [${inc.techniqueCategory}]</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px">
+        <div class="ir-stages">${stagesHtml}</div>
+        <span class="incident-dwell ${dwellClass}">⏱ ${dwellStr}</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${stagePct}%"></div></div>
+      ${assignedHtml}
+    `;
+    list.appendChild(card);
+  });
+}
+
+function updateRedTeamJobsUI() {
+  const active = G.redTeamJobs.filter(j => !j.done);
+  const section = document.getElementById('redteam-jobs-section');
+  const list = document.getElementById('redteam-jobs-list');
+  if (active.length === 0 && G.redTeamJobs.filter(j=>j.done).length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = '';
+  list.innerHTML = '';
+  G.redTeamJobs.slice(-3).forEach(job => {
+    const pct = Math.min(100, Math.round((job.elapsedMins / job.durationMins) * 100));
+    const d = document.createElement('div');
+    d.className = 'redteam-job';
+    d.innerHTML = `${job.name.substring(0,28)}${job.done ? ' [DONE]' : ` ${pct}%`}
+      <div class="redteam-job-bar"><div class="redteam-job-fill" style="width:${pct}%"></div></div>`;
+    list.appendChild(d);
+  });
+}
+
+// ================================================================
+// MODAL RENDERING
+// ================================================================
+
+function anyModalOpen() {
+  return !!document.querySelector('.modal-overlay.visible');
+}
+
+function openModal(name) {
+  if (name === 'detection') renderDetectionModal();
+  if (name === 'vuln') renderVulnModal();
+  if (name === 'redteam') renderRedTeamModal();
+  if (name === 'intel') renderIntelModal();
+  if (name === 'consultant') renderConsultantModal();
+  document.getElementById(`modal-${name}`).classList.add('visible');
+  if (G && !G.paused && !G.gameOver) { G._modalPaused = true; togglePause(); }
+}
+function closeModal(name) {
+  document.getElementById(`modal-${name}`).classList.remove('visible');
+  if (G && G._modalPaused && !anyModalOpen()) { G._modalPaused = false; togglePause(); }
+}
+
+function renderDetectionModal() {
+  const list = document.getElementById('detection-rules-list');
+  list.innerHTML = '';
+  TECHNIQUE_CATS.forEach(cat => {
+    const level = G.rules[cat];
+    const nextCost = level < 5 ? RULE_UPGRADE_COSTS[level] : null;
+    const canAfford = nextCost && G.budget >= nextCost;
+    const stars = '★'.repeat(level) + '☆'.repeat(5 - level);
+
+    const row = document.createElement('div');
+    row.className = 'rule-row';
+    row.innerHTML = `
+      <div class="rule-name">${cat}</div>
+      <div class="rule-stars">
+        ${stars.split('').map((s,i) => `<span class="star${i<level?' filled':''}">${s}</span>`).join('')}
+      </div>
+      ${level < 5
+        ? `<button class="rule-upgrade-btn" onclick="upgradeRule('${cat}')" ${!canAfford?'disabled':''}>
+             UPGRADE ${fmt$(nextCost)}
+           </button>`
+        : `<span style="color:var(--green);font-size:10px">MAX</span>`
+      }
+    `;
+    list.appendChild(row);
+  });
+  const cov = Math.round(calcCoverage());
+  document.getElementById('detection-coverage-summary').textContent =
+    `Overall detection coverage: ${cov}% | MTTD: ${calcMTTD()} min`;
+}
+
+function renderVulnModal() {
+  const vulnList = document.getElementById('vuln-list');
+  vulnList.innerHTML = '';
+  const known = G.vulns.filter(v => v.discovered);
+  if (known.length === 0) {
+    vulnList.innerHTML = '<div style="color:var(--green-dark);font-size:10px;padding:8px">No vulnerabilities discovered. Run a scan.</div>';
+  } else {
+    known.sort((a,b) => {
+      const sev = {HIGH:0,MED:1,LOW:2};
+      if (a.patched !== b.patched) return a.patched ? 1 : -1;
+      return sev[a.severity] - sev[b.severity];
+    }).forEach(v => {
+      const row = document.createElement('div');
+      row.className = 'vuln-row';
+      row.innerHTML = `
+        <span class="vuln-id">${v.id}</span>
+        <span class="vuln-node">${v.nodeId}</span>
+        <span class="vuln-sev sev-${v.severity.toLowerCase()}">${v.severity}</span>
+        <span class="vuln-status">${v.name}</span>
+        <span style="color:${v.patched?'var(--green-dim)':'var(--red)'};font-size:9px">${v.patched?'PATCHED':'EXPOSED'}</span>
+      `;
+      vulnList.appendChild(row);
+    });
+  }
+  // Update button states
+  const unknown = G.vulns.filter(v=>!v.discovered).length;
+  document.getElementById('scan-btn').disabled = G.budget < 10000 || unknown === 0;
+  document.getElementById('patch-crit-btn').disabled = G.budget < 25000 || !G.vulns.some(v=>v.discovered&&!v.patched&&v.severity==='HIGH');
+  document.getElementById('patch-all-btn').disabled = G.budget < 75000 || !G.vulns.some(v=>v.discovered&&!v.patched);
+}
+
+function renderRedTeamModal() {
+  const optDiv = document.getElementById('redteam-options');
+  optDiv.innerHTML = '';
+  REDTEAM_OPTIONS.forEach(opt => {
+    const active = G.redTeamJobs.some(j => j.type === opt.id && !j.done);
+    const d = document.createElement('div');
+    d.className = `redteam-option${selectedRedTeam===opt.id?' selected':''}`;
+    d.onclick = () => {
+      selectedRedTeam = opt.id;
+      renderRedTeamModal();
+    };
+    d.innerHTML = `
+      <div class="redteam-name">${opt.name}${active?' <span style="color:var(--amber)">[ACTIVE]</span>':''}</div>
+      <div class="redteam-desc">${opt.desc}</div>
+      <div class="redteam-meta">Cost: ${fmt$(opt.cost)} | Duration: ${Math.round(opt.durationMins/60)}h game time</div>
+    `;
+    optDiv.appendChild(d);
+  });
+  const btn = document.getElementById('launch-redteam-btn');
+  if (selectedRedTeam) {
+    const opt = REDTEAM_OPTIONS.find(o => o.id === selectedRedTeam);
+    btn.disabled = G.budget < opt.cost;
+    btn.textContent = `▶ LAUNCH: ${opt.name.toUpperCase()} (${fmt$(opt.cost)})`;
+  } else {
+    btn.disabled = true;
+    btn.textContent = '▶ SELECT AN ENGAGEMENT TYPE';
+  }
+}
+
+function renderIntelModal() {
+  const optDiv = document.getElementById('intel-options');
+  optDiv.innerHTML = '';
+  INTEL_FEEDS.forEach(feed => {
+    const active = G.activeIntelFeeds.includes(feed.id);
+    const d = document.createElement('div');
+    d.className = 'intel-option';
+    d.innerHTML = `
+      <div class="intel-name">${feed.name} ${active?'<span class="intel-active">● ACTIVE</span>':''}</div>
+      <div class="intel-desc">${feed.desc}</div>
+      <div style="font-size:9px;color:var(--green-dim);margin-top:2px">
+        Detection +${feed.detectionBonus}% | MTTD -${feed.mttdBonus}min | Cost: ${fmt$(feed.cost)}
+      </div>
+      ${active
+        ? ''
+        : `<button class="intel-btn" onclick="purchaseIntelFeed('${feed.id}')" ${G.budget<feed.cost?'disabled':''}>▶ SUBSCRIBE ${fmt$(feed.cost)}</button>`
+      }
+    `;
+    optDiv.appendChild(d);
+  });
+}
+
+function renderConsultantCard() {
+  const section = document.getElementById('consultant-ops-section');
+  const card = document.getElementById('consultant-card');
+  const hireBtn = document.getElementById('hire-consultant-btn');
+  if (!G.consultant) {
+    card.innerHTML = '<div style="color:var(--green-dark);font-size:10px;margin-bottom:4px">No consultant on retainer.</div>';
+    hireBtn.style.display = '';
+    hireBtn.disabled = G.budget < 150000;
+    return;
+  }
+  const c = CONSULTANTS.find(c => c.id === G.consultant.id);
+  const adv = G.consultant.advice;
+  const priClass = `advice-priority-${adv.priority.toLowerCase()}`;
+  const actionHtml = adv.action
+    ? `<div class="advice-action">→ RECOMMENDED ACTION: ${adv.action}</div>`
+    : `<div class="advice-action" style="color:var(--green-dim)">→ POSTURE ADEQUATE</div>`;
+  card.innerHTML = `
+    <div class="consultant-name">${c.name}</div>
+    <div class="consultant-title">${c.title}</div>
+    <div class="consultant-bonus">● ACTIVE &nbsp;${c.bonusDesc}</div>
+    <div class="consultant-advice">
+      <div class="advice-day ${priClass}">DAY ${G.consultant.lastAdviceDay} BRIEFING [${adv.priority}]</div>
+      <div class="advice-text">${adv.text}</div>
+      ${actionHtml}
+    </div>
+  `;
+  hireBtn.style.display = '';
+  hireBtn.textContent = '▶ CHANGE CONSULTANT';
+  hireBtn.disabled = false;
+}
+
+function renderConsultantModal() {
+  const list = document.getElementById('consultant-profiles-list');
+  list.innerHTML = '';
+  CONSULTANTS.forEach(c => {
+    const isCurrent = G.consultant && G.consultant.id === c.id;
+    const d = document.createElement('div');
+    d.className = `consultant-profile${selectedConsultant === c.id ? ' selected' : ''}`;
+    d.onclick = () => { selectedConsultant = c.id; renderConsultantModal(); };
+    d.innerHTML = `
+      <div class="cp-name">${c.name} ${isCurrent ? '<span style="color:var(--green-dim);font-size:9px">● CURRENT</span>' : ''}</div>
+      <div class="cp-title">${c.title}</div>
+      <div class="cp-flavor">${c.flavor}</div>
+      <div class="cp-bonus">Defensive bonus: ${c.bonusDesc}</div>
+      <div class="cp-cost">One-time retainer: ${fmt$(c.cost)}</div>
+    `;
+    list.appendChild(d);
+  });
+  const btn = document.getElementById('hire-consultant-confirm-btn');
+  if (selectedConsultant) {
+    const c = CONSULTANTS.find(c => c.id === selectedConsultant);
+    const isCurrent = G.consultant && G.consultant.id === selectedConsultant;
+    btn.disabled = isCurrent || G.budget < c.cost;
+    btn.textContent = isCurrent ? `▶ ${c.name.split(' ')[0].toUpperCase()} ALREADY ON RETAINER` : `▶ RETAIN ${c.name.split(' ')[0].toUpperCase()} (${fmt$(c.cost)})`;
+  } else {
+    btn.disabled = true;
+    btn.textContent = '▶ SELECT A CONSULTANT';
+  }
+}
+
+// ================================================================
+// CONTROLS
+// ================================================================
+
+function setSpeed(s) {
+  G.speed = s;
+  [1,2,4].forEach(v => {
+    document.getElementById(`spd-${v}`).classList.toggle('active', v === s);
+  });
+}
+
+function togglePause() {
+  G.paused = !G.paused;
+  const btn = document.getElementById('pause-btn');
+  const ind = document.getElementById('live-indicator');
+  btn.textContent = G.paused ? 'RESUME' : 'PAUSE';
+  if (G.paused) {
+    ind.className = 'paused';
+    ind.textContent = '■ PAUSED';
+  } else {
+    ind.className = 'live';
+    ind.textContent = '■ LIVE';
+  }
+}
+
+function openHelp() {
+  document.getElementById('help-overlay').classList.add('visible');
+  if (G && !G.paused && !G.gameOver) { G._modalPaused = true; togglePause(); }
+}
+function closeHelp() {
+  document.getElementById('help-overlay').classList.remove('visible');
+  if (G && G._modalPaused && !anyModalOpen()) { G._modalPaused = false; togglePause(); }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (G && !G.gameOver) togglePause();
+  }
+  if (e.key === '?') openHelp();
+});
+
+// Delegated listener for assign buttons — survives DOM re-renders every tick
+document.getElementById('incidents-list').addEventListener('mousedown', e => {
+  const btn = e.target.closest('[data-incident-id]');
+  if (btn && !btn.disabled) assignAnalystToIncident(parseInt(btn.dataset.incidentId));
+});
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) {
+      const id = overlay.id.replace('modal-', '');
+      closeModal(id);
+    }
+  });
+});
+
+function restartGame() {
+  document.getElementById('gameover-overlay').classList.remove('visible');
+  document.getElementById('win-overlay').classList.remove('visible');
+  document.getElementById('siem-strip-list').innerHTML = '';
+  document.getElementById('siem-popout-feed').innerHTML = '';
+  siemHistory.length = 0;
+  siemEntryCount = 0;
+  selectedRedTeam = null;
+  selectedConsultant = null;
+  initState();
+  initMap();
+  siemLog('OK','SYSTEM','Operations restarted — all systems nominal');
+  siemLog('WARN','POSTURE',`Detection coverage at ${G.coverage}% — below recommended threshold of 60%`);
+  siemLog('WARN','POSTURE',`Vulnerability score: ${G.vulnScore} — ${G.vulns.filter(v=>v.discovered&&!v.patched).length} known exposures`);
+}
+
+// ================================================================
+// BOOT SEQUENCE
+// ================================================================
+
+const BOOT_LINES = [
+  ['INIT', 'ok',   'Loading threat intelligence correlation engine'],
+  ['INIT', 'ok',   'Establishing SIEM ingestion pipelines'],
+  ['INIT', 'ok',   'Deploying endpoint detection agents (EDR)'],
+  ['INIT', 'ok',   'Connecting to global threat intelligence feeds'],
+  ['INIT', 'ok',   'Loading MITRE ATT&CK framework mappings'],
+  ['INIT', 'ok',   'Initializing incident response playbooks'],
+  ['INIT', 'ok',   'Calibrating anomaly detection baselines'],
+  ['INIT', 'ok',   'Starting network detection daemon (NDR)'],
+  ['INIT', 'ok',   'Validating analyst authentication tokens'],
+  ['INIT', 'ok',   'Establishing secure comms to client nodes'],
+  ['WARN', 'warn', '3 critical vulnerabilities in managed estate'],
+  ['WARN', 'warn', 'Threat actor activity detected — EMEA region'],
+  ['WARN', 'warn', `Detection coverage at 25% — below acceptable threshold`],
+  ['BOOT', 'ok',   'All systems operational — awaiting analyst'],
+];
+
+function runBootSequence() {
+  const log = document.getElementById('boot-log');
+  let i = 0;
+  function nextLine() {
+    if (i >= BOOT_LINES.length) {
+      setTimeout(() => {
+        document.getElementById('boot-prompt').style.display = 'block';
+        document.addEventListener('keydown', startGame, { once: true });
+        document.addEventListener('click', startGame, { once: true });
+      }, 300);
+      return;
+    }
+    const [prefix, cls, text] = BOOT_LINES[i++];
+    const line = document.createElement('div');
+    line.className = 'boot-line';
+    const statusText = cls === 'ok' ? '[ OK ]' : cls === 'warn' ? '[WARN]' : '[INFO]';
+    const statusClass = cls === 'ok' ? 'ok' : cls === 'warn' ? 'warn' : 'label';
+    line.innerHTML = `<span class="label">${prefix}</span><span style="color:var(--green-dim);flex:1;padding:0 12px">${text}</span><span class="${statusClass}">${statusText}</span>`;
+    log.appendChild(line);
+    setTimeout(nextLine, 80 + Math.random() * 60);
+  }
+  nextLine();
+}
+
+function startGame() {
+  document.getElementById('boot-screen').style.display = 'none';
+  document.getElementById('game-screen').classList.add('visible');
+  initState();
+  initMap();
+  updateUI();
+
+  // Initial SIEM entries
+  siemLog('OK','SYSTEM','PumaSOC OPERATIONS CENTER — ONLINE');
+  siemLog('INFO','SYSTEM',`Managing ${NODE_DEFS.filter(n=>n.type!=='internet').length} assets across client estate`);
+  siemLog('INFO','INTEL',`Tracking ${ACTORS.length} known threat actor groups`);
+  siemLog('WARN','POSTURE',`Detection coverage: ${G.coverage}% — recommend immediate investment in detection engineering`);
+  siemLog('WARN','VULN',`${G.vulns.filter(v=>v.discovered&&!v.patched).length} known vulnerabilities require remediation`);
+
+  tickInterval = setInterval(tick, TICK_MS);
+}
+
+// ================================================================
+// INIT
+// ================================================================
+
+window.addEventListener('load', () => {
+  runBootSequence();
+});
+</script>
+</body>
+</html>
