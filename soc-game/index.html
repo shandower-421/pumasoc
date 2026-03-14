@@ -2207,7 +2207,7 @@ function createIncident(threat) {
 function assignAnalystToIncident(incidentId) {
   const inc = G.incidents.find(i => i.id === incidentId);
   if (!inc || inc.analyistId !== null) return;
-  if (G.analystBusy >= G.analystTotal) {
+  if (!G.analystSlots.some(s => s === null)) {
     siemLog('WARN', 'OPS', `No analysts available — incident ${incidentId} queued`);
     return;
   }
@@ -3197,7 +3197,7 @@ function renderIncidents() {
       ? Math.min(100, Math.round((inc.stageProgress / currentStage.durationMins) * 100))
       : 0;
 
-    const noAnalysts = G.analystBusy >= G.analystTotal;
+    const noAnalysts = !G.analystSlots.some(s => s === null);
     const assignedHtml = inc.analyistId !== null
       ? `<div class="analyst-tag">ANALYST-${inc.analyistId} assigned</div>`
       : noAnalysts
