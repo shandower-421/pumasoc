@@ -112,6 +112,28 @@ body::after {
 @keyframes fadeIn { to { opacity: 1; } }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
+/* Breach vignette flash */
+@keyframes breach-flash-anim {
+  0%   { opacity: 0; }
+  12%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+#breach-flash {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 4999;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, transparent 25%, rgba(255,51,51,0.38) 100%);
+}
+#breach-flash.active { animation: breach-flash-anim 0.9s cubic-bezier(0.16,1,0.3,1) forwards; }
+
+/* New incident card entrance */
+@keyframes incident-enter {
+  from { opacity: 0; transform: translateX(-10px); box-shadow: 0 0 14px rgba(0,255,65,0.35); border-color: var(--green); }
+  to   { opacity: 1; transform: none; box-shadow: none; }
+}
+.incident-card.incident-enter { animation: incident-enter 0.3s cubic-bezier(0.22,1,0.36,1) forwards; }
+
 /* ===================== LAYOUT ===================== */
 #game-screen {
   display: none;
@@ -169,6 +191,7 @@ body::after {
   padding: 1px 6px; cursor: pointer; margin-right: 2px;
 }
 .speed-btn:hover { color: var(--green); border-color: var(--green); }
+.speed-btn:active { transform: scale(0.92); }
 .speed-btn.active { color: var(--bg); background: var(--green); border-color: var(--green); }
 #pause-btn {
   background: none; border: 1px solid var(--amber); color: var(--amber);
@@ -326,6 +349,12 @@ body::after {
   from { opacity: 0; transform: translateY(3px); }
   to { opacity: 1; transform: translateY(0); }
 }
+@keyframes siem-slide-crit {
+  from { opacity: 0; transform: translateY(3px); background: rgba(255,51,51,0.12); }
+  50%  { background: rgba(255,51,51,0.06); }
+  to   { opacity: 1; transform: translateY(0); background: transparent; }
+}
+.siem-entry[data-sev="CRIT"] { animation: siem-slide-crit 0.3s ease forwards; }
 .siem-time { color: #336633; }
 .siem-info { color: var(--green-dim); }
 .siem-warn { color: var(--amber); }
@@ -403,6 +432,7 @@ body::after {
   letter-spacing: 1px;
 }
 .siem-filter-btn:hover { border-color: var(--green); color: var(--green); }
+.siem-filter-btn:active { transform: scale(0.93); }
 .siem-filter-btn.active { background: var(--green-dark); border-color: var(--green); color: var(--green); }
 .incident-card {
   border: 1px solid var(--green-dark);
@@ -472,6 +502,7 @@ body::after {
   margin-top: 3px;
 }
 .assign-btn:hover { background: var(--green); color: var(--bg); }
+.assign-btn:active:not(:disabled) { transform: scale(0.94); }
 .assign-btn:disabled {
   border-color: var(--amber-dim);
   color: var(--amber-dim);
@@ -621,6 +652,7 @@ body::after {
   transition: background 0.1s, color 0.1s;
 }
 .action-btn:hover { background: var(--green); color: var(--bg); }
+.action-btn:active:not(:disabled) { transform: scale(0.95); }
 .action-btn:disabled { border-color: var(--green-dark); color: var(--green-dark); cursor: not-allowed; }
 .action-btn .btn-cost { float: right; color: var(--amber-dim); font-size: 10px; }
 .action-btn:hover .btn-cost { color: var(--bg); }
@@ -713,6 +745,7 @@ body::after {
   white-space: nowrap;
 }
 .rule-upgrade-btn:hover { background: var(--green); color: var(--bg); }
+.rule-upgrade-btn:active:not(:disabled) { transform: scale(0.95); }
 .rule-upgrade-btn:disabled { border-color: var(--green-dark); color: var(--green-dark); cursor: not-allowed; }
 .vuln-row {
   display: flex;
@@ -734,6 +767,7 @@ body::after {
   font-family: var(--font); font-size: 9px; padding: 1px 6px; cursor: pointer;
 }
 .vuln-patch-btn:hover { background: var(--green); color: var(--bg); }
+.vuln-patch-btn:active:not(:disabled) { transform: scale(0.95); }
 .vuln-patch-btn:disabled { border-color: var(--green-dark); color: var(--green-dark); cursor: not-allowed; }
 .modal-actions {
   display: flex;
@@ -747,6 +781,7 @@ body::after {
   font-family: var(--font); font-size: 11px; padding: 5px 14px; cursor: pointer;
 }
 .modal-action-btn:hover { background: var(--green); color: var(--bg); }
+.modal-action-btn:active:not(:disabled) { transform: scale(0.95); }
 .modal-action-btn:disabled { border-color: var(--green-dark); color: var(--green-dark); cursor: not-allowed; }
 .modal-action-btn.danger { border-color: var(--red); color: var(--red); }
 .modal-action-btn.danger:hover { background: var(--red); color: var(--bg); }
@@ -774,6 +809,7 @@ body::after {
   font-family: var(--font); font-size: 10px; padding: 2px 10px; cursor: pointer; margin-top: 4px;
 }
 .intel-btn:hover { background: var(--green); color: var(--bg); }
+.intel-btn:active:not(:disabled) { transform: scale(0.95); }
 .intel-btn:disabled { border-color: var(--green-dark); color: var(--green-dark); cursor: not-allowed; }
 .intel-active { color: var(--green); font-size: 10px; }
 .section-header {
@@ -797,7 +833,20 @@ body::after {
   justify-content: center;
   flex-direction: column;
 }
+@keyframes overlay-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
 #gameover-overlay.visible, #win-overlay.visible { display: flex; }
+#gameover-overlay.visible > *, #win-overlay.visible > * {
+  animation: overlay-in 0.4s cubic-bezier(0.22,1,0.36,1) both;
+}
+#gameover-overlay.visible > *:nth-child(2) { animation-delay: 0.05s; }
+#gameover-overlay.visible > *:nth-child(3) { animation-delay: 0.1s; }
+#gameover-overlay.visible > *:nth-child(4) { animation-delay: 0.15s; }
+#win-overlay.visible > *:nth-child(2) { animation-delay: 0.05s; }
+#win-overlay.visible > *:nth-child(3) { animation-delay: 0.1s; }
+#win-overlay.visible > *:nth-child(4) { animation-delay: 0.15s; }
 #gameover-overlay .title {
   color: var(--red);
   font-size: 28px;
@@ -955,6 +1004,22 @@ body::after {
   50% { box-shadow: inset 0 0 0 2px var(--red); }
 }
 #game-screen.breach-critical { animation: breach-pulse 1.2s ease-in-out infinite; }
+
+/* Budget stat flash */
+@keyframes stat-up   { 0%{ filter: brightness(3); } 100%{ filter: brightness(1); } }
+@keyframes stat-down { 0%{ filter: brightness(0.25); } 100%{ filter: brightness(1); } }
+.stat-flash-up   { animation: stat-up   0.5s ease forwards; }
+.stat-flash-down { animation: stat-down 0.4s ease forwards; }
+
+/* Coverage level-up bar flash */
+@keyframes bar-levelup { 0%{ filter: brightness(3); } 60%{ filter: brightness(1.6); } 100%{ filter: brightness(1); } }
+.bar-levelup { animation: bar-levelup 0.6s ease forwards; }
+
+/* Subtle CRT phosphor flicker */
+@keyframes crt-flicker-anim {
+  0%,100%{ opacity:1 } 18%{ opacity:0.87 } 36%{ opacity:1 } 66%{ opacity:0.93 } 82%{ opacity:1 }
+}
+body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 
 /* ===================== DIFFICULTY SCREEN ===================== */
 #difficulty-screen {
@@ -1125,9 +1190,24 @@ body::after {
   color: var(--amber);
   background: rgba(255,176,0,0.04);
 }
+
+@media (prefers-reduced-motion: reduce) {
+  #breach-flash.active,
+  .incident-card.incident-enter,
+  .stat-flash-up, .stat-flash-down,
+  #gameover-overlay.visible > *, #win-overlay.visible > *,
+  .bar-levelup,
+  body.crt-flicker,
+  .siem-entry[data-sev="CRIT"] {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0s !important;
+  }
+}
 </style>
 </head>
 <body>
+<div id="breach-flash"></div>
 
 <!-- ===================== BOOT SCREEN ===================== -->
 <div id="boot-screen">
@@ -2029,6 +2109,9 @@ function soundResolve() {
 const SIEM_STRIP_MAX = 12; // entries that fit in the 210px strip without squishing
 const siemHistory = []; // full history for popout
 const expandedActorCards = new Set(); // incident IDs with actor profile expanded
+const _newIncidentIds = new Set();    // IDs for entrance animation, cleared after first render
+let _prevBudget = null;               // for budget flash
+let _prevCoverage = 0;                // for coverage bar level-up flash
 
 function siemCategory(source) {
   if (/^SOC-A|^BREACH/.test(source)) return 'incident';
@@ -2202,6 +2285,7 @@ function createIncident(threat) {
     breachTriggered: false,
   };
   G.incidents.push(incident);
+  _newIncidentIds.add(incident.id);
 }
 
 function assignAnalystToIncident(incidentId) {
@@ -2504,6 +2588,10 @@ function completeLessonsLearned(incidentId) {
 function triggerBreach(threat, reason, incident) {
   G.breaches++;
   soundBreach();
+  const bf = document.getElementById('breach-flash');
+  bf.classList.remove('active');
+  void bf.offsetWidth;
+  bf.classList.add('active');
   const target = threat ? threat.targetId : (incident ? incident.targetId : 'UNKNOWN');
   const actorName = threat ? threat.actor : (incident ? incident.actor : 'UNKNOWN');
 
@@ -3046,9 +3134,16 @@ function updateUI() {
   document.getElementById('game-screen').classList.toggle('breach-critical', G.breaches >= MAX_BREACHES - 1);
   document.getElementById('hdr-resolved').textContent = G.totalResolved;
   document.getElementById('budget-display').textContent = fmt$(G.budget);
-  document.getElementById('budget-display-large').textContent = fmt$(G.budget);
-  document.getElementById('budget-display-large').style.color = G.budget < 50000 ? 'var(--red)' : G.budget < 150000 ? 'var(--amber)' : 'var(--green)';
-  document.getElementById('budget-display-large').style.textShadow = G.budget < 50000 ? '0 0 10px var(--red)' : G.budget < 150000 ? '0 0 10px var(--amber)' : '0 0 10px var(--green), 0 0 20px rgba(0,255,65,0.3)';
+  const budgetLargeEl = document.getElementById('budget-display-large');
+  budgetLargeEl.textContent = fmt$(G.budget);
+  budgetLargeEl.style.color = G.budget < 50000 ? 'var(--red)' : G.budget < 150000 ? 'var(--amber)' : 'var(--green)';
+  budgetLargeEl.style.textShadow = G.budget < 50000 ? '0 0 10px var(--red)' : G.budget < 150000 ? '0 0 10px var(--amber)' : '0 0 10px var(--green), 0 0 20px rgba(0,255,65,0.3)';
+  if (_prevBudget !== null && G.budget !== _prevBudget) {
+    budgetLargeEl.classList.remove('stat-flash-up', 'stat-flash-down');
+    void budgetLargeEl.offsetWidth;
+    budgetLargeEl.classList.add(G.budget > _prevBudget ? 'stat-flash-up' : 'stat-flash-down');
+  }
+  _prevBudget = G.budget;
 
   // Stats panel
   const trainingSlots = G.analystSlots.filter(s => s === 'TRAINING').length;
@@ -3056,8 +3151,15 @@ function updateUI() {
   document.getElementById('stat-analysts').textContent = `${effectiveFree}/${G.analystTotal}${trainingSlots > 0 ? ' (1 training)' : ''}`;
   const cov = Math.round(G.coverage);
   document.getElementById('stat-coverage').textContent = `${cov}%`;
-  document.getElementById('bar-coverage').style.width = `${cov}%`;
-  document.getElementById('bar-coverage').className = `mini-bar-fill${cov < 40 ? ' crit' : cov < 60 ? ' warn' : ''}`;
+  const covBar = document.getElementById('bar-coverage');
+  covBar.style.width = `${cov}%`;
+  covBar.className = `mini-bar-fill${cov < 40 ? ' crit' : cov < 60 ? ' warn' : ''}`;
+  if (cov > _prevCoverage) {
+    covBar.classList.remove('bar-levelup');
+    void covBar.offsetWidth;
+    covBar.classList.add('bar-levelup');
+  }
+  _prevCoverage = cov;
 
   document.getElementById('stat-mttd').textContent = `${G.mttd} min`;
   document.getElementById('stat-mttd').className = `stat-val${G.mttd > 120 ? ' warn' : ''}`;
@@ -3140,7 +3242,8 @@ function renderIncidents() {
   list.innerHTML = '';
   active.forEach(inc => {
     const card = document.createElement('div');
-    card.className = 'incident-card';
+    card.className = _newIncidentIds.has(inc.id) ? 'incident-card incident-enter' : 'incident-card';
+    _newIncidentIds.delete(inc.id);
 
     if (inc.status === 'LESSONS_PENDING') {
       const remaining = Math.max(0, inc.lessonsPendingUntil - G.gameTime);
@@ -3635,6 +3738,7 @@ function runBootSequence() {
           updateUI();
           siemLog('INFO', 'SYSTEM', 'Session restored — resuming operations');
           tickInterval = setInterval(tick, TICK_MS);
+          scheduleCrtFlicker();
           return;
         }
         document.getElementById('boot-prompt').style.display = 'block';
@@ -3679,6 +3783,7 @@ function openDifficultyScreen(e) {
     updateUI();
     siemLog('INFO', 'SYSTEM', 'Session restored — resuming operations');
     tickInterval = setInterval(tick, TICK_MS);
+    scheduleCrtFlicker();
     return;
   }
 
@@ -3762,6 +3867,15 @@ function startGame() {
   siemLog('WARN','VULN',`${G.vulns.filter(v=>v.discovered&&!v.patched).length} known vulnerabilities require remediation`);
 
   tickInterval = setInterval(tick, TICK_MS);
+  scheduleCrtFlicker();
+}
+
+function scheduleCrtFlicker() {
+  setTimeout(() => {
+    document.body.classList.add('crt-flicker');
+    setTimeout(() => document.body.classList.remove('crt-flicker'), 220);
+    scheduleCrtFlicker();
+  }, 15000 + Math.random() * 30000);
 }
 
 // ================================================================
