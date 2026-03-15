@@ -1921,7 +1921,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
           <span class="help-cap-desc">Auto-assigns free analysts to unhandled incidents each tick. A safety net so incidents never breach simply because you missed the alert. Expensive — only worth it when you're consistently running out of free analysts.</span>
         </div>
         <div class="help-cap-row">
-          <span class="help-cap-name">CONSULTANT — $150k engagement fee</span>
+          <span class="help-cap-name">CONSULTANT — $75k engagement fee</span>
           <span class="help-cap-desc">Passive Coverage % and MTTD improvement plus a <strong>daily briefing</strong> with one data-driven action recommendation tailored to your current posture. Hire on day 1 — the briefings alone direct your spending effectively.</span>
         </div>
       </div>
@@ -2242,7 +2242,7 @@ const CONSULTANTS = [
     specialty: 'detection',
     bonus: { coverageBonus: 8, mttdBonus: 20, vulnBonus: 0 },
     bonusDesc: '+8% detection coverage, -20 min MTTD',
-    cost: 150000,
+    cost: 75000,
   },
   {
     id: 'webb',
@@ -2252,7 +2252,7 @@ const CONSULTANTS = [
     specialty: 'redteam',
     bonus: { coverageBonus: 3, mttdBonus: 0, vulnBonus: 20 },
     bonusDesc: '-20 vuln score exposure, +3% coverage',
-    cost: 150000,
+    cost: 75000,
   },
   {
     id: 'nair',
@@ -2262,7 +2262,7 @@ const CONSULTANTS = [
     specialty: 'risk',
     bonus: { coverageBonus: 5, mttdBonus: 10, vulnBonus: 10 },
     bonusDesc: '+5% coverage, -10 min MTTD, -10 vuln score',
-    cost: 150000,
+    cost: 75000,
   },
 ];
 
@@ -4654,7 +4654,7 @@ function renderConsultantCard() {
   if (!G.consultant) {
     card.innerHTML = '<div style="color:var(--green-dark);font-size:10px;margin-bottom:4px">No external consultant engaged.</div>';
     hireBtn.style.display = '';
-    hireBtn.disabled = G.budget < 150000;
+    hireBtn.disabled = G.budget < 75000;
     return;
   }
   const c = CONSULTANTS.find(c => c.id === G.consultant.id);
