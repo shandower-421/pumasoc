@@ -2548,7 +2548,7 @@ function getNode(id) { return G.nodes.find(n => n.id === id); }
 // ================================================================
 
 let _audioCtx = null;
-let _muted = false;
+let _muted = true;
 function updateMuteBtn() {
   const btn = document.getElementById('mute-btn');
   if (!btn) return;
