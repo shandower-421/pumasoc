@@ -888,6 +888,11 @@ body::after {
 }
 .score-card-title { color: var(--green-dim); letter-spacing: 2px; margin-bottom: 8px; font-size: 10px; }
 .score-row { display: flex; justify-content: space-between; margin: 3px 0; color: var(--green-dim); }
+.score-section-label {
+  font-size: 9px; letter-spacing: 1px; color: var(--green-dark);
+  border-top: 1px solid var(--border); padding-top: 5px; margin: 6px 0 3px;
+}
+.score-dim { color: var(--green-dark); }
 .score-green { color: var(--green); }
 .score-red { color: var(--red); }
 .score-mult { border-top: 1px solid #1a3d1a; margin-top: 6px; padding-top: 6px; }
@@ -2036,7 +2041,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 
 <!-- ===================== GAME OVER / WIN ===================== -->
 <div id="gameover-overlay">
-  <div class="title crit-flash">■■ BREACH CRITICAL ■■</div>
+  <div class="title crit-flash">■ CAREER-ENDING BREACH ■</div>
   <div class="overlay-text" id="gameover-reason"></div>
   <div class="overlay-text" id="gameover-stats"></div>
   <div class="score-card" id="gameover-score-card"></div>
@@ -2045,7 +2050,6 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 <div id="win-overlay">
   <div class="title">■ MISSION COMPLETE ■</div>
   <div class="overlay-text" id="win-subtitle">7 days survived. Infrastructure secured.</div>
-  <div class="overlay-text" id="win-stats"></div>
   <div class="score-card" id="win-score-card"></div>
   <button class="overlay-btn" onclick="restartGame()">↺ NEW OPERATION</button>
   <button class="overlay-btn" id="continue-w2-btn" style="display:none;margin-top:6px;border-color:var(--amber);color:var(--amber)" onclick="continueToWeek2()">▶ EXTEND OPERATIONS — WEEK 2</button>
@@ -2375,7 +2379,9 @@ function loadSavedState() {
     if (G.osintCharges === undefined)    G.osintCharges    = 0;
     if (G._onboardIncident === undefined) G._onboardIncident = true; // old save → skip onboard tips
     if (G._onboardIncome   === undefined) G._onboardIncome   = true;
-    if (G.week === undefined)    G.week    = 1;
+    if (G.week === undefined)              G.week              = 1;
+    if (G.totalActivities === undefined)   G.totalActivities   = 0;
+    if (G.totalDwellResolved === undefined) G.totalDwellResolved = 0;
     if (G.w1Score === undefined) G.w1Score = 0;
     selectedDifficulty = save.selectedDifficulty || 'analyst';
     siemHistory.length = 0;
@@ -2497,6 +2503,9 @@ function initState() {
     // Extended operations
     week: 1,
     w1Score: 0,
+    // Scoring accumulators
+    totalActivities: 0,
+    totalDwellResolved: 0,
   };
 }
 
@@ -3076,6 +3085,7 @@ function tick() {
     G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
     G.analystSpeedBonus = Math.min(0.30, G.analystSpeedBonus + 0.10);
     G.trainingJob = null;
+    G.totalActivities++;
     const pct = Math.round(G.analystSpeedBonus * 100);
     siemLog('OK','HR',`Training complete — analysts now ${pct}% faster on all IR stages`);
   }
@@ -3095,6 +3105,7 @@ function tick() {
     });
     if (found.length === 0) siemLog('OK','HUNT','Threat hunt complete — environment appears clean, no lurking threats found');
     G.huntJob = null;
+    G.totalActivities++;
   }
 
   // Tabletop exercise completion
@@ -3103,6 +3114,7 @@ function tick() {
     G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
     G.tabletopBonusExpiresAt = G.gameTime + 2880; // +15% IR speed for 48 game-hours
     G.tabletopJob = null;
+    G.totalActivities++;
     siemLog('OK','TABLETOP','Exercise complete — team response procedures rehearsed, IR efficiency +15% for 48h');
   }
 
@@ -3114,6 +3126,7 @@ function tick() {
     lowVulns.forEach(v => { v.patched = true; });
     G.vulnScore = calcVulnScore();
     G.patchJob = null;
+    G.totalActivities++;
     if (lowVulns.length > 0) {
       siemLog('OK','VULN',`Patch sprint complete — ${lowVulns.length} low-severity vulnerabilities remediated at no additional cost`);
     } else {
@@ -3127,6 +3140,7 @@ function tick() {
     G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
     G.osintCharges = 3;
     G.osintJob = null;
+    G.totalActivities++;
     siemLog('OK','OSINT','Actor profiling complete — TTPs documented, next 3 threats will be immediately flagged on entry');
   }
 
@@ -3216,6 +3230,7 @@ function resolveIncident(inc, earnReward = true) {
   inc.resolved = true;
   inc.status = 'RESOLVED';
   G.totalResolved++;
+  G.totalDwellResolved += Math.floor(inc.dwell || 0);
   G.resolvedToday++;
   G._dayResolved++;
   soundResolve();
@@ -3320,63 +3335,87 @@ function triggerBreach(threat, reason, incident) {
 }
 
 function computeFinalScore() {
+  // Positive
+  const daysPts      = WIN_DAYS * 20;
+  const analystPts   = G.analystSlots.length * 25;
+  const activityPts  = (G.totalActivities || 0) * 15;
   const resolvedPts  = G.totalResolved * 10;
+  // Penalty
   const breachPenalty = G.breaches * 200;
-  const budgetPts    = Math.min(200, Math.floor(Math.max(0, G.budget) / 10000));
-  const trainingPts  = G.analystSpeedBonus >= 0.3 ? 100 : G.analystSpeedBonus > 0 ? 50 : 0;
-  const diffMult     = selectedDifficulty === 'adversary' ? 2.5 : selectedDifficulty === 'analyst' ? 1.5 : 1.0;
-  const raw   = resolvedPts - breachPenalty + budgetPts + trainingPts;
+  // Neutral (informational only)
+  const budgetRemaining = Math.max(0, G.budget);
+  const mttdMins = G.mttd;
+  const mttrMins = G.totalResolved > 0
+    ? Math.round((G.totalDwellResolved || 0) / G.totalResolved) : 0;
+  // Final
+  const diffMult = selectedDifficulty === 'adversary' ? 2.5 : selectedDifficulty === 'analyst' ? 1.5 : 1.0;
+  const raw   = daysPts + analystPts + activityPts + resolvedPts - breachPenalty;
   const score = Math.max(0, Math.round(raw * diffMult));
-  let grade, label;
-  if (score >= 1000)      { grade = 'S'; label = 'EXCEPTIONAL POSTURE'; }
-  else if (score >= 700)  { grade = 'A'; label = 'STRONG DEFENSE'; }
-  else if (score >= 400)  { grade = 'B'; label = 'SOLID RESPONSE'; }
-  else if (score >= 200)  { grade = 'C'; label = 'MARGINAL CONTAINMENT'; }
-  else                    { grade = 'D'; label = 'BARELY FUNCTIONAL'; }
-  return { score, grade, label, resolvedPts, breachPenalty, budgetPts, trainingPts, diffMult };
+  const grade = score >= 1200 ? 'S' : score >= 750 ? 'A' : score >= 450 ? 'B' : score >= 200 ? 'C' : 'D';
+  const label = score >= 1200 ? 'EXCEPTIONAL POSTURE' : score >= 750 ? 'STRONG DEFENSE'
+              : score >= 450  ? 'SOLID RESPONSE'       : score >= 200 ? 'MARGINAL CONTAINMENT' : 'BARELY FUNCTIONAL';
+  return {
+    score, grade, label, diffMult, raw,
+    daysPts, analystPts, activityPts, resolvedPts, breachPenalty,
+    budgetRemaining, mttdMins, mttrMins,
+    daysCount: WIN_DAYS,
+    analystCount: G.analystSlots.length,
+    activityCount: G.totalActivities || 0,
+    resolvedCount: G.totalResolved,
+    breachCount: G.breaches,
+  };
+}
+
+function buildScoreCardHTML(s) {
+  const row = (label, stat, rate, pts, cls) =>
+    `<div class="score-row"><span>${label}</span><span><span class="score-dim">${stat} × ${rate} =</span> <span class="${cls}">${pts >= 0 ? '+' : ''}${pts}</span></span></div>`;
+  const infoRow = (label, val) =>
+    `<div class="score-row"><span>${label}</span><span class="score-dim">${val}</span></div>`;
+
+  let html = `<div class="score-card-title">── PERFORMANCE ASSESSMENT ────────────</div>`;
+
+  html += `<div class="score-section-label">SCORED — POSITIVE</div>`;
+  html += row('DAYS SURVIVED',       `${s.daysCount} d`,  20,  s.daysPts,     'score-green');
+  html += row('ANALYSTS ON TEAM',    s.analystCount,      25,  s.analystPts,  'score-green');
+  html += row('ANALYST ACTIVITIES',  s.activityCount,     15,  s.activityPts, 'score-green');
+  html += row('INCIDENTS RESOLVED',  s.resolvedCount,     10,  s.resolvedPts, 'score-green');
+
+  html += `<div class="score-section-label">INFORMATIONAL</div>`;
+  html += infoRow('BUDGET REMAINING',    fmt$(s.budgetRemaining));
+  html += infoRow('AVG DETECTION TIME',  `${s.mttdMins} min`);
+  html += infoRow('AVG RESOLUTION TIME', s.mttrMins > 0 ? `${s.mttrMins} min` : '—');
+
+  html += `<div class="score-section-label">SCORED — PENALTY</div>`;
+  html += `<div class="score-row"><span>BREACHES SUSTAINED</span><span><span class="score-dim">${s.breachCount} × -200 =</span> <span class="${s.breachPenalty > 0 ? 'score-red' : 'score-green'}">${s.breachPenalty > 0 ? '-' : '+'}${s.breachPenalty}</span></span></div>`;
+
+  html += `<div class="score-row score-mult"><span>DIFFICULTY (${selectedDifficulty.toUpperCase()})</span><span>×${s.diffMult}</span></div>`;
+  if (G.week === 2) html += `<div class="score-row"><span>WEEK 1 CARRY-OVER</span><span class="score-green">+${G.w1Score}</span></div>`;
+
+  const combined = G.week === 2 ? G.w1Score + s.score : s.score;
+  html += `<div class="score-total"><span class="score-grade">${s.grade}</span><span class="score-label">${s.label} — ${combined} pts</span></div>`;
+
+  return html;
 }
 
 function triggerGameOver(reason) {
   clearSavedState();
-  localStorage.setItem('puma-seen-intro', '1'); // onboarding complete after first game
+  localStorage.setItem('puma-seen-intro', '1');
   G.gameOver = true;
   G.gameOverReason = reason;
   document.getElementById('gameover-reason').textContent = reason;
-  const t = fmtTime(G.gameTime);
-  document.getElementById('gameover-stats').textContent =
-    `Day ${t.day} | Incidents Resolved: ${G.totalResolved} | Budget Remaining: ${fmt$(G.budget)}`;
+  document.getElementById('gameover-stats').textContent = '';
   const s = computeFinalScore();
-  document.getElementById('gameover-score-card').innerHTML = `
-    <div class="score-card-title">── INCIDENT REPORT ──────────────────</div>
-    <div class="score-row"><span>INCIDENTS RESOLVED</span><span class="score-green">+${s.resolvedPts}</span></div>
-    <div class="score-row"><span>BREACHES SUSTAINED</span><span class="score-red">-${s.breachPenalty}</span></div>
-    <div class="score-row"><span>BUDGET REMAINING</span><span>+${s.budgetPts}</span></div>
-    <div class="score-total score-total-fail"><span class="score-grade score-grade-fail">F</span><span class="score-label">OPERATIONS COMPROMISED</span></div>`;
+  document.getElementById('gameover-score-card').innerHTML = buildScoreCardHTML(s);
   document.getElementById('gameover-overlay').classList.add('visible');
 }
 
 function triggerWin() {
   clearSavedState();
-  localStorage.setItem('puma-seen-intro', '1'); // onboarding complete after first game
+  localStorage.setItem('puma-seen-intro', '1');
   G.gameOver = true;
   G.won = true;
-  document.getElementById('win-stats').textContent =
-    `Breaches: ${G.breaches}/3 | Incidents Resolved: ${G.totalResolved} | Final Budget: ${fmt$(G.budget)}`;
   const s = computeFinalScore();
-  const _w2combined = G.week === 2 ? G.w1Score + s.score : s.score;
-  const _scoreTitle = G.week === 2 ? `── FINAL ASSESSMENT (W1: ${G.w1Score} + W2: ${s.score}) ──` : '── FINAL ASSESSMENT ─────────────────';
-  const _scoreGrade = (() => { const sc = _w2combined; return sc >= 1000 ? 'S' : sc >= 700 ? 'A' : sc >= 400 ? 'B' : sc >= 200 ? 'C' : 'D'; })();
-  const _scoreLabel = (() => { const sc = _w2combined; return sc >= 1000 ? 'EXCEPTIONAL POSTURE' : sc >= 700 ? 'STRONG DEFENSE' : sc >= 400 ? 'SOLID RESPONSE' : sc >= 200 ? 'MARGINAL CONTAINMENT' : 'BARELY FUNCTIONAL'; })();
-  document.getElementById('win-score-card').innerHTML = `
-    <div class="score-card-title">${_scoreTitle}</div>
-    <div class="score-row"><span>INCIDENTS RESOLVED</span><span class="score-green">+${s.resolvedPts}</span></div>
-    <div class="score-row"><span>BREACHES SUSTAINED</span><span class="${s.breachPenalty > 0 ? 'score-red' : 'score-green'}">${s.breachPenalty > 0 ? '-' : '+'}${s.breachPenalty}</span></div>
-    <div class="score-row"><span>BUDGET REMAINING</span><span class="score-green">+${s.budgetPts}</span></div>
-    <div class="score-row"><span>ANALYSTS TRAINED</span><span class="${s.trainingPts > 0 ? 'score-green' : ''}">+${s.trainingPts}</span></div>
-    <div class="score-row score-mult"><span>DIFFICULTY (${selectedDifficulty.toUpperCase()})</span><span>×${s.diffMult}</span></div>
-    ${G.week === 2 ? `<div class="score-row"><span>WEEK 1 CARRY-OVER</span><span class="score-green">+${G.w1Score}</span></div>` : ''}
-    <div class="score-total"><span class="score-grade">${_scoreGrade}</span><span class="score-label">${_scoreLabel} — ${_w2combined} pts</span></div>`;
-  // Week subtitle and extend button
+  document.getElementById('win-score-card').innerHTML = buildScoreCardHTML(s);
   document.getElementById('win-subtitle').textContent =
     G.week === 1 ? '7 days survived. Infrastructure secured.' : '14 days survived. Extended operations complete.';
   document.getElementById('continue-w2-btn').style.display = G.week === 1 ? 'block' : 'none';
@@ -3393,6 +3432,8 @@ function continueToWeek2() {
   G.gameOver = false;
   G.won = false;
   G.breaches = 0;
+  G.totalActivities = 0;
+  G.totalDwellResolved = 0;
 
   // Signature decay — adversaries adapted TTPs
   TECHNIQUE_CATS.forEach(cat => { G.rules[cat] = Math.max(0, (G.rules[cat] || 0) - 1); });
