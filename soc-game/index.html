@@ -1374,7 +1374,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
       <div class="diff-option" data-idx="0">
         <div class="diff-key">[1]</div>
         <div class="diff-body">
-          <div class="diff-name apprentice">APPRENTICE</div>
+          <div class="diff-name apprentice">Analyst</div>
           <div class="diff-tagline">Managed client with established security program</div>
           <div class="diff-stats">
             <span class="diff-stat pos">Budget $1.2M  (+$75k/cycle)</span>
@@ -1387,7 +1387,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
       <div class="diff-option selected" data-idx="1">
         <div class="diff-key">[2]</div>
         <div class="diff-body">
-          <div class="diff-name analyst">ANALYST</div>
+          <div class="diff-name analyst">Engineer</div>
           <div class="diff-tagline">Typical enterprise — some gaps, limited headcount</div>
           <div class="diff-stats">
             <span class="diff-stat">Budget $500k  (+$50k/cycle)</span>
@@ -1400,7 +1400,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
       <div class="diff-option" data-idx="2">
         <div class="diff-key">[3]</div>
         <div class="diff-body">
-          <div class="diff-name adversary">ADVERSARY</div>
+          <div class="diff-name adversary">Hunter</div>
           <div class="diff-tagline">Legacy environment — underfunded, under-staffed, under siege</div>
           <div class="diff-stats">
             <span class="diff-stat neg">Budget $200k  (+$30k/cycle)</span>
@@ -1826,7 +1826,7 @@ const INCOME_INTERVAL_MINS = 360;
 
 const DIFFICULTIES = {
   apprentice: {
-    label: 'APPRENTICE',
+    label: 'Analyst',
     budget: 800000,
     incomeAmount: 75000,
     analystTotal: 3,
@@ -1838,7 +1838,7 @@ const DIFFICULTIES = {
     rules: {},
   },
   analyst: {
-    label: 'ANALYST',
+    label: 'Engineer',
     budget: 500000,
     incomeAmount: 50000,
     analystTotal: 2,
@@ -1850,7 +1850,7 @@ const DIFFICULTIES = {
     rules: {},
   },
   adversary: {
-    label: 'ADVERSARY',
+    label: 'Hunter',
     budget: 300000,            // was 200k — enough to buy 1 analyst + 2 rules before crisis
     incomeAmount: 30000,
     analystTotal: 1,

@@ -30,7 +30,7 @@ You run a global SOC. Threats spawn continuously — your job is to detect, resp
 
 ### Difficulty
 
-| | Apprentice | Analyst | Adversary |
+| | Analyst | Engineer | Hunter |
 |---|---|---|---|
 | Starting budget | $800k | $500k | $300k |
 | Income / cycle | $75k | $50k | $30k |
@@ -40,7 +40,7 @@ You run a global SOC. Threats spawn continuously — your job is to detect, resp
 | Undetected breach window | ~2.4 min | ~2 min | ~1.6 min |
 | Unhandled breach window | ~4.8 min | ~4 min | ~3.2 min |
 
-Times are at 1× speed. On Adversary, 90% of threats spawn undetected — invest in Detection Engineering immediately and hire a second analyst before the backlog builds.
+Times are at 1× speed. On Hunter, 90% of threats spawn undetected — invest in Detection Engineering immediately and hire a second analyst before the backlog builds.
 
 ### Capabilities
 
