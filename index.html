@@ -1555,10 +1555,10 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
       </div>
       <div class="ops-section">
         <div class="ops-section-title">── CAPABILITIES ─────────</div>
-        <button class="action-btn" onclick="openModal('detection')">▶ DETECTION ENG<span class="btn-cost">$25k</span></button>
+        <button class="action-btn" onclick="openModal('detection')">▶ DETECTION ENG<span class="btn-cost" id="detection-btn-cost">$25k</span></button>
         <button class="action-btn" onclick="openModal('vuln')">▶ VULN MGMT<span class="btn-cost">$10k</span></button>
         <button class="action-btn" onclick="openModal('soar')">▶ SOAR PLATFORM<span class="btn-cost" id="soar-btn-cost">$100k</span></button>
-        <button class="action-btn" onclick="openModal('intel')">▶ THREAT INTEL<span class="btn-cost">$100k</span></button>
+        <button class="action-btn" onclick="openModal('intel')">▶ THREAT INTEL<span class="btn-cost" id="intel-btn-cost">$100k</span></button>
       </div>
       <div class="ops-section" id="consultant-ops-section">
         <div class="ops-section-title">── PARTNERS ─────────────</div>
@@ -3669,6 +3669,25 @@ function updateUI() {
   // SOAR button label
   const soarCostEl = document.getElementById('soar-btn-cost');
   if (soarCostEl) soarCostEl.textContent = G.soar ? 'ACTIVE' : '$100k';
+
+  // Detection ENG button — show cheapest available upgrade or MAXED
+  const detCostEl = document.getElementById('detection-btn-cost');
+  if (detCostEl) {
+    const upgradableLevels = TECHNIQUE_CATS.map(c => G.rules[c]).filter(l => l < 5);
+    if (upgradableLevels.length === 0) {
+      detCostEl.textContent = 'MAXED';
+    } else {
+      const minCost = Math.min(...upgradableLevels.map(l => RULE_UPGRADE_COSTS[l]));
+      detCostEl.textContent = fmt$(minCost);
+    }
+  }
+
+  // Threat Intel button — show cheapest unpurchased feed or ALL OWNED
+  const intelCostEl = document.getElementById('intel-btn-cost');
+  if (intelCostEl) {
+    const available = INTEL_FEEDS.filter(f => !G.activeIntelFeeds.includes(f.id));
+    intelCostEl.textContent = available.length === 0 ? 'ALL OWNED' : fmt$(Math.min(...available.map(f => f.cost)));
+  }
 
   // MSSP & IR bonus posture indicators
   _ui['row-mssp'].style.display = G.mssp ? '' : 'none';
