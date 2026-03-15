@@ -1447,7 +1447,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 <div id="game-screen">
   <!-- Header -->
   <div id="header">
-    <div id="header-title" onclick="openAbout()" style="cursor:pointer" title="About PumaSOC">PumaSOC</div>
+    <div id="header-title">PumaSOC</div>
     <div id="diff-badge"></div>
     <div id="live-indicator" class="live">■ LIVE</div>
     <div class="header-stat">DAY <span id="hdr-day">1</span><span style="color:var(--green-dim)" id="hdr-day-max">/7</span></div>
@@ -1790,28 +1790,6 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 
 <!-- ===================== HELP OVERLAY ===================== -->
 <!-- ===================== ABOUT MODAL ===================== -->
-<div id="about-overlay" onclick="closeAbout()" style="display:none;position:fixed;inset:0;background:rgba(0,8,2,0.92);z-index:600;align-items:center;justify-content:center;cursor:pointer">
-  <div onclick="event.stopPropagation()" style="background:var(--bg);border:1px solid var(--green);width:520px;max-width:92vw;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 0 40px rgba(0,255,65,0.18);animation:modal-in 0.15s ease;cursor:default;overflow:hidden">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0">
-      <span style="color:var(--green);font-size:12px;letter-spacing:2px;text-shadow:0 0 6px var(--green)">//&nbsp;ABOUT PumaSOC</span>
-      <button class="modal-close" onclick="closeAbout()">✕ CLOSE</button>
-    </div>
-    <div style="padding:20px 22px 22px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--green-dim) var(--bg2)">
-      <p style="font-size:13px;color:var(--green);margin-bottom:16px;line-height:1.6">Thanks for playing. Genuinely.</p>
-
-      <p style="font-size:11px;color:var(--green-dim);margin-bottom:16px;line-height:1.6">PumaSOC went from first idea to working release in a single day — built entirely with <em style="color:var(--amber);font-style:normal">Claude Code</em>. No boilerplate, no frameworks, no prior scaffolding. Just a conversation and a blank file.</p>
-
-      <div style="border-left:2px solid var(--green-dark);padding-left:12px;margin-bottom:18px">
-        <p style="font-size:10px;letter-spacing:2px;color:var(--green-dim);margin-bottom:8px;text-transform:uppercase">Why this game exists</p>
-        <p style="font-size:11px;color:var(--green);line-height:1.65;margin-bottom:8px">Security is my thing — threat detection, incident response, the operational grind of running a SOC. I spend a lot of time thinking about it and I wanted a way to make that knowledge tangible and approachable for people who don't live in it.</p>
-        <p style="font-size:11px;color:var(--green);line-height:1.65;margin-bottom:8px">I also wanted a real excuse to push Claude Code hard — not a toy project, but something with actual game logic, state management, and mechanics that had to feel right. This was it.</p>
-        <p style="font-size:11px;color:var(--green);line-height:1.65">And honestly — every hacking game is about breaking in. I wanted to build the one where you're the defender trying to hold the line.</p>
-      </div>
-
-      <p style="font-size:11px;color:var(--green-dim);line-height:1.6">Built by <a href="https://www.greykit.com" target="_blank" style="color:var(--amber);text-decoration:none;border-bottom:1px solid var(--amber-dim)">greykit.com</a></p>
-    </div>
-  </div>
-</div>
 
 <div id="help-overlay" onclick="closeHelp()">
   <div id="help-window" onclick="event.stopPropagation()">
@@ -1824,6 +1802,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
       <button class="help-tab"        data-tab="capabilities" onclick="switchHelpTab('capabilities')">CAPABILITIES</button>
       <button class="help-tab"        data-tab="team"         onclick="switchHelpTab('team')">TEAM &amp; PARTNERS</button>
       <button class="help-tab"        data-tab="strategy"     onclick="switchHelpTab('strategy')">STRATEGY</button>
+      <button class="help-tab"        data-tab="about"        onclick="switchHelpTab('about')">ABOUT</button>
     </div>
     <div id="help-body">
 
@@ -1977,6 +1956,23 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 
         <div class="help-section-title">SIEM FEED</div>
         <p><strong>Click the strip</strong> at the bottom to expand the full event history. <span class="help-crit">CRIT</span> = immediate action needed. <span class="help-warn">WARN</span> = monitor. <span class="help-ok">OK/INFO</span> = informational. Use the filter buttons to focus on ALERTS or INCIDENTS only.</p>
+      </div>
+
+      <!-- PAGE 5: ABOUT -->
+      <div class="help-page" id="help-page-about">
+        <p style="font-size:13px;margin-bottom:16px;line-height:1.6">Thanks for playing. Genuinely.</p>
+
+        <p style="line-height:1.65;margin-bottom:16px;color:var(--green-dim)">I would like to tell you how much time and effort I put into development, but the reality is that PumaSOC went from first ideation to working release in a single day thanks to <em style="color:var(--amber);font-style:normal">Claude Code</em>. It was built from scratch, without prior scaffolding, through pure nit-picking conversation about dumb security tropes.</p>
+
+        <p style="line-height:1.65;margin-bottom:16px;color:var(--green-dim)">While I hope everybody enjoys this game, I hope my peers in the security industry especially will give me a single, silent nod of respect for the subtle realistic details (and snark) I have crammed into it. After years of Hollywood-style hacking games, I wanted to build the one that actual experts could appreciate.</p>
+
+        <div class="help-section-title" style="color:var(--green);border-bottom:none;letter-spacing:2px;margin-top:20px">WHY THIS GAME EXISTS</div>
+
+        <p style="line-height:1.65;margin-bottom:8px;color:var(--green-dim)">Security is my thing. Threat and vulnerability management, monitoring and response operations, and advisory services, especially — but also operational, physical, and personal security. I spend a lot of time thinking about how to protect things, even when they're not mine to protect.</p>
+
+        <p style="line-height:1.65;margin-bottom:16px;color:var(--green-dim)">I'm not a developer, but with the dawn of AI-assisted development, all I have to be is a project manager and UX tester. I truly believe that we are at a turning point in cybersecurity unlike anything we have seen before, and that AI is the ultimate Red Queen. The fact that you are reading this at all proves it to be true.</p>
+
+        <p>Built by <a href="https://www.greykit.com" target="_blank" style="color:var(--amber);text-decoration:none;border-bottom:1px solid var(--amber-dim)">greykit.com</a></p>
       </div>
 
     </div>
@@ -4547,13 +4543,6 @@ function togglePause() {
   }
 }
 
-function openAbout() {
-  const el = document.getElementById('about-overlay');
-  el.style.display = 'flex';
-}
-function closeAbout() {
-  document.getElementById('about-overlay').style.display = 'none';
-}
 
 function switchHelpTab(name) {
   document.querySelectorAll('.help-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
