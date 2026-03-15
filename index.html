@@ -1994,10 +1994,11 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 </div>
 <div id="win-overlay">
   <div class="title">■ MISSION COMPLETE ■</div>
-  <div class="overlay-text">7 days survived. Client estate secured.</div>
+  <div class="overlay-text" id="win-subtitle">7 days survived. Client estate secured.</div>
   <div class="overlay-text" id="win-stats"></div>
   <div class="score-card" id="win-score-card"></div>
   <button class="overlay-btn" onclick="restartGame()">↺ NEW OPERATION</button>
+  <button class="overlay-btn" id="continue-w2-btn" style="display:none;margin-top:6px;border-color:var(--amber);color:var(--amber)" onclick="continueToWeek2()">▶ EXTEND OPERATIONS — WEEK 2</button>
 </div>
 
 <script>
@@ -2186,6 +2187,11 @@ const INTEL_FEEDS = [
   { id:'apt',    name:'Nation-State Intel Feed', desc:'Classified APT actor profiles and TTP attribution data',         cost:150000, detectionBonus:12, mttdBonus:40 },
 ];
 
+const INTEL_FEEDS_W2 = [
+  { id:'darkweb', name:'Dark Web Monitor',  desc:'Threat actor chatter and planned campaign early warnings from underground forums', cost:200000, detectionBonus:10, mttdBonus:30 },
+  { id:'zeroday', name:'Zero-Day Exchange', desc:'Pre-disclosure CVE intelligence from private researchers — neutralise vulns before public exploit', cost:250000, detectionBonus:5, mttdBonus:0, vulnBonus:25 },
+];
+
 const RULE_UPGRADE_COSTS = [25000, 30000, 35000, 40000, 50000];
 
 const CONSULTANTS = [
@@ -2319,6 +2325,8 @@ function loadSavedState() {
     if (G.osintCharges === undefined)    G.osintCharges    = 0;
     if (G._onboardIncident === undefined) G._onboardIncident = true; // old save → skip onboard tips
     if (G._onboardIncome   === undefined) G._onboardIncome   = true;
+    if (G.week === undefined)    G.week    = 1;
+    if (G.w1Score === undefined) G.w1Score = 0;
     selectedDifficulty = save.selectedDifficulty || 'analyst';
     siemHistory.length = 0;
     siemHistory.push(...(save.siemHistory || []));
@@ -2436,6 +2444,9 @@ function initState() {
     // first-run onboarding one-shot flags
     _onboardIncident: false,
     _onboardIncome:   false,
+    // Extended operations
+    week: 1,
+    w1Score: 0,
   };
 }
 
@@ -2648,13 +2659,47 @@ function getConsultantBonuses() {
   return CONSULTANTS.find(c => c.id === G.consultant.id).bonus;
 }
 
+function getIntelVulnBonus() {
+  return G.activeIntelFeeds.reduce((sum, fid) => {
+    const feed = [...INTEL_FEEDS, ...INTEL_FEEDS_W2].find(f => f.id === fid);
+    return sum + (feed && feed.vulnBonus ? feed.vulnBonus : 0);
+  }, 0);
+}
+
+function calcVulnScore() {
+  const crits = G.vulns.filter(v => v.discovered && !v.patched && v.severity === 'CRIT').length;
+  const highs = G.vulns.filter(v => v.discovered && !v.patched && v.severity === 'HIGH').length;
+  const meds  = G.vulns.filter(v => !v.patched && v.severity === 'MEDIUM').length;
+  return Math.min(100, crits * 15 + highs * 8 + meds * 3 + 10);
+}
+
+function generateWeek2Vulns(count) {
+  const nodeIds = G.nodes.map(n => n.id);
+  const descs = [
+    'CVE disclosure — remote code execution vector',
+    'New misconfig exposure identified',
+    'Supply chain dependency vulnerability',
+    'Privilege escalation path discovered',
+    'Unpatched service exposure',
+    'Authentication bypass in legacy component',
+  ];
+  return Array.from({ length: count }, () => ({
+    id: G.nextVulnId++,
+    nodeId: pick(nodeIds),
+    severity: Math.random() < 0.25 ? 'CRIT' : Math.random() < 0.5 ? 'HIGH' : 'MEDIUM',
+    discovered: false,
+    patched: false,
+    desc: pick(descs),
+  }));
+}
+
 function calcCoverage() {
   let bonus = 0;
   TECHNIQUE_CATS.forEach(cat => { bonus += G.rules[cat] * 5; });
   const avgBonus = bonus / TECHNIQUE_CATS.length;
   let intelBonus = 0;
   G.activeIntelFeeds.forEach(fid => {
-    const feed = INTEL_FEEDS.find(f => f.id === fid);
+    const feed = [...INTEL_FEEDS, ...INTEL_FEEDS_W2].find(f => f.id === fid);
     if (feed) intelBonus += feed.detectionBonus;
   });
   const eventPenalty = (G.activeRandomEvents || []).reduce((s, e) => s + (e.coveragePenalty || 0), 0);
@@ -2667,7 +2712,7 @@ function calcMTTD() {
   TECHNIQUE_CATS.forEach(cat => { ruleBonus += G.rules[cat] * 8; });
   let intelBonus = 0;
   G.activeIntelFeeds.forEach(fid => {
-    const feed = INTEL_FEEDS.find(f => f.id === fid);
+    const feed = [...INTEL_FEEDS, ...INTEL_FEEDS_W2].find(f => f.id === fid);
     if (feed) intelBonus += feed.mttdBonus;
   });
   return Math.max(10, base - ruleBonus - intelBonus - getConsultantBonuses().mttdBonus);
@@ -3109,7 +3154,7 @@ function tick() {
 
   // Check win condition
   const t = fmtTime(G.gameTime);
-  if (t.day > WIN_DAYS && !G.gameOver) {
+  if (t.day > WIN_DAYS * G.week && !G.gameOver) {
     triggerWin();
   }
 
@@ -3267,15 +3312,86 @@ function triggerWin() {
   document.getElementById('win-stats').textContent =
     `Breaches: ${G.breaches}/3 | Incidents Resolved: ${G.totalResolved} | Final Budget: ${fmt$(G.budget)}`;
   const s = computeFinalScore();
+  const _w2combined = G.week === 2 ? G.w1Score + s.score : s.score;
+  const _scoreTitle = G.week === 2 ? `── FINAL ASSESSMENT (W1: ${G.w1Score} + W2: ${s.score}) ──` : '── FINAL ASSESSMENT ─────────────────';
+  const _scoreGrade = (() => { const sc = _w2combined; return sc >= 1000 ? 'S' : sc >= 700 ? 'A' : sc >= 400 ? 'B' : sc >= 200 ? 'C' : 'D'; })();
+  const _scoreLabel = (() => { const sc = _w2combined; return sc >= 1000 ? 'EXCEPTIONAL POSTURE' : sc >= 700 ? 'STRONG DEFENSE' : sc >= 400 ? 'SOLID RESPONSE' : sc >= 200 ? 'MARGINAL CONTAINMENT' : 'BARELY FUNCTIONAL'; })();
   document.getElementById('win-score-card').innerHTML = `
-    <div class="score-card-title">── FINAL ASSESSMENT ─────────────────</div>
+    <div class="score-card-title">${_scoreTitle}</div>
     <div class="score-row"><span>INCIDENTS RESOLVED</span><span class="score-green">+${s.resolvedPts}</span></div>
     <div class="score-row"><span>BREACHES SUSTAINED</span><span class="${s.breachPenalty > 0 ? 'score-red' : 'score-green'}">${s.breachPenalty > 0 ? '-' : '+'}${s.breachPenalty}</span></div>
     <div class="score-row"><span>BUDGET REMAINING</span><span class="score-green">+${s.budgetPts}</span></div>
     <div class="score-row"><span>ANALYSTS TRAINED</span><span class="${s.trainingPts > 0 ? 'score-green' : ''}">+${s.trainingPts}</span></div>
     <div class="score-row score-mult"><span>DIFFICULTY (${selectedDifficulty.toUpperCase()})</span><span>×${s.diffMult}</span></div>
-    <div class="score-total"><span class="score-grade">${s.grade}</span><span class="score-label">${s.label} — ${s.score} pts</span></div>`;
+    ${G.week === 2 ? `<div class="score-row"><span>WEEK 1 CARRY-OVER</span><span class="score-green">+${G.w1Score}</span></div>` : ''}
+    <div class="score-total"><span class="score-grade">${_scoreGrade}</span><span class="score-label">${_scoreLabel} — ${_w2combined} pts</span></div>`;
+  // Week subtitle and extend button
+  document.getElementById('win-subtitle').textContent =
+    G.week === 1 ? '7 days survived. Client estate secured.' : '14 days survived. Extended engagement complete.';
+  document.getElementById('continue-w2-btn').style.display = G.week === 1 ? 'block' : 'none';
   document.getElementById('win-overlay').classList.add('visible');
+}
+
+function continueToWeek2() {
+  const s = computeFinalScore();
+  G.w1Score = s.score;
+
+  document.getElementById('win-overlay').classList.remove('visible');
+
+  G.week = 2;
+  G.gameOver = false;
+  G.won = false;
+  G.breaches = 0;
+
+  // Signature decay — adversaries adapted TTPs
+  TECHNIQUE_CATS.forEach(cat => { G.rules[cat] = Math.max(0, (G.rules[cat] || 0) - 1); });
+
+  // Intel feed subscriptions lapse
+  G.activeIntelFeeds = [];
+
+  // Consultant contract ends
+  G.consultant = null;
+
+  // SOAR playbooks need re-tuning
+  Object.keys(G.soarPlaybooks).forEach(cat => {
+    G.soarPlaybooks[cat] = Math.max(0, (G.soarPlaybooks[cat] || 0) - 1);
+  });
+
+  // Client retainer renegotiation
+  G.incomeAmount = Math.floor(G.incomeAmount * 0.85);
+
+  // Escalated adversary activity
+  G.spawnMult *= 1.25;
+
+  // Fresh threat actor wave
+  G.campaigns = {};
+
+  // New CVE disclosures
+  const newVulns = generateWeek2Vulns(6);
+  G.vulns.push(...newVulns);
+  G.vulnScore = calcVulnScore();
+
+  // Grace period before first week-2 threat
+  G.nextThreatIn = 240;
+
+  // Recalculate derived stats
+  G.coverage = calcCoverage();
+  G.mttd = calcMTTD();
+
+  // Update header day max
+  document.getElementById('hdr-day-max').textContent = `/${WIN_DAYS * G.week}`;
+
+  // Week 2 briefing via SIEM
+  siemLog('CRIT', 'SYSTEM',       '[ WEEK 2 — EXTENDED OPERATIONS ] — adversary activity escalating. Hold the line.');
+  siemLog('WARN', 'DETECTION',    'Signature decay confirmed — adversaries have adapted TTPs. Re-tune detection rules.');
+  siemLog('WARN', 'THREAT-INTEL', 'Intel feed subscriptions lapsed. Re-subscribe to maintain situational awareness.');
+  siemLog('WARN', 'PARTNERS',     'Consultant contract concluded. Re-hire available for new engagement.');
+  siemLog('WARN', 'SOAR',         'SOAR playbooks flagged for re-tuning — effectiveness degraded after TTP shift.');
+  siemLog('WARN', 'VULN',         '6 new CVE disclosures identified on client estate. Immediate assessment recommended.');
+  siemLog('INFO', 'FINANCE',      `Client retainer renegotiated: income reduced to ${fmt$(G.incomeAmount)}/cycle.`);
+  siemLog('INFO', 'PARTNERS',     'New intelligence products now available: Dark Web Monitor, Zero-Day Exchange.');
+
+  updateUI(true);
 }
 
 // ================================================================
@@ -3384,15 +3500,6 @@ function purchaseSoarPlaybook(cat) {
   const pct = G.soarPlaybooks[cat] * 25;
   siemLog('OK','SOAR',`Playbook deployed: ${cat} — TRIAGE/CONTAIN at ${pct}% speed reduction`);
   renderSoarModal();
-}
-
-function calcVulnScore() {
-  const total = G.vulns.length;
-  if (total === 0) return 0;
-  const unpatched = G.vulns.filter(v => !v.patched);
-  const raw = Math.round((unpatched.length / total) * 100);
-  const eventPenalty = (G.activeRandomEvents || []).reduce((s, e) => s + (e.vulnPenalty || 0), 0);
-  return Math.max(0, raw - getConsultantBonuses().vulnBonus + eventPenalty);
 }
 
 let selectedRedTeam = null;
@@ -3707,7 +3814,7 @@ function hireConsultant(id) {
 
 function purchaseIntelFeed(feedId) {
   if (G.activeIntelFeeds.includes(feedId)) return;
-  const feed = INTEL_FEEDS.find(f => f.id === feedId);
+  const feed = [...INTEL_FEEDS, ...INTEL_FEEDS_W2].find(f => f.id === feedId);
   if (!feed) return;
   if (G.budget < feed.cost) { siemLog('WARN','OPS','Insufficient budget for intel feed'); return; }
   G.budget -= feed.cost;
@@ -3929,7 +4036,7 @@ function updateUI() {
 
   const t = fmtTime(G.gameTime);
   _ui['hdr-day'].textContent = t.day;
-  const dayPct = Math.min(100, (G.gameTime / (WIN_DAYS * 1440)) * 100);
+  const dayPct = Math.min(100, (G.gameTime / (WIN_DAYS * (G.week || 1) * 1440)) * 100);
   _ui['day-progress-fill'].style.width = `${dayPct}%`;
   _ui['hdr-time'].textContent = t.str;
   _ui['hdr-breaches'].textContent = G.breaches;
@@ -3966,7 +4073,7 @@ function updateUI() {
   _ui['stat-mttd'].textContent = `${G.mttd} min`;
   _ui['stat-mttd'].className = `stat-val${G.mttd > 120 ? ' warn' : ''}`;
 
-  const vs = G.vulnScore;
+  const vs = Math.max(0, G.vulnScore - getIntelVulnBonus());
   _ui['stat-vuln'].textContent = vs;
   _ui['stat-vuln'].className = `stat-val${vs > 60 ? ' crit' : vs > 40 ? ' warn' : ''}`;
   _ui['bar-vuln'].style.width = `${vs}%`;
@@ -3984,7 +4091,7 @@ function updateUI() {
     _ui['stat-actors'].textContent = `${_intelDisplay} tracked`;
   }
   _ui['stat-income'].textContent = `${Math.round(G.nextIncomeIn / 60)}h`;
-  _ui['stat-progress'].textContent = `Day ${t.day}/${WIN_DAYS}`;
+  _ui['stat-progress'].textContent = `Day ${t.day}/${WIN_DAYS * (G.week || 1)}`;
 
   // Hire btn
   _ui['hire-btn'].disabled = G.analystTotal >= MAX_ANALYSTS || G.budget < ANALYST_COST;
@@ -4480,15 +4587,17 @@ function renderRedTeamModal() {
 function renderIntelModal() {
   const optDiv = document.getElementById('intel-options');
   optDiv.innerHTML = '';
-  INTEL_FEEDS.forEach(feed => {
+  const allFeeds = G.week >= 2 ? [...INTEL_FEEDS, ...INTEL_FEEDS_W2] : INTEL_FEEDS;
+  allFeeds.forEach(feed => {
     const active = G.activeIntelFeeds.includes(feed.id);
+    const isW2Feed = INTEL_FEEDS_W2.some(f => f.id === feed.id);
     const d = document.createElement('div');
     d.className = 'intel-option';
     d.innerHTML = `
-      <div class="intel-name">${feed.name} ${active?'<span class="intel-active">● ACTIVE</span>':''}</div>
+      <div class="intel-name">${feed.name}${isW2Feed ? '<span style="color:var(--amber);font-size:9px"> [NEW]</span>' : ''} ${active?'<span class="intel-active">● ACTIVE</span>':''}</div>
       <div class="intel-desc">${feed.desc}</div>
       <div style="font-size:9px;color:var(--green-dim);margin-top:2px">
-        Detection +${feed.detectionBonus}% | MTTD -${feed.mttdBonus}min | Cost: ${fmt$(feed.cost)}
+        Detection +${feed.detectionBonus}% | MTTD -${feed.mttdBonus}min${feed.vulnBonus ? ` | Vuln -${feed.vulnBonus}` : ''} | Cost: ${fmt$(feed.cost)}
       </div>
       ${active
         ? ''
@@ -4916,7 +5025,7 @@ function startGame() {
   badge.className = selectedDifficulty;
 
   // Sync header denominators from constants
-  document.getElementById('hdr-day-max').textContent = `/${WIN_DAYS}`;
+  document.getElementById('hdr-day-max').textContent = `/${WIN_DAYS * (G.week || 1)}`;
   document.getElementById('hdr-breach-max').textContent = `/${MAX_BREACHES}`;
 
   updateUI();
