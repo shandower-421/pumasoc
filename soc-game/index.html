@@ -1427,6 +1427,8 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
     <div class="header-stat">BREACHES: <span id="hdr-breaches" class="stat-val">0</span><span id="hdr-breach-max">/3</span></div>
     <div class="header-stat" id="hdr-resolved-wrap">RESOLVED: <span id="hdr-resolved">0</span></div>
     <div class="header-spacer"></div>
+    <button class="speed-btn" id="help-btn" onclick="openHelp()" title="Help [?]" style="color:var(--accent);border-color:var(--accent)">?</button>
+    <div class="header-gap"></div>
     <button class="speed-btn active" id="spd-1" onclick="setSpeed(1)">1×</button>
     <button class="speed-btn" id="spd-2" onclick="setSpeed(2)">2×</button>
     <button class="speed-btn" id="spd-3" onclick="setSpeed(3)">3×</button>
@@ -1436,7 +1438,6 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
     <button class="speed-btn active" id="mute-btn" onclick="toggleMute()">SOUND</button>
     <div class="header-gap"></div>
     <button class="speed-btn" id="newgame-btn" onclick="newGameClick()">NEW GAME</button>
-    <button class="speed-btn" id="help-btn" onclick="toggleHelp()" title="Help [?]" style="color:var(--accent);border-color:var(--accent)">?</button>
   </div>
   <div id="day-progress-bar"><div id="day-progress-fill"></div></div>
 
