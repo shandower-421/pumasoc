@@ -1552,6 +1552,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
         <div id="analyst-roster"></div>
         <button class="action-btn" id="hire-btn" onclick="hireAnalyst()">▶ HIRE ANALYST<span class="btn-cost" id="hire-cost">$75k</span></button>
         <button class="action-btn" id="training-btn" onclick="startTraining()">▶ SEND TO TRAINING<span class="btn-cost">$30k</span></button>
+        <button class="action-btn" id="hunt-btn" onclick="startHunt()">▶ THREAT HUNT<span class="btn-cost">$40k</span></button>
       </div>
       <div class="ops-section">
         <div class="ops-section-title">── CAPABILITIES ─────────</div>
@@ -1563,6 +1564,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
       <div class="ops-section" id="consultant-ops-section">
         <div class="ops-section-title">── PARTNERS ─────────────</div>
         <button class="action-btn" onclick="openModal('redteam')">▶ RED TEAM<span class="btn-cost">$50k+</span></button>
+        <button class="action-btn" id="sat-btn" onclick="hireSAT()">▶ SECURITY AWARENESS<span class="btn-cost" id="sat-btn-cost">$50k</span></button>
         <button class="action-btn" id="mssp-btn" onclick="hireMSSP()">▶ HIRE MSSP<span class="btn-cost">$150k</span></button>
         <div id="consultant-card"><div style="color:var(--green-dark);font-size:10px;margin-bottom:4px">No consultant on retainer.</div></div>
         <button class="action-btn" id="hire-consultant-btn" onclick="openModal('consultant')">▶ HIRE CONSULTANT<span class="btn-cost">$150k</span></button>
@@ -2121,6 +2123,8 @@ function loadSavedState() {
     if (G._budgetWarned === undefined)   G._budgetWarned   = false;
     if (G.soar === undefined)            G.soar            = false;
     if (!G.soarPlaybooks)                G.soarPlaybooks   = {};
+    if (G.huntJob === undefined)         G.huntJob         = null;
+    if (G.sat === undefined)             G.sat             = false;
     if (G._onboardIncident === undefined) G._onboardIncident = true; // old save → skip onboard tips
     if (G._onboardIncome   === undefined) G._onboardIncome   = true;
     selectedDifficulty = save.selectedDifficulty || 'analyst';
@@ -2218,6 +2222,10 @@ function initState() {
     // SOAR
     soar: false,
     soarPlaybooks: {},
+    // Threat Hunting
+    huntJob: null,       // null | { completesAt: gameTimeMinutes, slotIdx: N }
+    // Security Awareness Training
+    sat: false,
     // random events
     nextRandomEventIn: rndF(1440 * 3, 1440 * 5),
     activeRandomEvents: [],
@@ -2479,6 +2487,13 @@ function getThreatDetectionChance(threat) {
 function spawnThreat() {
   const actor = pick(ACTORS);
   const cat = pick(TECHNIQUE_CATS);
+
+  // SAT intercepts 35% of Initial Access attempts
+  if (G.sat && cat === 'Initial Access' && Math.random() < 0.35) {
+    siemLog('INFO','SAT','Phishing attempt identified and reported by employee — threat neutralised at entry point');
+    return;
+  }
+
   const technique = pick(TECHNIQUES[cat]);
   const targetId = pick(TARGET_NODES);
   const entryId = pick(ENTRY_NODES);
@@ -2746,11 +2761,28 @@ function tick() {
   if (G.trainingJob && G.gameTime >= G.trainingJob.completesAt) {
     const idx = G.analystSlots.indexOf('TRAINING');
     if (idx !== -1) G.analystSlots[idx] = null;
-    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING').length;
+    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING').length;
     G.analystSpeedBonus = Math.min(0.30, G.analystSpeedBonus + 0.10);
     G.trainingJob = null;
     const pct = Math.round(G.analystSpeedBonus * 100);
     siemLog('OK','HR',`Training complete — analysts now ${pct}% faster on all IR stages`);
+  }
+
+  // Threat hunt completion
+  if (G.huntJob && G.gameTime >= G.huntJob.completesAt) {
+    G.analystSlots[G.huntJob.slotIdx] = null;
+    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING').length;
+    const undetected = G.threats.filter(t => !t.detected && !t.breachTriggered);
+    const findCount = Math.min(undetected.length, rnd(1, 3));
+    const found = undetected.slice(0, findCount);
+    found.forEach(t => {
+      t.detected = true;
+      createIncident(t);
+      getNode(t.targetId).status = 'under_attack';
+      siemLog('CRIT','HUNT',`Threat hunter surfaced active intrusion: ${t.technique} on ${t.targetId} — dwell ${fmtDwell(t.dwell)}`);
+    });
+    if (found.length === 0) siemLog('OK','HUNT','Threat hunt complete — environment appears clean, no lurking threats found');
+    G.huntJob = null;
   }
 
   // MSSP auto-assignment
@@ -2846,7 +2878,7 @@ function resolveIncident(inc, earnReward = true) {
   // Free analyst
   if (inc.analystId !== null) {
     G.analystSlots[inc.analystId - 1] = null;
-    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING').length;
+    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING').length;
   }
 
   // Remove associated threat
@@ -3131,9 +3163,30 @@ function startTraining() {
   if (G.budget < 30000) { siemLog('WARN','HR','Insufficient budget for analyst training'); return; }
   G.budget -= 30000;
   G.analystSlots[freeIdx] = 'TRAINING';
-  G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING').length;
+  G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING').length;
   G.trainingJob = { completesAt: G.gameTime + 1440 };
   siemLog('OK','HR','Analyst dispatched to training — team capacity reduced for 24h');
+}
+
+function startHunt() {
+  if (G.huntJob) return;
+  if (G.analystTotal <= 1) { siemLog('WARN','HR','Cannot deploy threat hunter — minimum staffing required'); return; }
+  const freeIdx = G.analystSlots.findIndex(s => s === null);
+  if (freeIdx === -1) { siemLog('WARN','HR','No free analyst available for threat hunt'); return; }
+  if (G.budget < 40000) { siemLog('WARN','HR','Insufficient budget for threat hunt'); return; }
+  G.budget -= 40000;
+  G.analystSlots[freeIdx] = 'HUNTING';
+  G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING').length;
+  G.huntJob = { completesAt: G.gameTime + 480, slotIdx: freeIdx };
+  siemLog('OK','HUNT','Analyst deployed on threat hunt — active sweep of environment underway');
+}
+
+function hireSAT() {
+  if (G.sat) return;
+  if (G.budget < 50000) { siemLog('WARN','HR','Insufficient budget for security awareness programme'); return; }
+  G.budget -= 50000;
+  G.sat = true;
+  siemLog('OK','HR','Security awareness programme activated — employees enrolled in phishing simulation training');
 }
 
 function hireMSSP() {
@@ -3427,7 +3480,7 @@ function _initUICache() {
     'hdr-day','day-progress-fill','hdr-time','hdr-breaches','game-screen','hdr-resolved',
     'budget-display-large','stat-analysts','stat-coverage','bar-coverage',
     'stat-mttd','stat-vuln','bar-vuln','stat-threats','stat-actors','stat-income','stat-progress',
-    'hire-btn','training-btn','mssp-btn','row-mssp','row-ir-bonus','stat-ir-bonus',
+    'hire-btn','training-btn','hunt-btn','mssp-btn','sat-btn','row-mssp','row-ir-bonus','stat-ir-bonus',
     'incidents-list','incident-count','analyst-roster',
     'redteam-jobs-section','redteam-jobs-list',
     'active-events-section','active-events-list',
@@ -3643,10 +3696,30 @@ function updateUI() {
     }
   }
 
+  // Hunt btn
+  const huntBtn = _ui['hunt-btn'];
+  const hasFreeForHunt = G.analystSlots.some(s => s === null);
+  huntBtn.disabled = !!G.huntJob || !hasFreeForHunt || G.analystTotal <= 1 || G.budget < 40000;
+  if (G.huntJob) {
+    const huntRem = Math.max(0, G.huntJob.completesAt - G.gameTime);
+    huntBtn.innerHTML = `▶ HUNTING...<span class="btn-cost">${Math.round(huntRem/60)}h left</span>`;
+    huntBtn._state = 'active';
+  } else {
+    if (!huntBtn._state || huntBtn._state !== 'idle') {
+      huntBtn.innerHTML = '▶ THREAT HUNT<span class="btn-cost">$40k</span>';
+      huntBtn._state = 'idle';
+    }
+  }
+
   if (slow) {
     renderAnalystRoster();
     updateTabBadge();
   }
+
+  // SAT btn label
+  const satCostEl = document.getElementById('sat-btn-cost');
+  if (satCostEl) satCostEl.textContent = G.sat ? 'ACTIVE' : '$50k';
+  if (_ui['sat-btn']) _ui['sat-btn'].disabled = G.sat || G.budget < 50000;
 
   // MSSP btn
   const msspBtn = _ui['mssp-btn'];
