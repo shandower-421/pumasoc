@@ -1408,7 +1408,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
         <div class="diff-key">[1]</div>
         <div class="diff-body">
           <div class="diff-name apprentice">Analyst</div>
-          <div class="diff-tagline">Managed client with established security program</div>
+          <div class="diff-tagline">Established internal security program — well-funded and operationally mature</div>
           <div class="diff-stats">
             <span class="diff-stat pos">Budget $1.2M  (+$75k/cycle)</span>
             <span class="diff-stat pos">Coverage 45%  (rules pre-deployed)</span>
@@ -1610,7 +1610,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
         <button class="action-btn" onclick="openModal('redteam')">▶ RED TEAM<span class="btn-cost">$50k+</span></button>
         <button class="action-btn" id="sat-btn" onclick="hireSAT()">▶ SECURITY AWARENESS<span class="btn-cost" id="sat-btn-cost">$50k</span></button>
         <button class="action-btn" id="mssp-btn" onclick="hireMSSP()">▶ HIRE MSSP<span class="btn-cost">$150k</span></button>
-        <div id="consultant-card"><div style="color:var(--green-dark);font-size:10px;margin-bottom:4px">No consultant on retainer.</div></div>
+        <div id="consultant-card"><div style="color:var(--green-dark);font-size:10px;margin-bottom:4px">No external consultant engaged.</div></div>
         <button class="action-btn" id="hire-consultant-btn" onclick="openModal('consultant')">▶ HIRE CONSULTANT<span class="btn-cost">$150k</span></button>
       </div>
     </div>
@@ -1716,7 +1716,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
     </div>
     <div class="modal-body">
       <div class="modal-desc">
-        Scan and patch vulnerabilities across the managed estate. A lower vulnerability score
+        Scan and patch vulnerabilities across company infrastructure. A lower vulnerability score
         means attackers take longer to succeed and have fewer paths to exploit. Patching reduces
         the blast radius of any breach.
       </div>
@@ -1780,7 +1780,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
     </div>
     <div class="modal-body">
       <div class="modal-desc">
-        Engage an external security consultant on retainer. They provide a passive defensive bonus
+        Engage an external security consultant or advisory firm. They provide a passive defensive bonus
         and deliver a daily operational briefing — one prioritized recommendation based on your
         current threat posture and the most effective action you can take next.
       </div>
@@ -1807,6 +1807,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
       <button class="help-tab"        data-tab="capabilities" onclick="switchHelpTab('capabilities')">CAPABILITIES</button>
       <button class="help-tab"        data-tab="team"         onclick="switchHelpTab('team')">TEAM &amp; PARTNERS</button>
       <button class="help-tab"        data-tab="strategy"     onclick="switchHelpTab('strategy')">STRATEGY</button>
+      <button class="help-tab"        data-tab="extended"     onclick="switchHelpTab('extended')">EXTENDED OPS</button>
       <button class="help-tab"        data-tab="about"        onclick="switchHelpTab('about')">ABOUT</button>
     </div>
     <div id="help-body">
@@ -1814,7 +1815,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
       <!-- PAGE 1: OVERVIEW -->
       <div class="help-page active" id="help-page-overview">
         <div class="help-section-title">OBJECTIVE</div>
-        <p>Survive <strong>7 game days</strong> as a SOC operator. Defend your client estate against nation-state and criminal threat actors. You lose if <strong>3 breaches</strong> succeed.</p>
+        <p>Survive <strong>7 game days</strong> as a SOC operator. Defend company infrastructure against nation-state and criminal threat actors. You lose if <strong>3 breaches</strong> succeed.</p>
 
         <div class="help-section-title">THE THREAT LOOP</div>
         <p>Every few minutes a threat actor attempts an intrusion. It is checked against your <strong>Coverage %</strong>:</p>
@@ -1846,7 +1847,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
         <p>Crises fire periodically — DDoS barrages, zero-days, tool outages, insider threats, budget audits. Shown as <span class="help-crit">ACTIVE EVENTS</span> in the left panel. Events may cut Coverage %, drain budget, or spike threat rates. Ride them out.</p>
 
         <div class="help-section-title">NETWORK MAP</div>
-        <p>The minimap in the left panel shows your estate in real time. <span class="help-ok">Green</span> = healthy. <span class="help-warn">Amber</span> = vulnerable (unpatched CVEs). <span class="help-crit">Red</span> = under attack or breached. Animated packets show active threats moving through the network.</p>
+        <p>The minimap in the left panel shows your infrastructure in real time. <span class="help-ok">Green</span> = healthy. <span class="help-warn">Amber</span> = vulnerable (unpatched CVEs). <span class="help-crit">Red</span> = under attack or breached. Animated packets show active threats moving through the network.</p>
       </div>
 
       <!-- PAGE 2: CAPABILITIES -->
@@ -1864,7 +1865,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
         <div class="help-section-title">VULNERABILITY MANAGEMENT</div>
         <div class="help-cap-row">
           <span class="help-cap-name">VULN MGMT — $10k scan, variable patch costs</span>
-          <span class="help-cap-desc">Run a scan to discover CVEs across your estate. Patch individually (HIGH: $8–12k, MED: $3–6k, LOW: $1–3k), patch all criticals at a small discount, or patch everything with a 15% bulk discount. Vuln Score directly accelerates threat spawn rate.</span>
+          <span class="help-cap-desc">Run a scan to discover CVEs across your infrastructure. Patch individually (HIGH: $8–12k, MED: $3–6k, LOW: $1–3k), patch all criticals at a small discount, or patch everything with a 15% bulk discount. Vuln Score directly accelerates threat spawn rate.</span>
         </div>
 
         <div class="help-section-title">AUTOMATED RESPONSE</div>
@@ -1913,19 +1914,57 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
         <div class="help-section-title">PARTNERS</div>
         <div class="help-cap-row">
           <span class="help-cap-name">SECURITY AWARENESS TRAINING — $50k setup + $10k/cycle</span>
-          <span class="help-cap-desc">Blocks 35% of all Initial Access threat spawns at the employee layer — the threat never enters your environment. Ongoing retainer; auto-cancels on insufficient budget. Cheap early insurance on any difficulty.</span>
+          <span class="help-cap-desc">Blocks 35% of all Initial Access threat spawns at the employee layer — the threat never enters your environment. Ongoing cost; auto-cancels on insufficient budget. Cheap early insurance on any difficulty.</span>
         </div>
         <div class="help-cap-row">
           <span class="help-cap-name">MSSP — $150k setup + $15k/cycle</span>
           <span class="help-cap-desc">Auto-assigns free analysts to unhandled incidents each tick. A safety net so incidents never breach simply because you missed the alert. Expensive — only worth it when you're consistently running out of free analysts.</span>
         </div>
         <div class="help-cap-row">
-          <span class="help-cap-name">CONSULTANT — $150k retainer</span>
+          <span class="help-cap-name">CONSULTANT — $150k engagement fee</span>
           <span class="help-cap-desc">Passive Coverage % and MTTD improvement plus a <strong>daily briefing</strong> with one data-driven action recommendation tailored to your current posture. Hire on day 1 — the briefings alone direct your spending effectively.</span>
         </div>
       </div>
 
-      <!-- PAGE 4: STRATEGY -->
+      <!-- PAGE 6: EXTENDED OPERATIONS -->
+      <div class="help-page" id="help-page-extended">
+
+        <p style="line-height:1.65;margin-bottom:12px">Survive a week and you can <strong style="color:var(--green)">extend the engagement</strong>. Your budget, analysts, and SOAR platform carry over. Everything else is subject to the natural entropy of a real security program.</p>
+
+        <div class="help-section-title">WHAT CHANGES BETWEEN WEEKS</div>
+
+        <div class="help-cap-row" style="margin-bottom:4px">
+          <span class="help-cap-name" style="color:var(--amber)">Detection Rule Decay</span>
+          <span class="help-cap-desc">Adversaries adapt new TTPs. You need to re-invest to keep up.</span>
+        </div>
+        <div class="help-cap-row" style="margin-bottom:4px">
+          <span class="help-cap-name" style="color:var(--amber)">Intel Feed Subscriptions Expire</span>
+          <span class="help-cap-desc">Not only do you have to renew them, now there are more.</span>
+        </div>
+        <div class="help-cap-row" style="margin-bottom:4px">
+          <span class="help-cap-name" style="color:var(--amber)">Consultant Contracts End</span>
+          <span class="help-cap-desc">Your consultant was only booked for a week.</span>
+        </div>
+        <div class="help-cap-row" style="margin-bottom:4px">
+          <span class="help-cap-name" style="color:var(--amber)">SOAR Platform Staleness</span>
+          <span class="help-cap-desc">Operations have deployed more stuff without telling you.</span>
+        </div>
+        <div class="help-cap-row" style="margin-bottom:4px">
+          <span class="help-cap-name" style="color:var(--amber)">Reduced Security Budget</span>
+          <span class="help-cap-desc">Nothing bad happened last week, so why should the board keep funding you?</span>
+        </div>
+        <div class="help-cap-row" style="margin-bottom:4px">
+          <span class="help-cap-name" style="color:var(--amber)">Escalated Adversary Activity</span>
+          <span class="help-cap-desc">Welcome to the Red Queen Problem.</span>
+        </div>
+        <div class="help-cap-row" style="margin-bottom:4px">
+          <span class="help-cap-name" style="color:var(--amber)">New CVE Disclosures</span>
+          <span class="help-cap-desc">Patches don't just land on Tuesdays.</span>
+        </div>
+
+      </div>
+
+      <!-- PAGE 5: STRATEGY -->
       <div class="help-page" id="help-page-strategy">
         <div class="help-section-title">FIRST MOVES BY DIFFICULTY</div>
         <div class="help-cap-row">
@@ -1963,7 +2002,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
         <p><strong>Click the strip</strong> at the bottom to expand the full event history. <span class="help-crit">CRIT</span> = immediate action needed. <span class="help-warn">WARN</span> = monitor. <span class="help-ok">OK/INFO</span> = informational. Use the filter buttons to focus on ALERTS or INCIDENTS only.</p>
       </div>
 
-      <!-- PAGE 5: ABOUT -->
+      <!-- PAGE 6: ABOUT -->
       <div class="help-page" id="help-page-about">
         <p style="font-size:13px;margin-bottom:16px;line-height:1.6">Thanks for playing. Genuinely.</p>
 
@@ -1994,7 +2033,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 </div>
 <div id="win-overlay">
   <div class="title">■ MISSION COMPLETE ■</div>
-  <div class="overlay-text" id="win-subtitle">7 days survived. Client estate secured.</div>
+  <div class="overlay-text" id="win-subtitle">7 days survived. Infrastructure secured.</div>
   <div class="overlay-text" id="win-stats"></div>
   <div class="score-card" id="win-score-card"></div>
   <button class="overlay-btn" onclick="restartGame()">↺ NEW OPERATION</button>
@@ -2890,20 +2929,20 @@ function tick() {
   if (G.nextIncomeIn <= 0) {
     G.budget += G.incomeAmount;
     G.nextIncomeIn = INCOME_INTERVAL_MINS;
-    siemLog('OK', 'FINANCE', `Client retainer payment received: +${fmt$(G.incomeAmount)}`, `Total: ${fmt$(G.budget)}`);
+    siemLog('OK', 'FINANCE', `Security budget allocation received: +${fmt$(G.incomeAmount)}`, `Total: ${fmt$(G.budget)}`);
     // One-shot onboarding tip for first-time players
     if (!G._onboardIncome && !localStorage.getItem('puma-seen-intro')) {
       G._onboardIncome = true;
-      siemLog('INFO', 'ONBOARD', 'Retainer received. Idle budget does not defend you — invest in Detection Engineering rules and analysts.');
+      siemLog('INFO', 'ONBOARD', 'Budget allocated. Idle budget does not defend you — invest in Detection Engineering rules and analysts.');
     }
     if (G.mssp) {
       const msspFee = 15000;
       if (G.budget < msspFee) {
         G.mssp = false;
-        siemLog('CRIT','FINANCE','MSSP retainer cancelled — insufficient funds. Auto-assignment suspended.');
+        siemLog('CRIT','FINANCE','MSSP contract cancelled — insufficient funds. Auto-assignment suspended.');
       } else {
         G.budget -= msspFee;
-        siemLog('INFO','FINANCE',`MSSP retainer fee deducted: -${fmt$(msspFee)}`);
+        siemLog('INFO','FINANCE',`MSSP fee deducted: -${fmt$(msspFee)}`);
       }
     }
     if (G.sat) {
@@ -2913,7 +2952,7 @@ function tick() {
         siemLog('CRIT','FINANCE','Security awareness programme cancelled — insufficient funds. Phishing protection suspended.');
       } else {
         G.budget -= satFee;
-        siemLog('INFO','FINANCE',`SAT retainer fee deducted: -${fmt$(satFee)}`);
+        siemLog('INFO','FINANCE',`SAT programme fee deducted: -${fmt$(satFee)}`);
       }
     }
     if (G.consultant && G.budget <= 0) {
@@ -3262,7 +3301,7 @@ function triggerBreach(threat, reason, incident) {
   }
 
   if (G.breaches >= MAX_BREACHES) {
-    triggerGameOver(`${G.breaches} successful breaches — attacker persistence established in managed estate.`);
+    triggerGameOver(`${G.breaches} successful breaches — attacker persistence established across company infrastructure.`);
   } else if (G.breaches === MAX_BREACHES - 1) {
     siemLog('CRIT', 'BREACH-CTRL', `⚠ ONE BREACH FROM GAME OVER — DEFEND ALL ASSETS`);
   }
@@ -3327,7 +3366,7 @@ function triggerWin() {
     <div class="score-total"><span class="score-grade">${_scoreGrade}</span><span class="score-label">${_scoreLabel} — ${_w2combined} pts</span></div>`;
   // Week subtitle and extend button
   document.getElementById('win-subtitle').textContent =
-    G.week === 1 ? '7 days survived. Client estate secured.' : '14 days survived. Extended engagement complete.';
+    G.week === 1 ? '7 days survived. Infrastructure secured.' : '14 days survived. Extended operations complete.';
   document.getElementById('continue-w2-btn').style.display = G.week === 1 ? 'block' : 'none';
   document.getElementById('win-overlay').classList.add('visible');
 }
@@ -3387,8 +3426,8 @@ function continueToWeek2() {
   siemLog('WARN', 'THREAT-INTEL', 'Intel feed subscriptions lapsed. Re-subscribe to maintain situational awareness.');
   siemLog('WARN', 'PARTNERS',     'Consultant contract concluded. Re-hire available for new engagement.');
   siemLog('WARN', 'SOAR',         'SOAR playbooks flagged for re-tuning — effectiveness degraded after TTP shift.');
-  siemLog('WARN', 'VULN',         '6 new CVE disclosures identified on client estate. Immediate assessment recommended.');
-  siemLog('INFO', 'FINANCE',      `Client retainer renegotiated: income reduced to ${fmt$(G.incomeAmount)}/cycle.`);
+  siemLog('WARN', 'VULN',         '6 new CVE disclosures identified across company infrastructure. Immediate assessment recommended.');
+  siemLog('INFO', 'FINANCE',      `Security budget revised downward: allocation reduced to ${fmt$(G.incomeAmount)}/cycle.`);
   siemLog('INFO', 'PARTNERS',     'New intelligence products now available: Dark Web Monitor, Zero-Day Exchange.');
 
   updateUI(true);
@@ -4613,7 +4652,7 @@ function renderConsultantCard() {
   const card = _ui['consultant-card'] || document.getElementById('consultant-card');
   const hireBtn = _ui['hire-consultant-btn'] || document.getElementById('hire-consultant-btn');
   if (!G.consultant) {
-    card.innerHTML = '<div style="color:var(--green-dark);font-size:10px;margin-bottom:4px">No consultant on retainer.</div>';
+    card.innerHTML = '<div style="color:var(--green-dark);font-size:10px;margin-bottom:4px">No external consultant engaged.</div>';
     hireBtn.style.display = '';
     hireBtn.disabled = G.budget < 150000;
     return;
@@ -4658,7 +4697,7 @@ function renderConsultantModal() {
       <div class="cp-title">${c.title}</div>
       <div class="cp-flavor">${c.flavor}</div>
       <div class="cp-bonus">Defensive bonus: ${c.bonusDesc}</div>
-      <div class="cp-cost">One-time retainer: ${fmt$(c.cost)}</div>
+      <div class="cp-cost">Engagement fee: ${fmt$(c.cost)}</div>
     `;
     list.appendChild(d);
   });
@@ -4667,7 +4706,7 @@ function renderConsultantModal() {
     const c = CONSULTANTS.find(c => c.id === selectedConsultant);
     const isCurrent = G.consultant && G.consultant.id === selectedConsultant;
     btn.disabled = isCurrent || G.budget < c.cost;
-    btn.textContent = isCurrent ? `▶ ${c.name.split(' ')[0].toUpperCase()} ALREADY ON RETAINER` : `▶ RETAIN ${c.name.split(' ')[0].toUpperCase()} (${fmt$(c.cost)})`;
+    btn.textContent = isCurrent ? `▶ ${c.name.split(' ')[0].toUpperCase()} CURRENTLY ENGAGED` : `▶ ENGAGE ${c.name.split(' ')[0].toUpperCase()} (${fmt$(c.cost)})`;
   } else {
     btn.disabled = true;
     btn.textContent = '▶ SELECT A CONSULTANT';
@@ -4876,8 +4915,8 @@ const BOOT_LINES = [
   ['INIT', 'ok',   'Calibrating anomaly detection baselines'],
   ['INIT', 'ok',   'Starting network detection daemon (NDR)'],
   ['INIT', 'ok',   'Validating analyst authentication tokens'],
-  ['INIT', 'ok',   'Establishing secure comms to client nodes'],
-  ['WARN', 'warn', '3 critical vulnerabilities in managed estate'],
+  ['INIT', 'ok',   'Establishing secure comms to internal nodes'],
+  ['WARN', 'warn', '3 critical vulnerabilities in company infrastructure'],
   ['WARN', 'warn', 'Threat actor activity detected — EMEA region'],
   ['WARN', 'warn', `Detection coverage at 25% — below acceptable threshold`],
   ['BOOT', 'ok',   'All systems operational — awaiting analyst'],
@@ -5041,7 +5080,7 @@ function startGame() {
   // Initial SIEM entries
   const diff = DIFFICULTIES[selectedDifficulty];
   siemLog('OK','SYSTEM',`PumaSOC OPERATIONS CENTER — ONLINE  [${diff.label}]`);
-  siemLog('INFO','SYSTEM',`Managing ${NODE_DEFS.filter(n=>n.type!=='internet').length} assets across client estate`);
+  siemLog('INFO','SYSTEM',`Managing ${NODE_DEFS.filter(n=>n.type!=='internet').length} assets across company infrastructure`);
   siemLog('INFO','INTEL',`Tracking ${ACTORS.length} known threat actor groups`);
   if (G.coverage >= 40) {
     siemLog('OK','POSTURE',`Detection coverage: ${G.coverage}% — established program, continue investment`);
