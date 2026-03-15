@@ -2344,7 +2344,7 @@ function loadSavedState() {
       if ('analyistId' in i) { i.analystId = i.analyistId; delete i.analyistId; }
     });
     G.paused = false; // never restore into a paused state
-    G.speed = G.speed || 1;
+    G.speed = 1;      // always resume at 1x
     // Migrate old saves that predate per-difficulty breach timers
     const diff = DIFFICULTIES[save.selectedDifficulty || 'analyst'];
     if (!G.coverageBase)         G.coverageBase         = diff ? diff.coverageBase         : 25;
@@ -4935,6 +4935,7 @@ function runBootSequence() {
           document.getElementById('boot-screen').style.display = 'none';
           document.getElementById('game-screen').classList.add('visible');
           _initUICache();
+          setSpeed(1);
           _uiTick = 0;
           _intelDisplay = rnd(3, 6);
           initMap();
@@ -4987,6 +4988,7 @@ function openDifficultyScreen(e) {
     document.getElementById('boot-screen').style.display = 'none';
     document.getElementById('game-screen').classList.add('visible');
     _initUICache();
+    setSpeed(1);
     _uiTick = 0;
     _intelDisplay = rnd(3, 6);
     initMap();
