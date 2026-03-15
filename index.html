@@ -234,7 +234,7 @@ body::after {
   font-size: 28px;
   font-weight: bold;
   color: var(--green);
-  text-shadow: 0 0 10px var(--green), 0 0 20px rgba(0,255,65,0.3);
+  text-shadow: 0 0 4px rgba(0,255,65,0.4);
   letter-spacing: 1px;
   line-height: 1;
 }
@@ -614,6 +614,10 @@ body::after {
   margin-bottom: 6px;
 }
 .ops-section-title-crit { color: var(--red); }
+.edge-line { stroke: #1e3e1e; stroke-width: 1.5; }
+.node-label { fill: #2e6e2e; font-size: 10px; text-anchor: middle; font-family: var(--font); }
+.node-label.active { fill: #ff3333; }
+#mini-map-svg { width: 100%; height: 230px; display: block; }
 .stat-row {
   display: flex;
   justify-content: space-between;
@@ -1509,6 +1513,20 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
         <div class="ops-section-title ops-section-title-crit">── ACTIVE EVENTS ─────────</div>
         <div id="active-events-list"></div>
       </div>
+      <div class="ops-section" style="border-bottom:none;padding:6px 4px 4px">
+        <div class="ops-section-title">── NETWORK MAP ──────────</div>
+        <svg id="mini-map-svg" viewBox="0 0 230 390" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <filter id="glow-red" x="-60%" y="-60%" width="220%" height="220%">
+              <feGaussianBlur stdDeviation="2.5" result="blur"/>
+              <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+            </filter>
+          </defs>
+          <g id="edges-layer"></g>
+          <g id="nodes-layer"></g>
+          <g id="packets-layer"></g>
+        </svg>
+      </div>
     </div>
 
     <!-- CENTER: Incidents (full height) -->
@@ -1539,6 +1557,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
         <div class="ops-section-title">── CAPABILITIES ─────────</div>
         <button class="action-btn" onclick="openModal('detection')">▶ DETECTION ENG<span class="btn-cost">$25k</span></button>
         <button class="action-btn" onclick="openModal('vuln')">▶ VULN MGMT<span class="btn-cost">$10k</span></button>
+        <button class="action-btn" onclick="openModal('soar')">▶ SOAR PLATFORM<span class="btn-cost" id="soar-btn-cost">$100k</span></button>
         <button class="action-btn" onclick="openModal('intel')">▶ THREAT INTEL<span class="btn-cost">$100k</span></button>
       </div>
       <div class="ops-section" id="consultant-ops-section">
@@ -1614,6 +1633,30 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
       <div class="section-header">ATT&CK FRAMEWORK COVERAGE</div>
       <div id="detection-rules-list"></div>
       <div id="detection-coverage-summary" style="margin-top:10px;font-size:10px;color:var(--green-dim)"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SOAR Modal -->
+<div class="modal-overlay" id="modal-soar">
+  <div class="modal-window">
+    <div class="modal-header">
+      <div class="modal-title">// SOAR PLATFORM</div>
+      <button class="modal-close" onclick="closeModal('soar')">✕ CLOSE</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-desc">
+        Security Orchestration, Automation &amp; Response. Activate the platform then deploy
+        per-technique playbooks to automate TRIAGE and CONTAIN stages — analysts still own
+        ERADICATE and RECOVER. Fully automated incidents run 25–50% faster through initial
+        response, freeing capacity for the next threat.
+      </div>
+      <div class="modal-actions">
+        <button class="modal-action-btn" id="soar-activate-btn" onclick="purchaseSoarPlatform()">▶ ACTIVATE PLATFORM ($100k)</button>
+      </div>
+      <div id="soar-platform-status" style="font-size:10px;color:var(--green-dim);margin:6px 0 10px"></div>
+      <div class="section-header">PLAYBOOK LIBRARY</div>
+      <div id="soar-playbooks-list"></div>
     </div>
   </div>
 </div>
@@ -2076,6 +2119,8 @@ function loadSavedState() {
     if (!G.unhandledBreachMins)  G.unhandledBreachMins  = diff ? diff.unhandledBreachMins  : 1200;
     if (!G.campaigns)            G.campaigns            = {};
     if (G._budgetWarned === undefined)   G._budgetWarned   = false;
+    if (G.soar === undefined)            G.soar            = false;
+    if (!G.soarPlaybooks)                G.soarPlaybooks   = {};
     if (G._onboardIncident === undefined) G._onboardIncident = true; // old save → skip onboard tips
     if (G._onboardIncome   === undefined) G._onboardIncome   = true;
     selectedDifficulty = save.selectedDifficulty || 'analyst';
@@ -2170,6 +2215,9 @@ function initState() {
     analystSpeedBonus: 0,   // 0.0 → 0.30, applied globally to IR stage progression
     // MSSP
     mssp: false,
+    // SOAR
+    soar: false,
+    soarPlaybooks: {},
     // random events
     nextRandomEventIn: rndF(1440 * 3, 1440 * 5),
     activeRandomEvents: [],
@@ -2196,13 +2244,15 @@ function generateVulns(nodes) {
   nodes.forEach(n => {
     const count = n.vulns;
     for (let i = 0; i < count; i++) {
+      const sev = pick(severities);
       result.push({
         id: `CVE-2024-${id++}`,
         nodeId: n.id,
         name: pick(vulnNames),
-        severity: pick(severities),
+        severity: sev,
         patched: false,
         discovered: rnd(0,1) === 0, // 50% discovered at start
+        cost: ({HIGH: rnd(8,12), MED: rnd(3,6), LOW: rnd(1,3)}[sev]) * 1000,
       });
     }
   });
@@ -2673,7 +2723,9 @@ function tick() {
     const stage = IR_STAGES[inc.stageIdx];
     // Apply lessons learned speed bonus (up to +25% per category)
     const lessonCount = G.lessonsLearned[inc.techniqueCategory] || 0;
-    const speedMult = (1 + G.analystSpeedBonus) * (1 + Math.min(0.25, lessonCount * 0.10));
+    const soarLevel = G.soar ? (G.soarPlaybooks[inc.techniqueCategory] || 0) : 0;
+    const soarBonus = (inc.stageIdx <= 1 && soarLevel > 0) ? soarLevel * 0.25 : 0;
+    const speedMult = (1 + G.analystSpeedBonus + soarBonus) * (1 + Math.min(0.25, lessonCount * 0.10));
     inc.stageProgress += delta * speedMult;
     if (inc.stageProgress >= stage.durationMins) {
       inc.stageProgress = 0;
@@ -2740,13 +2792,15 @@ function tick() {
     const sevWeights = ['HIGH','MED','MED','LOW','LOW'];
     const targetNodes = G.nodes.filter(n => n.type !== 'internet');
     for (let i = 0; i < newCount; i++) {
+      const sev = pick(sevWeights);
       G.vulns.push({
         id: `CVE-2025-${G.nextVulnId++}`,
         nodeId: pick(targetNodes).id,
         name: pick(vulnNames),
-        severity: pick(sevWeights),
+        severity: sev,
         patched: false,
         discovered: false,
+        cost: ({HIGH: rnd(8,12), MED: rnd(3,6), LOW: rnd(1,3)}[sev]) * 1000,
       });
     }
     G.vulnScore = calcVulnScore();
@@ -2984,26 +3038,71 @@ function runVulnScan() {
   renderVulnModal();
 }
 
+function vulnBulkCost(vulns) {
+  const sum = vulns.reduce((s, v) => s + (v.cost || 5000), 0);
+  return Math.round(sum * 0.85 / 1000) * 1000;
+}
+
+function patchVuln(id) {
+  const v = G.vulns.find(x => x.id === id);
+  if (!v || v.patched) return;
+  const cost = v.cost || 5000;
+  if (G.budget < cost) { siemLog('WARN','OPS',`Insufficient budget to patch ${id}`); return; }
+  G.budget -= cost;
+  v.patched = true;
+  const oldScore = G.vulnScore;
+  G.vulnScore = calcVulnScore();
+  siemLog('OK','VULN-MGMT',`Patched ${id} [${v.severity}] ${v.name} — ${fmt$(cost)}`, `Score: ${oldScore} → ${G.vulnScore}`);
+  renderVulnModal();
+}
+
 function patchCritical() {
-  if (G.budget < 25000) { siemLog('WARN','OPS','Insufficient budget'); return; }
-  G.budget -= 25000;
   const crits = G.vulns.filter(v => v.discovered && !v.patched && v.severity === 'HIGH');
+  const cost = vulnBulkCost(crits);
+  if (G.budget < cost) { siemLog('WARN','OPS','Insufficient budget for critical patch cycle'); return; }
+  G.budget -= cost;
   crits.forEach(v => v.patched = true);
   const oldScore = G.vulnScore;
   G.vulnScore = calcVulnScore();
-  siemLog('OK','VULN-MGMT',`Critical patch cycle complete — ${crits.length} HIGH vulns patched`, `Score: ${oldScore} → ${G.vulnScore}`);
+  siemLog('OK','VULN-MGMT',`Critical patch cycle complete — ${crits.length} HIGH vulns patched (${fmt$(cost)}, 15% bulk discount)`, `Score: ${oldScore} → ${G.vulnScore}`);
   renderVulnModal();
 }
 
 function patchAll() {
-  if (G.budget < 75000) { siemLog('WARN','OPS','Insufficient budget'); return; }
-  G.budget -= 75000;
   const unpatchedKnown = G.vulns.filter(v => v.discovered && !v.patched);
+  const cost = vulnBulkCost(unpatchedKnown);
+  if (G.budget < cost) { siemLog('WARN','OPS','Insufficient budget for full patch cycle'); return; }
+  G.budget -= cost;
   unpatchedKnown.forEach(v => v.patched = true);
   const oldScore = G.vulnScore;
   G.vulnScore = calcVulnScore();
-  siemLog('OK','VULN-MGMT',`Full patch cycle complete — ${unpatchedKnown.length} vulnerabilities patched`, `Score: ${oldScore} → ${G.vulnScore}`);
+  siemLog('OK','VULN-MGMT',`Full patch cycle complete — ${unpatchedKnown.length} vulnerabilities patched (${fmt$(cost)}, 15% bulk discount)`, `Score: ${oldScore} → ${G.vulnScore}`);
   renderVulnModal();
+}
+
+const SOAR_PLATFORM_COST = 100000;
+const SOAR_PLAYBOOK_COST = 20000;
+const SOAR_MAX_LEVEL = 2;
+
+function purchaseSoarPlatform() {
+  if (G.soar) return;
+  if (G.budget < SOAR_PLATFORM_COST) { siemLog('WARN','OPS','Insufficient budget for SOAR platform'); return; }
+  G.budget -= SOAR_PLATFORM_COST;
+  G.soar = true;
+  siemLog('OK','SOAR','SOAR platform activated — playbook automation online');
+  renderSoarModal();
+}
+
+function purchaseSoarPlaybook(cat) {
+  if (!G.soar) return;
+  const level = G.soarPlaybooks[cat] || 0;
+  if (level >= SOAR_MAX_LEVEL) return;
+  if (G.budget < SOAR_PLAYBOOK_COST) { siemLog('WARN','OPS',`Insufficient budget for SOAR playbook: ${cat}`); return; }
+  G.budget -= SOAR_PLAYBOOK_COST;
+  G.soarPlaybooks[cat] = level + 1;
+  const pct = G.soarPlaybooks[cat] * 25;
+  siemLog('OK','SOAR',`Playbook deployed: ${cat} — TRIAGE/CONTAIN at ${pct}% speed reduction`);
+  renderSoarModal();
 }
 
 function calcVulnScore() {
@@ -3474,7 +3573,7 @@ function updateUI() {
   const budgetLargeEl = _ui['budget-display-large'];
   budgetLargeEl.textContent = fmt$(G.budget);
   budgetLargeEl.style.color = G.budget < 50000 ? 'var(--red)' : G.budget < 150000 ? 'var(--amber)' : 'var(--green)';
-  budgetLargeEl.style.textShadow = G.budget < 50000 ? '0 0 10px var(--red)' : G.budget < 150000 ? '0 0 10px var(--amber)' : '0 0 10px var(--green), 0 0 20px rgba(0,255,65,0.3)';
+  budgetLargeEl.style.textShadow = G.budget < 50000 ? '0 0 4px rgba(255,40,40,0.5)' : G.budget < 150000 ? '0 0 4px rgba(255,170,0,0.5)' : '0 0 4px rgba(0,255,65,0.4)';
   if (_prevBudget !== null && G.budget !== _prevBudget) {
     budgetLargeEl.classList.remove('stat-flash-up', 'stat-flash-down');
     void budgetLargeEl.offsetWidth;
@@ -3566,6 +3665,10 @@ function updateUI() {
     }
     msspBtn.disabled = G.budget < 150000;
   }
+
+  // SOAR button label
+  const soarCostEl = document.getElementById('soar-btn-cost');
+  if (soarCostEl) soarCostEl.textContent = G.soar ? 'ACTIVE' : '$100k';
 
   // MSSP & IR bonus posture indicators
   _ui['row-mssp'].style.display = G.mssp ? '' : 'none';
@@ -3746,6 +3849,7 @@ function anyModalOpen() {
 function openModal(name) {
   if (name === 'detection') renderDetectionModal();
   if (name === 'vuln') renderVulnModal();
+  if (name === 'soar') renderSoarModal();
   if (name === 'redteam') renderRedTeamModal();
   if (name === 'intel') renderIntelModal();
   if (name === 'consultant') renderConsultantModal();
@@ -3785,6 +3889,45 @@ function renderDetectionModal() {
     `Overall detection coverage: ${cov}% | MTTD: ${calcMTTD()} min`;
 }
 
+function renderSoarModal() {
+  const activateBtn = document.getElementById('soar-activate-btn');
+  const statusEl    = document.getElementById('soar-platform-status');
+  if (G.soar) {
+    activateBtn.textContent = '✓ PLATFORM ACTIVE';
+    activateBtn.disabled = true;
+    statusEl.textContent = 'Playbook library unlocked — deploy per-technique automation below.';
+    statusEl.style.color = 'var(--green-dim)';
+  } else {
+    activateBtn.textContent = `▶ ACTIVATE PLATFORM (${fmt$(SOAR_PLATFORM_COST)})`;
+    activateBtn.disabled = G.budget < SOAR_PLATFORM_COST;
+    statusEl.textContent = 'Purchase the platform to unlock playbook configuration.';
+    statusEl.style.color = 'var(--green-dark)';
+  }
+
+  const list = document.getElementById('soar-playbooks-list');
+  list.innerHTML = '';
+  TECHNIQUE_CATS.forEach(cat => {
+    const level = G.soarPlaybooks[cat] || 0;
+    const speedLabel = level === 0 ? 'no automation'
+                     : level === 1 ? 'TRIAGE/CONTAIN −25%'
+                     :               'TRIAGE/CONTAIN −50%';
+    const canUpgrade = G.soar && level < SOAR_MAX_LEVEL && G.budget >= SOAR_PLAYBOOK_COST;
+    const row = document.createElement('div');
+    row.className = 'rule-row';
+    row.innerHTML = `
+      <div class="rule-name">${cat}</div>
+      <div style="color:${level>0?'var(--green-dim)':'var(--green-dark)'};font-size:9px;flex:1;min-width:0">${speedLabel}</div>
+      ${level < SOAR_MAX_LEVEL
+        ? `<button class="rule-upgrade-btn" onclick="purchaseSoarPlaybook('${cat.replace(/'/g,"\\'")}')" ${canUpgrade?'':'disabled'}>
+             ${level === 0 ? 'DEPLOY' : 'UPGRADE'} ${fmt$(SOAR_PLAYBOOK_COST)}
+           </button>`
+        : `<span style="color:var(--green);font-size:10px">MAX</span>`
+      }
+    `;
+    list.appendChild(row);
+  });
+}
+
 function renderVulnModal() {
   const vulnList = document.getElementById('vuln-list');
   vulnList.innerHTML = '';
@@ -3797,6 +3940,8 @@ function renderVulnModal() {
       if (a.patched !== b.patched) return a.patched ? 1 : -1;
       return sev[a.severity] - sev[b.severity];
     }).forEach(v => {
+      const cost = v.cost || 5000;
+      const canAfford = G.budget >= cost;
       const row = document.createElement('div');
       row.className = 'vuln-row';
       row.innerHTML = `
@@ -3804,16 +3949,30 @@ function renderVulnModal() {
         <span class="vuln-node">${v.nodeId}</span>
         <span class="vuln-sev sev-${v.severity.toLowerCase()}">${v.severity}</span>
         <span class="vuln-status">${v.name}</span>
-        <span style="color:${v.patched?'var(--green-dim)':'var(--red)'};font-size:9px">${v.patched?'PATCHED':'EXPOSED'}</span>
+        ${v.patched
+          ? `<span style="color:var(--green-dim);font-size:9px">PATCHED</span>`
+          : `<button class="vuln-patch-btn" onclick="patchVuln('${v.id}')" ${canAfford?'':'disabled'}>${fmt$(cost)}</button>`
+        }
       `;
       vulnList.appendChild(row);
     });
   }
-  // Update button states
+  // Update bulk button labels and states
   const unknown = G.vulns.filter(v=>!v.discovered).length;
-  document.getElementById('scan-btn').disabled = G.budget < 10000 || unknown === 0;
-  document.getElementById('patch-crit-btn').disabled = G.budget < 25000 || !G.vulns.some(v=>v.discovered&&!v.patched&&v.severity==='HIGH');
-  document.getElementById('patch-all-btn').disabled = G.budget < 75000 || !G.vulns.some(v=>v.discovered&&!v.patched);
+  const crits = G.vulns.filter(v => v.discovered && !v.patched && v.severity === 'HIGH');
+  const allUnpatched = G.vulns.filter(v => v.discovered && !v.patched);
+  const critCost = vulnBulkCost(crits);
+  const allCost  = vulnBulkCost(allUnpatched);
+
+  const scanBtn = document.getElementById('scan-btn');
+  const critBtn = document.getElementById('patch-crit-btn');
+  const allBtn  = document.getElementById('patch-all-btn');
+
+  scanBtn.disabled = G.budget < 10000 || unknown === 0;
+  critBtn.textContent = `▶ PATCH CRITICAL (${crits.length ? fmt$(critCost) : '$0'})`;
+  critBtn.disabled = crits.length === 0 || G.budget < critCost;
+  allBtn.textContent  = `▶ PATCH ALL (${allUnpatched.length ? fmt$(allCost) : '$0'})`;
+  allBtn.disabled  = allUnpatched.length === 0 || G.budget < allCost;
 }
 
 function renderRedTeamModal() {
