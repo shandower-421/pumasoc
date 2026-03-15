@@ -1166,16 +1166,16 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
   color: var(--green-dim);
   border-bottom: 1px solid var(--green-dark);
   padding-bottom: 2px;
-  margin: 12px 0 6px;
+  margin: 9px 0 5px;
   text-transform: uppercase;
 }
 .help-col:first-child .help-section-title:first-child { margin-top: 0; }
 .help-col:last-child .help-section-title:first-child { margin-top: 0; }
-#help-body p, #help-body li { line-height: 1.55; margin-bottom: 5px; font-size: 11px; color: var(--green); }
-#help-body ol, #help-body ul { padding-left: 16px; margin-bottom: 6px; }
+#help-body p, #help-body li { line-height: 1.5; margin-bottom: 4px; font-size: 11px; color: var(--green); }
+#help-body ol, #help-body ul { padding-left: 16px; margin-bottom: 5px; }
 #help-body strong { color: var(--green); }
 #help-body em { color: var(--amber); font-style: normal; }
-.help-cap-row { display: flex; flex-direction: column; margin-bottom: 7px; border-left: 2px solid var(--green-dark); padding-left: 8px; }
+.help-cap-row { display: flex; flex-direction: column; margin-bottom: 5px; border-left: 2px solid var(--green-dark); padding-left: 8px; }
 .help-cap-name { font-size: 10px; letter-spacing: 1px; color: var(--amber); margin-bottom: 1px; }
 .help-cap-desc { font-size: 11px; color: var(--green); line-height: 1.45; }
 .help-stage { color: var(--amber); font-size: 11px; }
@@ -1693,29 +1693,30 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
       <div class="help-cols">
         <div class="help-col">
           <div class="help-section-title">OBJECTIVE</div>
-          <p>Survive <strong>7 game days</strong> as operator of a global Security Operations Center. Defend your client estate against nation-state and criminal threat actors. You lose if <strong>3 breaches</strong> succeed.</p>
+          <p>Survive <strong>7 game days</strong> as SOC operator. Defend your client estate against nation-state and criminal threat actors. You lose if <strong>3 breaches</strong> succeed.</p>
 
           <div class="help-section-title">THE THREAT LOOP</div>
-          <p>Threat actors continuously probe your estate. Each attack is checked against your <strong>Detection Coverage %</strong>. If detected, an incident appears and you must respond. If <em>not</em> detected, the threat dwells silently and eventually becomes a <span class="help-crit">BREACH</span>.</p>
-          <p>A detected incident left <strong>unassigned</strong> also breaches if ignored long enough. Breach windows are tighter on harder difficulties.</p>
+          <p>Attacks are checked against your <strong>Coverage %</strong>. Detected → incident created, assign an analyst. Undetected → silent dwell, eventual <span class="help-crit">BREACH</span>. Unassigned incidents also breach if ignored. Breach windows tighten on harder difficulties.</p>
 
           <div class="help-section-title">RESPONDING TO INCIDENTS</div>
           <ol>
-            <li>Alert fires in the <strong>SIEM strip</strong> at the bottom</li>
+            <li>CRIT alert fires in the <strong>SIEM strip</strong></li>
             <li>Incident appears in the <strong>center panel</strong></li>
-            <li>Click <strong>ASSIGN ANALYST</strong> to start the IR clock</li>
-            <li>Analyst works through: <span class="help-stage">TRIAGE → CONTAIN → ERADICATE → RECOVER</span></li>
-            <li>After resolution, a <strong>LESSONS LEARNED</strong> prompt appears — click it within the window to earn an IR speed bonus. Missing it wastes the opportunity.</li>
+            <li>Click <strong>ASSIGN ANALYST</strong> to start IR</li>
+            <li>Analyst works: <span class="help-stage">TRIAGE → CONTAIN → ERADICATE → RECOVER</span></li>
+            <li><strong>LESSONS LEARNED</strong> prompt appears after — click it for an IR speed bonus</li>
           </ol>
 
           <div class="help-section-title">RANDOM EVENTS</div>
-          <p>Periodically the game throws a crisis your way — a DDoS barrage, tool outage, zero-day, insider threat, or emergency budget audit. These appear as <span class="help-crit">ACTIVE EVENTS</span> in the left panel and may temporarily cut your Coverage % or drain budget. Ride them out.</p>
+          <p>Crises fire periodically — DDoS barrages, zero-days, tool outages, insider threats, budget audits. Shown as <span class="help-crit">ACTIVE EVENTS</span> in the left panel. May cut Coverage % or drain budget. Ride them out.</p>
 
-          <div class="help-section-title">PERSISTENCE</div>
-          <p>Your session auto-saves every ~10 real seconds and on page close. Reload or navigate away freely — the game picks up where you left off. Use <strong>NEW GAME</strong> in the header to start over.</p>
-
-          <div class="help-section-title">SIEM FEED</div>
-          <p>The strip at the bottom shows the last 12 events. <strong>Click it</strong> to expand the full scrollable history. CRIT alerts need immediate attention. CRIT entries are highlighted red.</p>
+          <div class="help-section-title">KEY STATS</div>
+          <ul>
+            <li><strong>Coverage %</strong> — detection chance on spawn. Most important stat.</li>
+            <li><strong>MTTD</strong> — how quickly undetected threats are eventually caught.</li>
+            <li><strong>Vuln Score</strong> — drives threat spawn rate. Lower is better.</li>
+            <li><strong>Analysts</strong> — free / total. Watch this.</li>
+          </ul>
         </div>
 
         <div class="help-col">
@@ -1723,57 +1724,49 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 
           <div class="help-cap-row">
             <span class="help-cap-name">DETECTION ENG</span>
-            <span class="help-cap-desc">Invest in SIEM rules per ATT&amp;CK category. Each level raises your Coverage % — the single most impactful stat. On Adversary, this is survival-critical in the first few minutes.</span>
+            <span class="help-cap-desc">Upgrade SIEM rules per ATT&amp;CK category — raises Coverage %. Your highest-ROI investment.</span>
           </div>
           <div class="help-cap-row">
             <span class="help-cap-name">VULN MGMT</span>
-            <span class="help-cap-desc">Scan assets to find CVEs, then patch them. Lower Vuln Score reduces how quickly new threats spawn. Scan first — you can't patch what you haven't found.</span>
+            <span class="help-cap-desc">Scan assets to find CVEs, then patch them — lowers Vuln Score and slows threat spawn rate.</span>
           </div>
           <div class="help-cap-row">
             <span class="help-cap-name">RED TEAM</span>
-            <span class="help-cap-desc">Commission a pentest. Takes game time but reveals hidden detection gaps and undiscovered vulnerabilities — and temporarily suppresses certain attack categories.</span>
+            <span class="help-cap-desc">Commission a pentest — reveals hidden gaps and suppresses certain attack categories while active.</span>
           </div>
           <div class="help-cap-row">
             <span class="help-cap-name">THREAT INTEL</span>
-            <span class="help-cap-desc">Subscribe to feeds for passive boosts to Coverage % and Mean Time to Detect (MTTD). Stacks with Detection Engineering.</span>
+            <span class="help-cap-desc">Subscribe to feeds for passive Coverage % and MTTD boosts. Stacks with Detection Engineering.</span>
           </div>
           <div class="help-cap-row">
             <span class="help-cap-name">HIRE ANALYST</span>
-            <span class="help-cap-desc">More analysts = more incidents handled simultaneously. Essential as threat tempo escalates late-game. Max 8. $75k each.</span>
+            <span class="help-cap-desc">Each analyst handles one incident at a time. Max 8. $75k each. Hire early.</span>
           </div>
           <div class="help-cap-row">
             <span class="help-cap-name">SEND TO TRAINING</span>
-            <span class="help-cap-desc">Takes one analyst offline temporarily but permanently boosts all analyst IR speed by 10% per training (max +30%). Best done early when incident pressure is low.</span>
+            <span class="help-cap-desc">Takes one analyst offline; permanently boosts all IR speed by 10% (max +30%). Do it early.</span>
           </div>
           <div class="help-cap-row">
             <span class="help-cap-name">MSSP</span>
-            <span class="help-cap-desc">Retains a Managed Security Service Provider at $15k/cycle. Auto-assigns to unhandled incidents when all your analysts are busy — a safety net, not a substitute.</span>
+            <span class="help-cap-desc">Auto-assigns to incidents when your team is full. $15k/cycle. Safety net, not a strategy.</span>
           </div>
           <div class="help-cap-row">
             <span class="help-cap-name">CONSULTANT</span>
-            <span class="help-cap-desc">Retains an expert who adds a passive defensive bonus and delivers a <strong>daily briefing</strong> — one prioritised recommendation telling you the single best action to take next.</span>
+            <span class="help-cap-desc">Passive defensive bonus + <strong>daily briefing</strong> with one prioritised action recommendation.</span>
           </div>
-
-          <div class="help-section-title">KEY STATS</div>
-          <ul>
-            <li><strong>Coverage %</strong> — chance of detecting any attack on spawn. Your most important number.</li>
-            <li><strong>MTTD</strong> — Mean Time to Detect. Affects how quickly undetected threats are eventually caught.</li>
-            <li><strong>Vuln Score</strong> — attack surface exposure. Drives how fast new threats spawn. Lower is better.</li>
-            <li><strong>Analysts</strong> — free / total responders. Watch this carefully.</li>
-          </ul>
 
           <div class="help-section-title">CONTROLS</div>
           <ul>
-            <li><strong>SPACE</strong> — pause / resume</li>
-            <li><strong>1 2 3 4</strong> — game speed (1×–4×)</li>
-            <li><strong>?</strong> — this screen</li>
-            <li><strong>M</strong> — mute / unmute</li>
+            <li><strong>SPACE</strong> — pause / resume &nbsp;|&nbsp; <strong>1 2 3 4</strong> — speed &nbsp;|&nbsp; <strong>?</strong> — help &nbsp;|&nbsp; <strong>M</strong> — mute</li>
           </ul>
+
+          <div class="help-section-title">SIEM FEED</div>
+          <p><strong>Click the strip</strong> at the bottom to expand full event history. CRIT entries need immediate attention.</p>
         </div>
       </div>
 
       <div class="help-tip">
-        <span class="help-crit">▶ FIRST MOVE:</span> Hire a consultant — their daily briefing directs your spending. Then push Detection Engineering above 50%. On Adversary, hire a second analyst immediately; you cannot keep up with one.
+        <span class="help-crit">▶ FIRST MOVE:</span> Hire a consultant — their daily briefing directs your spending. Then push Detection Engineering above 50%. On Adversary, hire a second analyst immediately.
       </div>
     </div>
   </div>
