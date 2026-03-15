@@ -1933,6 +1933,21 @@ const NOISE_EVENTS = [
   ['WARN','NET','Unusual outbound DNS query volume from WORK-03 — investigating'],
 ];
 
+const RESOLVE_QUIPS = [
+  'Threat actor evicted. Systems sanitised. Root cause documented.',
+  'Kill chain severed. Zero confirmed data loss. Good containment.',
+  'Actor toolkit neutralised. Persistence mechanisms removed.',
+  'Adversary TTP logged. Coverage rule queued for tuning.',
+  'Clean sweep — no persistence found. Textbook response.',
+  'Another one for the win board. Post-mortem scheduled.',
+  'IR complete. This one was actually interesting.',
+  'Threat neutralised. Could\'ve been worse. Wasn\'t.',
+  'Contained. Eradicated. Recovered. In that order, even.',
+  'Actor evicted. Not their best work, honestly.',
+  'IR stages complete. Detection rule already submitted to eng.',
+  'Lessons learned filed. Coverage gap closing.',
+];
+
 const RANDOM_EVENTS = [
   { type:'ddos',    sev:'CRIT', name:'DDoS Barrage',          msg:'Massive DDoS targeting perimeter — detection coverage degraded',    duration:480,  coveragePenalty:20, vulnPenalty:0  },
   { type:'outage',  sev:'CRIT', name:'Tool Outage',           msg:'EDR/SIEM platform degraded — CrowdStrike-style sensor failure',      duration:240,  coveragePenalty:15, vulnPenalty:0  },
@@ -2248,6 +2263,10 @@ const _newIncidentIds = new Set();    // IDs for entrance animation, cleared aft
 let _prevBudget = null;               // for budget flash
 let _prevCoverage = 0;                // for coverage bar level-up flash
 let _crtFlickerTimeout = null;        // for cancellation on new game
+let _uiTick = 0;                      // counts updateUI() calls; used to throttle slow renders
+let _intelDisplay = 4;                // cached "X tracked" value; avoids rnd() every frame
+const _ui = {};                       // cached DOM refs — populated by _initUICache() at game start
+const _mapEl = {};                    // cached SVG element refs for updateMap()
 
 function siemCategory(source) {
   if (/^SOC-A|^BREACH/.test(source)) return 'incident';
@@ -2687,6 +2706,7 @@ function resolveIncident(inc, earnReward = true) {
   if (!stillAttacked) getNode(inc.targetId).status = 'healthy';
 
   siemLog('OK', `SOC-A${inc.analystId}`, `INCIDENT RESOLVED: ${inc.actor}::${inc.technique} on ${inc.targetId}`, `Dwell: ${fmtDwell(inc.dwell)}`);
+  siemLog('INFO', `SOC-A${inc.analystId}`, pick(RESOLVE_QUIPS));
 
   // Budget reward (not awarded if lessons window expired without filing)
   if (earnReward) {
@@ -3145,14 +3165,35 @@ function initMap() {
 
 let pulsePhase = 0;
 
+function _initUICache() {
+  const ids = [
+    'hdr-day','day-progress-fill','hdr-time','hdr-breaches','game-screen','hdr-resolved',
+    'budget-display-large','stat-analysts','stat-coverage','bar-coverage',
+    'stat-mttd','stat-vuln','bar-vuln','stat-threats','stat-actors','stat-income','stat-progress',
+    'hire-btn','training-btn','mssp-btn','row-mssp','row-ir-bonus','stat-ir-bonus',
+    'incidents-list','incident-count','analyst-roster',
+    'redteam-jobs-section','redteam-jobs-list',
+    'active-events-section','active-events-list',
+    'consultant-card','hire-consultant-btn',
+    'packets-layer',
+  ];
+  ids.forEach(id => { _ui[id] = document.getElementById(id); });
+  // Cache per-node SVG elements
+  NODE_DEFS.forEach(n => {
+    _mapEl[`circle-${n.id}`] = document.getElementById(`node-circle-${n.id}`);
+    _mapEl[`label-${n.id}`]  = document.getElementById(`node-label-${n.id}`);
+  });
+  _mapEl.packetsLayer = _ui['packets-layer'];
+}
+
 function updateMap() {
-  if (!document.getElementById('nodes-layer')) return;
+  if (!_mapEl.packetsLayer) return;
   pulsePhase += 0.05;
 
   // Update node colors based on status
   G.nodes.forEach(n => {
-    const circle = document.getElementById(`node-circle-${n.id}`);
-    const label = document.getElementById(`node-label-${n.id}`);
+    const circle = _mapEl[`circle-${n.id}`];
+    const label  = _mapEl[`label-${n.id}`];
     if (!circle) return;
 
     const colors = {
@@ -3182,7 +3223,7 @@ function updateMap() {
   });
 
   // Render threat packets
-  const packetsLayer = document.getElementById('packets-layer');
+  const packetsLayer = _mapEl.packetsLayer;
   packetsLayer.innerHTML = '';
 
   G.threats.forEach(t => {
@@ -3235,7 +3276,7 @@ function updateNodeStatuses() {
 // ================================================================
 
 function renderAnalystRoster() {
-  const el = document.getElementById('analyst-roster');
+  const el = _ui['analyst-roster'] || document.getElementById('analyst-roster');
   if (!el) return;
   let html = '';
   for (let i = 0; i < G.analystTotal; i++) {
@@ -3260,16 +3301,19 @@ function renderAnalystRoster() {
 }
 
 function updateUI() {
+  _uiTick++;
+  const slow = (_uiTick % 5 === 0); // run low-priority renders every 5 ticks (~500ms)
+
   const t = fmtTime(G.gameTime);
-  document.getElementById('hdr-day').textContent = t.day;
+  _ui['hdr-day'].textContent = t.day;
   const dayPct = Math.min(100, (G.gameTime / (WIN_DAYS * 1440)) * 100);
-  document.getElementById('day-progress-fill').style.width = `${dayPct}%`;
-  document.getElementById('hdr-time').textContent = t.str;
-  document.getElementById('hdr-breaches').textContent = G.breaches;
-  document.getElementById('hdr-breaches').className = G.breaches >= 2 ? 'stat-val crit' : G.breaches >= 1 ? 'stat-val warn' : 'stat-val';
-  document.getElementById('game-screen').classList.toggle('breach-critical', G.breaches >= MAX_BREACHES - 1);
-  document.getElementById('hdr-resolved').textContent = G.totalResolved;
-  const budgetLargeEl = document.getElementById('budget-display-large');
+  _ui['day-progress-fill'].style.width = `${dayPct}%`;
+  _ui['hdr-time'].textContent = t.str;
+  _ui['hdr-breaches'].textContent = G.breaches;
+  _ui['hdr-breaches'].className = G.breaches >= 2 ? 'stat-val crit' : G.breaches >= 1 ? 'stat-val warn' : 'stat-val';
+  _ui['game-screen'].classList.toggle('breach-critical', G.breaches >= MAX_BREACHES - 1);
+  _ui['hdr-resolved'].textContent = G.totalResolved;
+  const budgetLargeEl = _ui['budget-display-large'];
   budgetLargeEl.textContent = fmt$(G.budget);
   budgetLargeEl.style.color = G.budget < 50000 ? 'var(--red)' : G.budget < 150000 ? 'var(--amber)' : 'var(--green)';
   budgetLargeEl.style.textShadow = G.budget < 50000 ? '0 0 10px var(--red)' : G.budget < 150000 ? '0 0 10px var(--amber)' : '0 0 10px var(--green), 0 0 20px rgba(0,255,65,0.3)';
@@ -3283,10 +3327,10 @@ function updateUI() {
   // Stats panel
   const trainingSlots = G.analystSlots.filter(s => s === 'TRAINING').length;
   const effectiveFree = G.analystTotal - G.analystBusy - trainingSlots;
-  document.getElementById('stat-analysts').textContent = `${effectiveFree}/${G.analystTotal}${trainingSlots > 0 ? ' (1 training)' : ''}`;
+  _ui['stat-analysts'].textContent = `${effectiveFree}/${G.analystTotal}${trainingSlots > 0 ? ' (1 training)' : ''}`;
   const cov = Math.round(G.coverage);
-  document.getElementById('stat-coverage').textContent = `${cov}%`;
-  const covBar = document.getElementById('bar-coverage');
+  _ui['stat-coverage'].textContent = `${cov}%`;
+  const covBar = _ui['bar-coverage'];
   covBar.style.width = `${cov}%`;
   covBar.className = `mini-bar-fill${cov < 40 ? ' crit' : cov < 60 ? ' warn' : ''}`;
   if (cov > _prevCoverage) {
@@ -3296,77 +3340,100 @@ function updateUI() {
   }
   _prevCoverage = cov;
 
-  document.getElementById('stat-mttd').textContent = `${G.mttd} min`;
-  document.getElementById('stat-mttd').className = `stat-val${G.mttd > 120 ? ' warn' : ''}`;
+  _ui['stat-mttd'].textContent = `${G.mttd} min`;
+  _ui['stat-mttd'].className = `stat-val${G.mttd > 120 ? ' warn' : ''}`;
 
   const vs = G.vulnScore;
-  document.getElementById('stat-vuln').textContent = vs;
-  document.getElementById('stat-vuln').className = `stat-val${vs > 60 ? ' crit' : vs > 40 ? ' warn' : ''}`;
-  document.getElementById('bar-vuln').style.width = `${vs}%`;
-  document.getElementById('bar-vuln').className = `mini-bar-fill${vs > 60 ? ' crit' : vs > 40 ? ' warn' : ''}`;
+  _ui['stat-vuln'].textContent = vs;
+  _ui['stat-vuln'].className = `stat-val${vs > 60 ? ' crit' : vs > 40 ? ' warn' : ''}`;
+  _ui['bar-vuln'].style.width = `${vs}%`;
+  _ui['bar-vuln'].className = `mini-bar-fill${vs > 60 ? ' crit' : vs > 40 ? ' warn' : ''}`;
 
   const activeThreats = G.threats.filter(t => !t.breachTriggered).length;
-  document.getElementById('stat-threats').textContent = activeThreats;
+  _ui['stat-threats'].textContent = activeThreats;
 
   const intelCount = G.activeIntelFeeds.length;
-  document.getElementById('stat-actors').textContent = intelCount > 0 ? `${ACTORS.length} tracked` : `${rnd(3,6)} tracked`;
-  document.getElementById('stat-income').textContent = `${Math.round(G.nextIncomeIn / 60)}h`;
-  document.getElementById('stat-progress').textContent = `Day ${t.day}/${WIN_DAYS}`;
+  if (intelCount > 0) {
+    _ui['stat-actors'].textContent = `${ACTORS.length} tracked`;
+  } else {
+    // Only refresh the random display every 50 ticks (~5s) to avoid pointless DOM churn
+    if (_uiTick % 50 === 0) _intelDisplay = rnd(3, 6);
+    _ui['stat-actors'].textContent = `${_intelDisplay} tracked`;
+  }
+  _ui['stat-income'].textContent = `${Math.round(G.nextIncomeIn / 60)}h`;
+  _ui['stat-progress'].textContent = `Day ${t.day}/${WIN_DAYS}`;
 
   // Hire btn
-  const hireBtn = document.getElementById('hire-btn');
-  hireBtn.disabled = G.analystTotal >= MAX_ANALYSTS || G.budget < ANALYST_COST;
+  _ui['hire-btn'].disabled = G.analystTotal >= MAX_ANALYSTS || G.budget < ANALYST_COST;
 
-  // Training btn
-  const trainingBtn = document.getElementById('training-btn');
+  // Training btn — only rebuild innerHTML when training state changes (avoids string alloc every tick)
+  const trainingBtn = _ui['training-btn'];
   const hasFreeAnalyst = G.analystSlots.some(s => s === null);
   trainingBtn.disabled = !!G.trainingJob || !hasFreeAnalyst || G.analystTotal <= 1 || G.budget < 30000 || G.analystSpeedBonus >= 0.30;
   if (G.analystSpeedBonus >= 0.30) {
-    trainingBtn.innerHTML = '▶ TRAINING MAXED<span class="btn-cost">+30%</span>';
+    if (!trainingBtn._state || trainingBtn._state !== 'maxed') {
+      trainingBtn.innerHTML = '▶ TRAINING MAXED<span class="btn-cost">+30%</span>';
+      trainingBtn._state = 'maxed';
+    }
   } else if (G.trainingJob) {
     const remaining = Math.max(0, G.trainingJob.completesAt - G.gameTime);
     trainingBtn.innerHTML = `▶ IN TRAINING<span class="btn-cost">${Math.round(remaining/60)}h left</span>`;
+    trainingBtn._state = 'active';
   } else {
-    trainingBtn.innerHTML = '▶ SEND TO TRAINING<span class="btn-cost">$30k</span>';
+    if (!trainingBtn._state || trainingBtn._state !== 'idle') {
+      trainingBtn.innerHTML = '▶ SEND TO TRAINING<span class="btn-cost">$30k</span>';
+      trainingBtn._state = 'idle';
+    }
   }
 
-  renderAnalystRoster();
-  updateTabBadge();
+  if (slow) {
+    renderAnalystRoster();
+    updateTabBadge();
+  }
 
   // MSSP btn
-  const msspBtn = document.getElementById('mssp-btn');
+  const msspBtn = _ui['mssp-btn'];
   if (G.mssp) {
-    msspBtn.innerHTML = '▶ TERMINATE MSSP<span class="btn-cost">no refund</span>';
-    msspBtn.onclick = terminateMSSP;
+    if (!msspBtn._state || msspBtn._state !== 'active') {
+      msspBtn.innerHTML = '▶ TERMINATE MSSP<span class="btn-cost">no refund</span>';
+      msspBtn.onclick = terminateMSSP;
+      msspBtn._state = 'active';
+    }
     msspBtn.disabled = false;
   } else {
-    msspBtn.innerHTML = '▶ HIRE MSSP<span class="btn-cost">$150k</span>';
-    msspBtn.onclick = hireMSSP;
+    if (!msspBtn._state || msspBtn._state !== 'inactive') {
+      msspBtn.innerHTML = '▶ HIRE MSSP<span class="btn-cost">$150k</span>';
+      msspBtn.onclick = hireMSSP;
+      msspBtn._state = 'inactive';
+    }
     msspBtn.disabled = G.budget < 150000;
   }
 
   // MSSP & IR bonus posture indicators
-  document.getElementById('row-mssp').style.display = G.mssp ? '' : 'none';
-  const irBonusRow = document.getElementById('row-ir-bonus');
-  irBonusRow.style.display = G.analystSpeedBonus > 0 ? '' : 'none';
-  document.getElementById('stat-ir-bonus').textContent = `+${Math.round(G.analystSpeedBonus * 100)}%`;
+  _ui['row-mssp'].style.display = G.mssp ? '' : 'none';
+  _ui['row-ir-bonus'].style.display = G.analystSpeedBonus > 0 ? '' : 'none';
+  _ui['stat-ir-bonus'].textContent = `+${Math.round(G.analystSpeedBonus * 100)}%`;
 
-  // Active random events
-  updateActiveEventsUI();
+  // Active random events — throttled
+  if (slow) updateActiveEventsUI();
 
-  // Incidents
+  // Incidents — every tick (dwell timers need to stay fresh)
   renderIncidents();
+  // Map — every tick (animated threat packets need smooth movement)
   updateMap();
-  updateRedTeamJobsUI();
-  renderConsultantCard();
+  // Low-frequency renders
+  if (slow) {
+    updateRedTeamJobsUI();
+    renderConsultantCard();
+  }
 }
 
 function renderIncidents() {
-  const list = document.getElementById('incidents-list');
+  const list = _ui['incidents-list'];
   const active = G.incidents.filter(i => !i.resolved && !i.breachTriggered);
   const pending = active.filter(i => i.status === 'LESSONS_PENDING').length;
   const openCount = active.length - pending;
-  document.getElementById('incident-count').textContent =
+  _ui['incident-count'].textContent =
     pending > 0 ? `${openCount} active  ${pending} pending sign-off` : `${openCount} active`;
 
   if (active.length === 0) {
@@ -3470,8 +3537,8 @@ function renderIncidents() {
 
 function updateRedTeamJobsUI() {
   const active = G.redTeamJobs.filter(j => !j.done);
-  const section = document.getElementById('redteam-jobs-section');
-  const list = document.getElementById('redteam-jobs-list');
+  const section = _ui['redteam-jobs-section'] || document.getElementById('redteam-jobs-section');
+  const list = _ui['redteam-jobs-list'] || document.getElementById('redteam-jobs-list');
   if (active.length === 0 && G.redTeamJobs.filter(j=>j.done).length === 0) {
     section.style.display = 'none';
     return;
@@ -3489,8 +3556,8 @@ function updateRedTeamJobsUI() {
 }
 
 function updateActiveEventsUI() {
-  const section = document.getElementById('active-events-section');
-  const list = document.getElementById('active-events-list');
+  const section = _ui['active-events-section'] || document.getElementById('active-events-section');
+  const list = _ui['active-events-list'] || document.getElementById('active-events-list');
   if (!G.activeRandomEvents || G.activeRandomEvents.length === 0) {
     section.style.display = 'none';
     return;
@@ -3525,11 +3592,9 @@ function openModal(name) {
   if (name === 'intel') renderIntelModal();
   if (name === 'consultant') renderConsultantModal();
   document.getElementById(`modal-${name}`).classList.add('visible');
-  if (G && !G.paused && !G.gameOver) { G._modalPaused = true; togglePause(); }
 }
 function closeModal(name) {
   document.getElementById(`modal-${name}`).classList.remove('visible');
-  if (G && G._modalPaused && !anyModalOpen()) { G._modalPaused = false; togglePause(); }
 }
 
 function renderDetectionModal() {
@@ -3645,9 +3710,9 @@ function renderIntelModal() {
 }
 
 function renderConsultantCard() {
-  const section = document.getElementById('consultant-ops-section');
-  const card = document.getElementById('consultant-card');
-  const hireBtn = document.getElementById('hire-consultant-btn');
+  const section = document.getElementById('consultant-ops-section'); // section visibility managed elsewhere
+  const card = _ui['consultant-card'] || document.getElementById('consultant-card');
+  const hireBtn = _ui['hire-consultant-btn'] || document.getElementById('hire-consultant-btn');
   if (!G.consultant) {
     card.innerHTML = '<div style="color:var(--green-dark);font-size:10px;margin-bottom:4px">No consultant on retainer.</div>';
     hireBtn.style.display = '';
@@ -3741,7 +3806,6 @@ function openHelp() {
 }
 function closeHelp() {
   document.getElementById('help-overlay').classList.remove('visible');
-  if (G && G._modalPaused && !anyModalOpen()) { G._modalPaused = false; togglePause(); }
 }
 
 const _KONAMI_SEQ = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
@@ -4043,6 +4107,11 @@ function startGame() {
   document.getElementById('game-screen').classList.add('visible');
   initState();
   initMap();
+  _initUICache();
+
+  // Reset per-session render state
+  _uiTick = 0;
+  _intelDisplay = rnd(3, 6);
 
   // Set difficulty badge
   const badge = document.getElementById('diff-badge');
