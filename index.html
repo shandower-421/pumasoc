@@ -894,18 +894,18 @@ body::after {
 }
 .score-dim { color: var(--green-dark); }
 .score-green { color: var(--green); }
+.score-amber { color: var(--amber); }
 .score-red { color: var(--red); }
-.score-mult { border-top: 1px solid #1a3d1a; margin-top: 6px; padding-top: 6px; }
 .score-total {
   display: flex; align-items: center; gap: 12px; border-top: 1px solid #2a5a2a;
   margin-top: 8px; padding-top: 8px; color: var(--green);
 }
-.score-total-fail { color: var(--red); border-top-color: #5a1a1a; }
 .score-grade {
   font-size: 36px; font-weight: bold; line-height: 1;
   text-shadow: 0 0 16px var(--green);
 }
-.score-grade-fail { text-shadow: 0 0 16px var(--red); color: var(--red); }
+.score-grade.score-amber { text-shadow: 0 0 16px var(--amber); }
+.score-grade.score-red   { text-shadow: 0 0 16px var(--red); }
 .score-label { font-size: 11px; letter-spacing: 1px; }
 .overlay-btn {
   margin-top: 20px;
@@ -2041,7 +2041,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 
 <!-- ===================== GAME OVER / WIN ===================== -->
 <div id="gameover-overlay">
-  <div class="title crit-flash">■ CAREER-ENDING BREACH ■</div>
+  <div class="title crit-flash">■ CONTAINMENT FAILED ■</div>
   <div class="overlay-text" id="gameover-reason"></div>
   <div class="overlay-text" id="gameover-stats"></div>
   <div class="score-card" id="gameover-score-card"></div>
@@ -2380,9 +2380,9 @@ function loadSavedState() {
     if (G._onboardIncident === undefined) G._onboardIncident = true; // old save → skip onboard tips
     if (G._onboardIncome   === undefined) G._onboardIncome   = true;
     if (G.week === undefined)              G.week              = 1;
-    if (G.totalActivities === undefined)   G.totalActivities   = 0;
     if (G.totalDwellResolved === undefined) G.totalDwellResolved = 0;
-    if (G.w1Score === undefined) G.w1Score = 0;
+    if (G.totalIncome === undefined)       G.totalIncome       = 0;
+    if (G.w1Grade === undefined) G.w1Grade = '';
     selectedDifficulty = save.selectedDifficulty || 'analyst';
     siemHistory.length = 0;
     siemHistory.push(...(save.siemHistory || []));
@@ -2502,10 +2502,10 @@ function initState() {
     _onboardIncome:   false,
     // Extended operations
     week: 1,
-    w1Score: 0,
+    w1Grade: '',
     // Scoring accumulators
-    totalActivities: 0,
     totalDwellResolved: 0,
+    totalIncome: 0,
   };
 }
 
@@ -2949,6 +2949,7 @@ function tick() {
   G.nextIncomeIn -= delta;
   if (G.nextIncomeIn <= 0) {
     G.budget += G.incomeAmount;
+    G.totalIncome += G.incomeAmount;
     G.nextIncomeIn = INCOME_INTERVAL_MINS;
     siemLog('OK', 'FINANCE', `Security budget allocation received: +${fmt$(G.incomeAmount)}`, `Total: ${fmt$(G.budget)}`);
     // One-shot onboarding tip for first-time players
@@ -3085,7 +3086,6 @@ function tick() {
     G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
     G.analystSpeedBonus = Math.min(0.30, G.analystSpeedBonus + 0.10);
     G.trainingJob = null;
-    G.totalActivities++;
     const pct = Math.round(G.analystSpeedBonus * 100);
     siemLog('OK','HR',`Training complete — analysts now ${pct}% faster on all IR stages`);
   }
@@ -3105,7 +3105,6 @@ function tick() {
     });
     if (found.length === 0) siemLog('OK','HUNT','Threat hunt complete — environment appears clean, no lurking threats found');
     G.huntJob = null;
-    G.totalActivities++;
   }
 
   // Tabletop exercise completion
@@ -3114,7 +3113,6 @@ function tick() {
     G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
     G.tabletopBonusExpiresAt = G.gameTime + 2880; // +15% IR speed for 48 game-hours
     G.tabletopJob = null;
-    G.totalActivities++;
     siemLog('OK','TABLETOP','Exercise complete — team response procedures rehearsed, IR efficiency +15% for 48h');
   }
 
@@ -3126,7 +3124,6 @@ function tick() {
     lowVulns.forEach(v => { v.patched = true; });
     G.vulnScore = calcVulnScore();
     G.patchJob = null;
-    G.totalActivities++;
     if (lowVulns.length > 0) {
       siemLog('OK','VULN',`Patch sprint complete — ${lowVulns.length} low-severity vulnerabilities remediated at no additional cost`);
     } else {
@@ -3140,7 +3137,6 @@ function tick() {
     G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
     G.osintCharges = 3;
     G.osintJob = null;
-    G.totalActivities++;
     siemLog('OK','OSINT','Actor profiling complete — TTPs documented, next 3 threats will be immediately flagged on entry');
   }
 
@@ -3335,64 +3331,66 @@ function triggerBreach(threat, reason, incident) {
 }
 
 function computeFinalScore() {
-  // Positive
-  const daysPts      = WIN_DAYS * 20;
-  const analystPts   = G.analystSlots.length * 25;
-  const activityPts  = (G.totalActivities || 0) * 15;
-  const resolvedPts  = G.totalResolved * 10;
-  // Penalty
-  const breachPenalty = G.breaches * 200;
-  // Neutral (informational only)
-  const budgetRemaining = Math.max(0, G.budget);
-  const mttdMins = G.mttd;
-  const mttrMins = G.totalResolved > 0
+  const daysSurvived   = Math.min(WIN_DAYS * G.week, Math.floor(G.gameTime / 1440));
+  const startBudget    = (DIFFICULTIES[selectedDifficulty] || {}).budget || 0;
+  const totalSpent     = Math.max(0, startBudget + (G.totalIncome || 0) - Math.max(0, G.budget));
+  const mttdMins       = G.mttd;
+  const mttrMins       = G.totalResolved > 0
     ? Math.round((G.totalDwellResolved || 0) / G.totalResolved) : 0;
-  // Final
-  const diffMult = selectedDifficulty === 'adversary' ? 2.5 : selectedDifficulty === 'analyst' ? 1.5 : 1.0;
-  const raw   = daysPts + analystPts + activityPts + resolvedPts - breachPenalty;
-  const score = Math.max(0, Math.round(raw * diffMult));
-  const grade = score >= 1200 ? 'S' : score >= 750 ? 'A' : score >= 450 ? 'B' : score >= 200 ? 'C' : 'D';
-  const label = score >= 1200 ? 'EXCEPTIONAL POSTURE' : score >= 750 ? 'STRONG DEFENSE'
-              : score >= 450  ? 'SOLID RESPONSE'       : score >= 200 ? 'MARGINAL CONTAINMENT' : 'BARELY FUNCTIONAL';
+  const coverage       = G.coverage;
+  const unknownVulns   = G.vulns.filter(v => !v.discovered).length;
+  const unpatchedVulns = G.vulns.filter(v => v.discovered && !v.patched).length;
+  const openIncidents  = G.incidents.filter(i => i.status !== 'RESOLVED').length;
+  // Grade: breach-first floor, posture-based for 0-breach runs
+  let grade, label;
+  if (G.breaches >= MAX_BREACHES) {
+    grade = 'F'; label = 'OPERATION FAILED';
+  } else if (G.breaches === 2) {
+    grade = 'D'; label = 'BADLY COMPROMISED';
+  } else if (G.breaches === 1) {
+    grade = 'C'; label = 'BREACH ABSORBED';
+  } else if (coverage >= 75 && mttdMins <= 60 && unpatchedVulns <= 2 && openIncidents <= 2) {
+    grade = 'S'; label = 'EXCEPTIONAL POSTURE';
+  } else if (coverage >= 50 && mttdMins <= 120 && unpatchedVulns <= 5 && openIncidents <= 5) {
+    grade = 'A'; label = 'STRONG POSTURE';
+  } else {
+    grade = 'B'; label = 'FUNCTIONAL DEFENSE';
+  }
   return {
-    score, grade, label, diffMult, raw,
-    daysPts, analystPts, activityPts, resolvedPts, breachPenalty,
-    budgetRemaining, mttdMins, mttrMins,
-    daysCount: WIN_DAYS,
-    analystCount: G.analystSlots.length,
-    activityCount: G.totalActivities || 0,
-    resolvedCount: G.totalResolved,
+    grade, label,
+    totalSpent, mttdMins, mttrMins, coverage,
+    unknownVulns, unpatchedVulns, openIncidents,
+    daysCount: daysSurvived,
     breachCount: G.breaches,
   };
 }
 
 function buildScoreCardHTML(s) {
-  const row = (label, stat, rate, pts, cls) =>
-    `<div class="score-row"><span>${label}</span><span><span class="score-dim">${stat} × ${rate} =</span> <span class="${cls}">${pts >= 0 ? '+' : ''}${pts}</span></span></div>`;
+  const gradeClass = g => (g === 'S' || g === 'A') ? 'score-green' : g === 'B' ? 'score-amber' : 'score-red';
   const infoRow = (label, val) =>
     `<div class="score-row"><span>${label}</span><span class="score-dim">${val}</span></div>`;
 
   let html = `<div class="score-card-title">── PERFORMANCE ASSESSMENT ────────────</div>`;
 
-  html += `<div class="score-section-label">SCORED — POSITIVE</div>`;
-  html += row('DAYS SURVIVED',       `${s.daysCount} d`,  20,  s.daysPts,     'score-green');
-  html += row('ANALYSTS ON TEAM',    s.analystCount,      25,  s.analystPts,  'score-green');
-  html += row('ANALYST ACTIVITIES',  s.activityCount,     15,  s.activityPts, 'score-green');
-  html += row('INCIDENTS RESOLVED',  s.resolvedCount,     10,  s.resolvedPts, 'score-green');
-
-  html += `<div class="score-section-label">INFORMATIONAL</div>`;
-  html += infoRow('BUDGET REMAINING',    fmt$(s.budgetRemaining));
+  html += infoRow('DAYS SURVIVED',       `${s.daysCount} d`);
+  html += infoRow('BREACHES SUSTAINED',  `${s.breachCount}`);
+  html += infoRow('DETECTION COVERAGE',  `${s.coverage}%`);
   html += infoRow('AVG DETECTION TIME',  `${s.mttdMins} min`);
   html += infoRow('AVG RESOLUTION TIME', s.mttrMins > 0 ? `${s.mttrMins} min` : '—');
+  html += infoRow('UNKNOWN VULNS',       `${s.unknownVulns}`);
+  html += infoRow('UNPATCHED VULNS',     `${s.unpatchedVulns}`);
+  html += infoRow('TOTAL BUDGET SPENT',  fmt$(s.totalSpent));
 
-  html += `<div class="score-section-label">SCORED — PENALTY</div>`;
-  html += `<div class="score-row"><span>BREACHES SUSTAINED</span><span><span class="score-dim">${s.breachCount} × -200 =</span> <span class="${s.breachPenalty > 0 ? 'score-red' : 'score-green'}">${s.breachPenalty > 0 ? '-' : '+'}${s.breachPenalty}</span></span></div>`;
+  html += infoRow('DIFFICULTY', (DIFFICULTIES[selectedDifficulty]?.label || selectedDifficulty).toUpperCase());
 
-  html += `<div class="score-row score-mult"><span>DIFFICULTY (${selectedDifficulty.toUpperCase()})</span><span>×${s.diffMult}</span></div>`;
-  if (G.week === 2) html += `<div class="score-row"><span>WEEK 1 CARRY-OVER</span><span class="score-green">+${G.w1Score}</span></div>`;
-
-  const combined = G.week === 2 ? G.w1Score + s.score : s.score;
-  html += `<div class="score-total"><span class="score-grade">${s.grade}</span><span class="score-label">${s.label} — ${combined} pts</span></div>`;
+  const wcls = gradeClass(s.grade);
+  if (G.week === 2) {
+    html += `<div class="score-section-label">WEEKLY ASSESSMENT</div>`;
+    const g1cls = gradeClass(G.w1Grade || 'B');
+    html += `<div class="score-row"><span>WEEK 1</span><span class="${g1cls}">${G.w1Grade || '—'}</span></div>`;
+    html += `<div class="score-row"><span>WEEK 2</span><span class="${wcls}">${s.grade}</span></div>`;
+  }
+  html += `<div class="score-total"><span class="score-grade ${wcls}">${s.grade}</span><span class="score-label">${s.label}</span></div>`;
 
   return html;
 }
@@ -3424,7 +3422,7 @@ function triggerWin() {
 
 function continueToWeek2() {
   const s = computeFinalScore();
-  G.w1Score = s.score;
+  G.w1Grade = s.grade;
 
   document.getElementById('win-overlay').classList.remove('visible');
 
@@ -3432,8 +3430,8 @@ function continueToWeek2() {
   G.gameOver = false;
   G.won = false;
   G.breaches = 0;
-  G.totalActivities = 0;
   G.totalDwellResolved = 0;
+  G.totalIncome = 0;
 
   // Signature decay — adversaries adapted TTPs
   TECHNIQUE_CATS.forEach(cat => { G.rules[cat] = Math.max(0, (G.rules[cat] || 0) - 1); });
@@ -3963,9 +3961,19 @@ function initMap() {
     label.setAttribute('id', `node-label-${nd.id}`);
     label.textContent = nd.label;
 
+    // Transparent hit-rect ensures reliable click targeting in all browsers (incl. Brave)
+    const hit = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    hit.setAttribute('x', nd.x - r - 6); hit.setAttribute('y', nd.y - r - 6);
+    hit.setAttribute('width', (r + 6) * 2); hit.setAttribute('height', r + 6 + 20);
+    hit.setAttribute('fill', 'transparent');
+    hit.setAttribute('pointer-events', 'all');
+    hit.style.cursor = 'pointer';
+    hit.addEventListener('click', (e) => { e.stopPropagation(); showNodeInfo(nd.id); });
+
     g.style.cursor = 'pointer';
+    g.setAttribute('pointer-events', 'all');
     g.addEventListener('click', (e) => { e.stopPropagation(); showNodeInfo(nd.id); });
-    g.appendChild(circle); g.appendChild(label);
+    g.appendChild(circle); g.appendChild(label); g.appendChild(hit);
     nodesLayer.appendChild(g);
   });
 
