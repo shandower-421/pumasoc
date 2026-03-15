@@ -3904,7 +3904,7 @@ function initMap() {
     const g = document.createElementNS('http://www.w3.org/2000/svg','g');
     g.setAttribute('id', `node-g-${nd.id}`);
 
-    const nodeColors = { internet:'#003d0e', firewall:'#005500', server:'#003d0e', database:'#003322', cloud:'#002244', switch:'#003d0e', workstation:'#003d0e' };
+    const nodeColors = { internet:'#003d0e', firewall:'#005500', server:'#003d0e', database:'#003322', cloud:'#003d0e', switch:'#003d0e', workstation:'#003d0e' };
     const r = nd.type === 'internet' ? 14 : nd.type === 'switch' ? 10 : 8;
 
     const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
