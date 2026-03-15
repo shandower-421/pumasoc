@@ -1485,6 +1485,10 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
           <span class="stat-label">MSSP</span>
           <span class="stat-val" id="stat-mssp">ACTIVE</span>
         </div>
+        <div class="stat-row" id="row-sat" style="display:none">
+          <span class="stat-label">SAT</span>
+          <span class="stat-val" id="stat-sat">ACTIVE</span>
+        </div>
         <div class="stat-row" id="row-ir-bonus" style="display:none">
           <span class="stat-label">IR SPEED BONUS</span>
           <span class="stat-val" id="stat-ir-bonus">+0%</span>
@@ -2656,6 +2660,16 @@ function tick() {
         siemLog('INFO','FINANCE',`MSSP retainer fee deducted: -${fmt$(msspFee)}`);
       }
     }
+    if (G.sat) {
+      const satFee = 10000;
+      if (G.budget < satFee) {
+        G.sat = false;
+        siemLog('CRIT','FINANCE','Security awareness programme cancelled — insufficient funds. Phishing protection suspended.');
+      } else {
+        G.budget -= satFee;
+        siemLog('INFO','FINANCE',`SAT retainer fee deducted: -${fmt$(satFee)}`);
+      }
+    }
     if (G.consultant && G.budget <= 0) {
       G.consultant = null;
       G.coverage = calcCoverage();
@@ -3186,7 +3200,13 @@ function hireSAT() {
   if (G.budget < 50000) { siemLog('WARN','HR','Insufficient budget for security awareness programme'); return; }
   G.budget -= 50000;
   G.sat = true;
-  siemLog('OK','HR','Security awareness programme activated — employees enrolled in phishing simulation training');
+  siemLog('OK','HR','Security awareness programme activated — employees enrolled in phishing simulation training ($10k/cycle)');
+}
+
+function cancelSAT() {
+  if (!G.sat) return;
+  G.sat = false;
+  siemLog('WARN','HR','Security awareness programme cancelled — phishing protection suspended');
 }
 
 function hireMSSP() {
@@ -3480,7 +3500,7 @@ function _initUICache() {
     'hdr-day','day-progress-fill','hdr-time','hdr-breaches','game-screen','hdr-resolved',
     'budget-display-large','stat-analysts','stat-coverage','bar-coverage',
     'stat-mttd','stat-vuln','bar-vuln','stat-threats','stat-actors','stat-income','stat-progress',
-    'hire-btn','training-btn','hunt-btn','mssp-btn','sat-btn','row-mssp','row-ir-bonus','stat-ir-bonus',
+    'hire-btn','training-btn','hunt-btn','mssp-btn','sat-btn','row-mssp','row-sat','row-ir-bonus','stat-ir-bonus',
     'incidents-list','incident-count','analyst-roster',
     'redteam-jobs-section','redteam-jobs-list',
     'active-events-section','active-events-list',
@@ -3721,10 +3741,23 @@ function updateUI() {
     updateTabBadge();
   }
 
-  // SAT btn label
-  const satCostEl = document.getElementById('sat-btn-cost');
-  if (satCostEl) satCostEl.textContent = G.sat ? 'ACTIVE' : '$50k';
-  if (_ui['sat-btn']) _ui['sat-btn'].disabled = G.sat || G.budget < 50000;
+  // SAT btn
+  const satBtn = _ui['sat-btn'];
+  if (G.sat) {
+    if (!satBtn._state || satBtn._state !== 'active') {
+      satBtn.innerHTML = '▶ CANCEL AWARENESS<span class="btn-cost">no refund</span>';
+      satBtn.onclick = cancelSAT;
+      satBtn._state = 'active';
+    }
+    satBtn.disabled = false;
+  } else {
+    if (!satBtn._state || satBtn._state !== 'inactive') {
+      satBtn.innerHTML = '▶ SECURITY AWARENESS<span class="btn-cost">$50k</span>';
+      satBtn.onclick = hireSAT;
+      satBtn._state = 'inactive';
+    }
+    satBtn.disabled = G.budget < 50000;
+  }
 
   // MSSP btn
   const msspBtn = _ui['mssp-btn'];
@@ -3767,8 +3800,9 @@ function updateUI() {
     intelCostEl.textContent = available.length === 0 ? 'ALL OWNED' : fmt$(Math.min(...available.map(f => f.cost)));
   }
 
-  // MSSP & IR bonus posture indicators
+  // MSSP, SAT & IR bonus posture indicators
   _ui['row-mssp'].style.display = G.mssp ? '' : 'none';
+  _ui['row-sat'].style.display = G.sat ? '' : 'none';
   _ui['row-ir-bonus'].style.display = G.analystSpeedBonus > 0 ? '' : 'none';
   _ui['stat-ir-bonus'].textContent = `+${Math.round(G.analystSpeedBonus * 100)}%`;
 
