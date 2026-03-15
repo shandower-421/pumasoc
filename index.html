@@ -1489,6 +1489,14 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
           <span class="stat-label">SAT</span>
           <span class="stat-val" id="stat-sat">ACTIVE</span>
         </div>
+        <div class="stat-row" id="row-tabletop" style="display:none">
+          <span class="stat-label">TABLETOP BOOST</span>
+          <span class="stat-val" id="stat-tabletop">+15%</span>
+        </div>
+        <div class="stat-row" id="row-osint" style="display:none">
+          <span class="stat-label">OSINT CHARGES</span>
+          <span class="stat-val" id="stat-osint">3</span>
+        </div>
         <div class="stat-row" id="row-ir-bonus" style="display:none">
           <span class="stat-label">IR SPEED BONUS</span>
           <span class="stat-val" id="stat-ir-bonus">+0%</span>
@@ -1557,6 +1565,9 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
         <button class="action-btn" id="hire-btn" onclick="hireAnalyst()">▶ HIRE ANALYST<span class="btn-cost" id="hire-cost">$75k</span></button>
         <button class="action-btn" id="training-btn" onclick="startTraining()">▶ SEND TO TRAINING<span class="btn-cost">$30k</span></button>
         <button class="action-btn" id="hunt-btn" onclick="startHunt()">▶ THREAT HUNT<span class="btn-cost">$40k</span></button>
+        <button class="action-btn" id="tabletop-btn" onclick="startTabletop()">▶ TABLETOP EXERCISE<span class="btn-cost">$25k</span></button>
+        <button class="action-btn" id="patch-sprint-btn" onclick="startPatchSprint()">▶ PATCH SPRINT<span class="btn-cost">$10k</span></button>
+        <button class="action-btn" id="osint-btn" onclick="startOSINT()">▶ OSINT RESEARCH<span class="btn-cost">$20k</span></button>
       </div>
       <div class="ops-section">
         <div class="ops-section-title">── CAPABILITIES ─────────</div>
@@ -2129,6 +2140,11 @@ function loadSavedState() {
     if (!G.soarPlaybooks)                G.soarPlaybooks   = {};
     if (G.huntJob === undefined)         G.huntJob         = null;
     if (G.sat === undefined)             G.sat             = false;
+    if (G.tabletopJob === undefined)     G.tabletopJob     = null;
+    if (G.tabletopBonusExpiresAt === undefined) G.tabletopBonusExpiresAt = 0;
+    if (G.patchJob === undefined)        G.patchJob        = null;
+    if (G.osintJob === undefined)        G.osintJob        = null;
+    if (G.osintCharges === undefined)    G.osintCharges    = 0;
     if (G._onboardIncident === undefined) G._onboardIncident = true; // old save → skip onboard tips
     if (G._onboardIncome   === undefined) G._onboardIncome   = true;
     selectedDifficulty = save.selectedDifficulty || 'analyst';
@@ -2230,6 +2246,14 @@ function initState() {
     huntJob: null,       // null | { completesAt: gameTimeMinutes, slotIdx: N }
     // Security Awareness Training
     sat: false,
+    // Tabletop Exercise
+    tabletopJob: null,            // null | { completesAt, slotIdx }
+    tabletopBonusExpiresAt: 0,    // game-time when +15% IR speed bonus expires
+    // Patch Sprint
+    patchJob: null,               // null | { completesAt, slotIdx }
+    // OSINT / Actor Profiling
+    osintJob: null,               // null | { completesAt, slotIdx }
+    osintCharges: 0,              // remaining auto-detection charges (max 3)
     // random events
     nextRandomEventIn: rndF(1440 * 3, 1440 * 5),
     activeRandomEvents: [],
@@ -2498,6 +2522,10 @@ function spawnThreat() {
     return;
   }
 
+  // OSINT charges — next N threats are auto-detected on spawn
+  const osintPrimed = G.osintCharges > 0;
+  if (osintPrimed) G.osintCharges--;
+
   const technique = pick(TECHNIQUES[cat]);
   const targetId = pick(TARGET_NODES);
   const entryId = pick(ENTRY_NODES);
@@ -2543,10 +2571,11 @@ function spawnThreat() {
       `${actor.aka} | ${actor.origin}${campaignPhase === 3 ? ' | ELEVATED SKILL' : ''}`);
   }
 
-  // Detection check — suppressed categories are always detected
+  // Detection check — suppressed categories and OSINT-primed spawns are always detected
   const isSuppressed = G.suppressedTechniques.some(s => s.category === cat && G.gameTime < s.expiresAt);
-  const detChance = isSuppressed ? 1 : getThreatDetectionChance(threat);
-  if (isSuppressed || Math.random() < detChance) {
+  const detChance = (isSuppressed || osintPrimed) ? 1 : getThreatDetectionChance(threat);
+  if (isSuppressed || osintPrimed || Math.random() < detChance) {
+    if (osintPrimed) siemLog('INFO','OSINT',`Threat actor profiling paid off — ${technique} immediately flagged on ${targetId}`);
     threat.detected = true;
     siemLog('CRIT', threat.actor,
       `${technique} detected targeting ${targetId}`,
@@ -2754,7 +2783,8 @@ function tick() {
     const lessonCount = G.lessonsLearned[inc.techniqueCategory] || 0;
     const soarLevel = G.soar ? (G.soarPlaybooks[inc.techniqueCategory] || 0) : 0;
     const soarBonus = (inc.stageIdx <= 1 && soarLevel > 0) ? soarLevel * 0.25 : 0;
-    const speedMult = (1 + G.analystSpeedBonus + soarBonus) * (1 + Math.min(0.25, lessonCount * 0.10));
+    const tabletopBonus = G.gameTime < G.tabletopBonusExpiresAt ? 0.15 : 0;
+    const speedMult = (1 + G.analystSpeedBonus + soarBonus + tabletopBonus) * (1 + Math.min(0.25, lessonCount * 0.10));
     inc.stageProgress += delta * speedMult;
     if (inc.stageProgress >= stage.durationMins) {
       inc.stageProgress = 0;
@@ -2775,7 +2805,7 @@ function tick() {
   if (G.trainingJob && G.gameTime >= G.trainingJob.completesAt) {
     const idx = G.analystSlots.indexOf('TRAINING');
     if (idx !== -1) G.analystSlots[idx] = null;
-    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING').length;
+    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
     G.analystSpeedBonus = Math.min(0.30, G.analystSpeedBonus + 0.10);
     G.trainingJob = null;
     const pct = Math.round(G.analystSpeedBonus * 100);
@@ -2785,7 +2815,7 @@ function tick() {
   // Threat hunt completion
   if (G.huntJob && G.gameTime >= G.huntJob.completesAt) {
     G.analystSlots[G.huntJob.slotIdx] = null;
-    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING').length;
+    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
     const undetected = G.threats.filter(t => !t.detected && !t.breachTriggered);
     const findCount = Math.min(undetected.length, rnd(1, 3));
     const found = undetected.slice(0, findCount);
@@ -2797,6 +2827,39 @@ function tick() {
     });
     if (found.length === 0) siemLog('OK','HUNT','Threat hunt complete — environment appears clean, no lurking threats found');
     G.huntJob = null;
+  }
+
+  // Tabletop exercise completion
+  if (G.tabletopJob && G.gameTime >= G.tabletopJob.completesAt) {
+    G.analystSlots[G.tabletopJob.slotIdx] = null;
+    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
+    G.tabletopBonusExpiresAt = G.gameTime + 2880; // +15% IR speed for 48 game-hours
+    G.tabletopJob = null;
+    siemLog('OK','TABLETOP','Exercise complete — team response procedures rehearsed, IR efficiency +15% for 48h');
+  }
+
+  // Patch sprint completion
+  if (G.patchJob && G.gameTime >= G.patchJob.completesAt) {
+    G.analystSlots[G.patchJob.slotIdx] = null;
+    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
+    const lowVulns = G.vulns.filter(v => v.discovered && !v.patched && v.severity === 'LOW');
+    lowVulns.forEach(v => { v.patched = true; });
+    G.vulnScore = calcVulnScore();
+    G.patchJob = null;
+    if (lowVulns.length > 0) {
+      siemLog('OK','VULN',`Patch sprint complete — ${lowVulns.length} low-severity vulnerabilities remediated at no additional cost`);
+    } else {
+      siemLog('OK','VULN','Patch sprint complete — no low-severity vulnerabilities outstanding');
+    }
+  }
+
+  // OSINT / actor profiling completion
+  if (G.osintJob && G.gameTime >= G.osintJob.completesAt) {
+    G.analystSlots[G.osintJob.slotIdx] = null;
+    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
+    G.osintCharges = 3;
+    G.osintJob = null;
+    siemLog('OK','OSINT','Actor profiling complete — TTPs documented, next 3 threats will be immediately flagged on entry');
   }
 
   // MSSP auto-assignment
@@ -2892,7 +2955,7 @@ function resolveIncident(inc, earnReward = true) {
   // Free analyst
   if (inc.analystId !== null) {
     G.analystSlots[inc.analystId - 1] = null;
-    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING').length;
+    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
   }
 
   // Remove associated threat
@@ -3177,7 +3240,7 @@ function startTraining() {
   if (G.budget < 30000) { siemLog('WARN','HR','Insufficient budget for analyst training'); return; }
   G.budget -= 30000;
   G.analystSlots[freeIdx] = 'TRAINING';
-  G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING').length;
+  G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
   G.trainingJob = { completesAt: G.gameTime + 1440 };
   siemLog('OK','HR','Analyst dispatched to training — team capacity reduced for 24h');
 }
@@ -3190,9 +3253,50 @@ function startHunt() {
   if (G.budget < 40000) { siemLog('WARN','HR','Insufficient budget for threat hunt'); return; }
   G.budget -= 40000;
   G.analystSlots[freeIdx] = 'HUNTING';
-  G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING').length;
+  G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
   G.huntJob = { completesAt: G.gameTime + 480, slotIdx: freeIdx };
   siemLog('OK','HUNT','Analyst deployed on threat hunt — active sweep of environment underway');
+}
+
+function startTabletop() {
+  if (G.tabletopJob) return;
+  if (G.analystTotal <= 1) { siemLog('WARN','HR','Cannot run tabletop — minimum staffing required'); return; }
+  const freeIdx = G.analystSlots.findIndex(s => s === null);
+  if (freeIdx === -1) { siemLog('WARN','HR','No free analyst available for tabletop exercise'); return; }
+  if (G.budget < 25000) { siemLog('WARN','HR','Insufficient budget for tabletop exercise'); return; }
+  G.budget -= 25000;
+  G.analystSlots[freeIdx] = 'TABLETOP';
+  G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
+  G.tabletopJob = { completesAt: G.gameTime + 240, slotIdx: freeIdx };
+  siemLog('OK','HR','Tabletop exercise underway — IR team rehearsing response procedures');
+}
+
+function startPatchSprint() {
+  if (G.patchJob) return;
+  if (G.analystTotal <= 1) { siemLog('WARN','HR','Cannot run patch sprint — minimum staffing required'); return; }
+  const freeIdx = G.analystSlots.findIndex(s => s === null);
+  if (freeIdx === -1) { siemLog('WARN','HR','No free analyst available for patch sprint'); return; }
+  if (G.budget < 10000) { siemLog('WARN','HR','Insufficient budget for patch sprint'); return; }
+  const lowVulns = G.vulns.filter(v => v.discovered && !v.patched && v.severity === 'LOW');
+  if (lowVulns.length === 0) { siemLog('INFO','VULN','No low-severity vulnerabilities to remediate'); return; }
+  G.budget -= 10000;
+  G.analystSlots[freeIdx] = 'PATCHING';
+  G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
+  G.patchJob = { completesAt: G.gameTime + 180, slotIdx: freeIdx };
+  siemLog('OK','VULN',`Patch sprint initiated — analyst remediating ${lowVulns.length} low-severity vulnerability${lowVulns.length > 1 ? 's' : ''}`);
+}
+
+function startOSINT() {
+  if (G.osintJob) return;
+  if (G.analystTotal <= 1) { siemLog('WARN','HR','Cannot run OSINT research — minimum staffing required'); return; }
+  const freeIdx = G.analystSlots.findIndex(s => s === null);
+  if (freeIdx === -1) { siemLog('WARN','HR','No free analyst available for OSINT research'); return; }
+  if (G.budget < 20000) { siemLog('WARN','HR','Insufficient budget for OSINT research'); return; }
+  G.budget -= 20000;
+  G.analystSlots[freeIdx] = 'OSINT';
+  G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
+  G.osintJob = { completesAt: G.gameTime + 360, slotIdx: freeIdx };
+  siemLog('OK','OSINT','Analyst profiling active threat actors — TTP research underway');
 }
 
 function hireSAT() {
@@ -3500,7 +3604,8 @@ function _initUICache() {
     'hdr-day','day-progress-fill','hdr-time','hdr-breaches','game-screen','hdr-resolved',
     'budget-display-large','stat-analysts','stat-coverage','bar-coverage',
     'stat-mttd','stat-vuln','bar-vuln','stat-threats','stat-actors','stat-income','stat-progress',
-    'hire-btn','training-btn','hunt-btn','mssp-btn','sat-btn','row-mssp','row-sat','row-ir-bonus','stat-ir-bonus',
+    'hire-btn','training-btn','hunt-btn','tabletop-btn','patch-sprint-btn','osint-btn',
+    'mssp-btn','sat-btn','row-mssp','row-sat','row-tabletop','stat-tabletop','row-osint','stat-osint','row-ir-bonus','stat-ir-bonus',
     'incidents-list','incident-count','analyst-roster',
     'redteam-jobs-section','redteam-jobs-list',
     'active-events-section','active-events-list',
@@ -3619,9 +3724,20 @@ function renderAnalystRoster() {
       html += `<div class="analyst-slot-row training"><span>A-${num}</span><span>TRAINING — ${h}h ${m}m</span></div>`;
     } else if (slot === 'HUNTING') {
       const remaining = G.huntJob ? Math.max(0, G.huntJob.completesAt - G.gameTime) : 0;
-      const h = Math.floor(remaining / 60);
-      const m = Math.floor(remaining % 60);
+      const h = Math.floor(remaining / 60); const m = Math.floor(remaining % 60);
       html += `<div class="analyst-slot-row training"><span>A-${num}</span><span>HUNTING — ${h}h ${m}m</span></div>`;
+    } else if (slot === 'TABLETOP') {
+      const remaining = G.tabletopJob ? Math.max(0, G.tabletopJob.completesAt - G.gameTime) : 0;
+      const h = Math.floor(remaining / 60); const m = Math.floor(remaining % 60);
+      html += `<div class="analyst-slot-row training"><span>A-${num}</span><span>TABLETOP — ${h}h ${m}m</span></div>`;
+    } else if (slot === 'PATCHING') {
+      const remaining = G.patchJob ? Math.max(0, G.patchJob.completesAt - G.gameTime) : 0;
+      const h = Math.floor(remaining / 60); const m = Math.floor(remaining % 60);
+      html += `<div class="analyst-slot-row training"><span>A-${num}</span><span>PATCH SPRINT — ${h}h ${m}m</span></div>`;
+    } else if (slot === 'OSINT') {
+      const remaining = G.osintJob ? Math.max(0, G.osintJob.completesAt - G.gameTime) : 0;
+      const h = Math.floor(remaining / 60); const m = Math.floor(remaining % 60);
+      html += `<div class="analyst-slot-row training"><span>A-${num}</span><span>OSINT — ${h}h ${m}m</span></div>`;
     } else if (slot === null) {
       html += `<div class="analyst-slot-row free"><span>A-${num}</span><span>FREE</span></div>`;
     } else {
@@ -3736,6 +3852,52 @@ function updateUI() {
     }
   }
 
+  // Tabletop btn
+  const tabletopBtn = _ui['tabletop-btn'];
+  const hasFreeForTabletop = G.analystSlots.some(s => s === null);
+  tabletopBtn.disabled = !!G.tabletopJob || !hasFreeForTabletop || G.analystTotal <= 1 || G.budget < 25000;
+  if (G.tabletopJob) {
+    const ttRem = Math.max(0, G.tabletopJob.completesAt - G.gameTime);
+    tabletopBtn.innerHTML = `▶ RUNNING...<span class="btn-cost">${Math.round(ttRem/60)}h left</span>`;
+    tabletopBtn._state = 'active';
+  } else {
+    if (!tabletopBtn._state || tabletopBtn._state !== 'idle') {
+      tabletopBtn.innerHTML = '▶ TABLETOP EXERCISE<span class="btn-cost">$25k</span>';
+      tabletopBtn._state = 'idle';
+    }
+  }
+
+  // Patch sprint btn
+  const patchSprintBtn = _ui['patch-sprint-btn'];
+  const hasFreeForPatch = G.analystSlots.some(s => s === null);
+  const hasLowVulns = G.vulns.some(v => v.discovered && !v.patched && v.severity === 'LOW');
+  patchSprintBtn.disabled = !!G.patchJob || !hasFreeForPatch || G.analystTotal <= 1 || G.budget < 10000 || !hasLowVulns;
+  if (G.patchJob) {
+    const prRem = Math.max(0, G.patchJob.completesAt - G.gameTime);
+    patchSprintBtn.innerHTML = `▶ PATCHING...<span class="btn-cost">${Math.round(prRem/60)}h left</span>`;
+    patchSprintBtn._state = 'active';
+  } else {
+    if (!patchSprintBtn._state || patchSprintBtn._state !== 'idle') {
+      patchSprintBtn.innerHTML = '▶ PATCH SPRINT<span class="btn-cost">$10k</span>';
+      patchSprintBtn._state = 'idle';
+    }
+  }
+
+  // OSINT btn
+  const osintBtn = _ui['osint-btn'];
+  const hasFreeForOSINT = G.analystSlots.some(s => s === null);
+  osintBtn.disabled = !!G.osintJob || !hasFreeForOSINT || G.analystTotal <= 1 || G.budget < 20000;
+  if (G.osintJob) {
+    const orRem = Math.max(0, G.osintJob.completesAt - G.gameTime);
+    osintBtn.innerHTML = `▶ RESEARCHING...<span class="btn-cost">${Math.round(orRem/60)}h left</span>`;
+    osintBtn._state = 'active';
+  } else {
+    if (!osintBtn._state || osintBtn._state !== 'idle') {
+      osintBtn.innerHTML = '▶ OSINT RESEARCH<span class="btn-cost">$20k</span>';
+      osintBtn._state = 'idle';
+    }
+  }
+
   if (slow) {
     renderAnalystRoster();
     updateTabBadge();
@@ -3805,6 +3967,14 @@ function updateUI() {
   _ui['row-sat'].style.display = G.sat ? '' : 'none';
   _ui['row-ir-bonus'].style.display = G.analystSpeedBonus > 0 ? '' : 'none';
   _ui['stat-ir-bonus'].textContent = `+${Math.round(G.analystSpeedBonus * 100)}%`;
+  const tabletopActive = G.gameTime < G.tabletopBonusExpiresAt;
+  _ui['row-tabletop'].style.display = tabletopActive ? '' : 'none';
+  if (tabletopActive) {
+    const tabRem = Math.max(0, G.tabletopBonusExpiresAt - G.gameTime);
+    _ui['stat-tabletop'].textContent = `+15% (${Math.round(tabRem/60)}h)`;
+  }
+  _ui['row-osint'].style.display = G.osintCharges > 0 ? '' : 'none';
+  _ui['stat-osint'].textContent = `${G.osintCharges} charge${G.osintCharges !== 1 ? 's' : ''}`;
 
   // Active random events — throttled
   if (slow) updateActiveEventsUI();
