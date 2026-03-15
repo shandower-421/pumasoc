@@ -4,13 +4,13 @@ A browser-based retro cyberpunk Security Operations Center management game. Defe
 
 ## Play
 
-Open `soc-game/index.html` in any modern browser. No build step, no dependencies (except Google Fonts for typography).
+Open `index.html` in any modern browser. No build step, no dependencies (except Google Fonts for typography).
 
 A local server gives the best experience:
 
 ```bash
 python3 -m http.server 8742
-# then open http://localhost:8742/soc-game/
+# then open http://localhost:8742/
 ```
 
 ## How to Play
