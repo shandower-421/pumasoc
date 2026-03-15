@@ -1436,6 +1436,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
     <button class="speed-btn active" id="mute-btn" onclick="toggleMute()">SOUND</button>
     <div class="header-gap"></div>
     <button class="speed-btn" id="newgame-btn" onclick="newGameClick()">NEW GAME</button>
+    <button class="speed-btn" id="help-btn" onclick="toggleHelp()" title="Help [?]" style="color:var(--accent);border-color:var(--accent)">?</button>
   </div>
   <div id="day-progress-bar"><div id="day-progress-fill"></div></div>
 
@@ -2073,7 +2074,9 @@ function loadSavedState() {
     if (!G.breachDwellMins)      G.breachDwellMins      = diff ? diff.breachDwellMins      : 600;
     if (!G.unhandledBreachMins)  G.unhandledBreachMins  = diff ? diff.unhandledBreachMins  : 1200;
     if (!G.campaigns)            G.campaigns            = {};
-    if (G._budgetWarned === undefined) G._budgetWarned  = false;
+    if (G._budgetWarned === undefined)   G._budgetWarned   = false;
+    if (G._onboardIncident === undefined) G._onboardIncident = true; // old save → skip onboard tips
+    if (G._onboardIncome   === undefined) G._onboardIncome   = true;
     selectedDifficulty = save.selectedDifficulty || 'analyst';
     siemHistory.length = 0;
     siemHistory.push(...(save.siemHistory || []));
@@ -2173,6 +2176,9 @@ function initState() {
     campaigns: {},
     // budget bankruptcy flag
     _budgetWarned: false,
+    // first-run onboarding one-shot flags
+    _onboardIncident: false,
+    _onboardIncome:   false,
   };
 }
 
@@ -2505,6 +2511,11 @@ function createIncident(threat) {
   };
   G.incidents.push(incident);
   _newIncidentIds.add(incident.id);
+  // One-shot onboarding tip for first-time players
+  if (!G._onboardIncident && !localStorage.getItem('puma-seen-intro')) {
+    G._onboardIncident = true;
+    siemLog('INFO', 'ONBOARD', 'Incident active. Click ASSIGN ANALYST on the card to begin IR. Unassigned incidents become breaches.');
+  }
 }
 
 function assignAnalystToIncident(incidentId) {
@@ -2564,6 +2575,11 @@ function tick() {
     G.budget += G.incomeAmount;
     G.nextIncomeIn = INCOME_INTERVAL_MINS;
     siemLog('OK', 'FINANCE', `Client retainer payment received: +${fmt$(G.incomeAmount)}`, `Total: ${fmt$(G.budget)}`);
+    // One-shot onboarding tip for first-time players
+    if (!G._onboardIncome && !localStorage.getItem('puma-seen-intro')) {
+      G._onboardIncome = true;
+      siemLog('INFO', 'ONBOARD', 'Retainer received. Idle budget does not defend you — invest in Detection Engineering rules and analysts.');
+    }
     if (G.mssp) {
       const msspFee = 15000;
       if (G.budget < msspFee) {
@@ -2890,6 +2906,7 @@ function computeFinalScore() {
 
 function triggerGameOver(reason) {
   clearSavedState();
+  localStorage.setItem('puma-seen-intro', '1'); // onboarding complete after first game
   G.gameOver = true;
   G.gameOverReason = reason;
   document.getElementById('gameover-reason').textContent = reason;
@@ -2908,6 +2925,7 @@ function triggerGameOver(reason) {
 
 function triggerWin() {
   clearSavedState();
+  localStorage.setItem('puma-seen-intro', '1'); // onboarding complete after first game
   G.gameOver = true;
   G.won = true;
   document.getElementById('win-stats').textContent =
@@ -4115,6 +4133,7 @@ const BOOT_LINES = [
   ['WARN', 'warn', 'Threat actor activity detected — EMEA region'],
   ['WARN', 'warn', `Detection coverage at 25% — below acceptable threshold`],
   ['BOOT', 'ok',   'All systems operational — awaiting analyst'],
+  ['INFO', 'ok',   'Press [?] at any time for operational brief'],
 ];
 
 function runBootSequence() {
@@ -4278,6 +4297,18 @@ function startGame() {
   tickInterval = setInterval(tick, TICK_MS);
   scheduleCrtFlicker();
   initMobileTabs();
+
+  // First-run onboarding drip — shown only once, before puma-seen-intro is set
+  if (!localStorage.getItem('puma-seen-intro')) {
+    setTimeout(() => {
+      if (!G || G.gameOver) return;
+      siemLog('INFO', 'ONBOARD', 'New analyst session. Open Detection Engineering (right panel) and upgrade rule categories to raise Coverage %.');
+    }, 4000);
+    setTimeout(() => {
+      if (!G || G.gameOver) return;
+      siemLog('INFO', 'ONBOARD', 'Coverage % is your primary defense metric. Each rule level adds +5%. Target 50%+ before Day 2.');
+    }, 45000);
+  }
 }
 
 function scheduleCrtFlicker() {
