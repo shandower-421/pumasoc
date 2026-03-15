@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!--
+  if you're reading this, you're exactly the kind of person i built this for.
+  open your console. there's more.
+-->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -11,6 +15,7 @@
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* yes, the terminal font is intentional. no, i'm not sorry. */
 :root {
   --green: #00ff41;
   --green-dim: #00aa2b;
@@ -2221,6 +2226,48 @@ const CONSULTANTS = [
 // ================================================================
 
 let G = null; // game state
+
+window.pumaSOC = {
+  help() {
+    console.log('%cPumaSOC Console API', 'color:#00ff41;font-family:monospace;font-weight:bold');
+    console.log('%c  pumaSOC.status()         — current game state summary', 'color:#00cc33;font-family:monospace');
+    console.log('%c  pumaSOC.inject(amount)   — add budget (you earned it)', 'color:#00cc33;font-family:monospace');
+    console.log('%c  pumaSOC.who()            — about the author', 'color:#00cc33;font-family:monospace');
+    console.log('%c  pumaSOC.hint()           — a nudge if you are stuck', 'color:#888;font-family:monospace');
+  },
+  status() {
+    if (!G || G.gameOver) { console.log('%c[ no active session ]', 'color:#888;font-family:monospace'); return; }
+    console.log('%cSOC STATUS REPORT', 'color:#00ff41;font-family:monospace;font-weight:bold');
+    console.log(`%c  Budget:    $${G.budget.toLocaleString()}`, 'color:#00cc33;font-family:monospace');
+    console.log(`%c  Analysts:  ${G.analystTotal}  |  Breaches: ${G.breaches}/3`, 'color:#00cc33;font-family:monospace');
+    console.log(`%c  Resolved:  ${G.totalResolved} incidents  |  Coverage: ${G.coverage}%`, 'color:#00cc33;font-family:monospace');
+    console.log(`%c  MTTD:      ${G.mttd} min  |  Vuln score: ${G.vulnScore}`, 'color:#00cc33;font-family:monospace');
+  },
+  inject(amount) {
+    if (!G || G.gameOver) { console.log('%c[ no active session ]', 'color:#888;font-family:monospace'); return; }
+    const amt = typeof amount === 'number' && amount > 0 ? amount : 100000;
+    G.budget += amt;
+    siemLog('WARN', 'CONSOLE', `Anomalous budget event: +${fmt$(amt)} — source: developer tools. This will be investigated.`);
+    siemLog('INFO', 'CONSOLE', 'Investigation closed. Operator confirmed legitimate. Welcome to the team.');
+    updateUI();
+    console.log(`%c+${fmt$(amt)} injected. don't spend it all in one place.`, 'color:#00ff41;font-family:monospace');
+  },
+  who() {
+    console.log('%cBuilt by greykit.com', 'color:#00ff41;font-family:monospace;font-weight:bold');
+    console.log('%cSecurity practitioner. Not a developer. Allegedly.', 'color:#888;font-family:monospace');
+    console.log('%chttps://www.greykit.com', 'color:#00cc33;font-family:monospace');
+  },
+  hint() {
+    const hints = [
+      'patch your criticals before they get exploited.',
+      'detection rules matter more than analysts at the start.',
+      'the SIEM is not just flavour text. read it.',
+      'SOAR saves analyst-minutes. analyst-minutes save games.',
+      'there is a Konami code. it does what you expect.',
+    ];
+    console.log(`%c// hint: ${hints[Math.floor(Math.random() * hints.length)]}`, 'color:#888;font-family:monospace;font-style:italic');
+  }
+};
 let tickInterval = null;
 let siemEntryCount = 0;
 
@@ -4556,6 +4603,7 @@ function closeHelp() {
   document.getElementById('help-overlay').classList.remove('visible');
 }
 
+// ↑↑↓↓←→←→BA — yeah, it does what you think it does.
 const _KONAMI_SEQ = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
 let _konamiIdx = 0;
 
@@ -4872,6 +4920,14 @@ function startGame() {
   document.getElementById('hdr-breach-max').textContent = `/${MAX_BREACHES}`;
 
   updateUI();
+
+  console.log(
+    '%c// PumaSOC\n%cSo you opened DevTools.\n%cExpected.\n\n%cType pumaSOC.help() for available commands.',
+    'color:#00ff41;font-family:monospace;font-size:18px;font-weight:bold',
+    'color:#00cc33;font-family:monospace;font-size:13px',
+    'color:#00ff41;font-family:monospace;font-size:13px;font-weight:bold',
+    'color:#888;font-family:monospace;font-size:11px'
+  );
 
   // Initial SIEM entries
   const diff = DIFFICULTIES[selectedDifficulty];
