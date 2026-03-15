@@ -3597,6 +3597,11 @@ function renderAnalystRoster() {
       const h = Math.floor(remaining / 60);
       const m = Math.floor(remaining % 60);
       html += `<div class="analyst-slot-row training"><span>A-${num}</span><span>TRAINING — ${h}h ${m}m</span></div>`;
+    } else if (slot === 'HUNTING') {
+      const remaining = G.huntJob ? Math.max(0, G.huntJob.completesAt - G.gameTime) : 0;
+      const h = Math.floor(remaining / 60);
+      const m = Math.floor(remaining % 60);
+      html += `<div class="analyst-slot-row training"><span>A-${num}</span><span>HUNTING — ${h}h ${m}m</span></div>`;
     } else if (slot === null) {
       html += `<div class="analyst-slot-row free"><span>A-${num}</span><span>FREE</span></div>`;
     } else {
