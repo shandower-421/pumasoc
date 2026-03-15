@@ -4936,6 +4936,7 @@ function runBootSequence() {
           _initUICache();
           _uiTick = 0;
           _intelDisplay = rnd(3, 6);
+          initMap();
           const diff = DIFFICULTIES[selectedDifficulty];
           const badge = document.getElementById('diff-badge');
           badge.textContent = diff.label;
@@ -4987,6 +4988,7 @@ function openDifficultyScreen(e) {
     _initUICache();
     _uiTick = 0;
     _intelDisplay = rnd(3, 6);
+    initMap();
     const diff = DIFFICULTIES[selectedDifficulty];
     const badge = document.getElementById('diff-badge');
     badge.textContent = diff.label;
