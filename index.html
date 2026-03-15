@@ -2658,8 +2658,9 @@ function siemLog(severity, source, msg, extra) {
   // Update popout if open
   const popoutFeed = document.getElementById('siem-popout-feed');
   if (document.getElementById('siem-popout').classList.contains('visible')) {
+    const atBottom = popoutFeed.scrollHeight - popoutFeed.scrollTop - popoutFeed.clientHeight < 50;
     popoutFeed.appendChild(makeSiemEntry(severity, source, msg, extra, true));
-    popoutFeed.scrollTop = popoutFeed.scrollHeight;
+    if (atBottom) popoutFeed.scrollTop = popoutFeed.scrollHeight;
   }
 
   document.getElementById('siem-count').textContent = `${siemEntryCount} events`;
