@@ -622,7 +622,17 @@ body::after {
 .edge-line { stroke: #1e3e1e; stroke-width: 1.5; }
 .node-label { fill: #2e6e2e; font-size: 10px; text-anchor: middle; font-family: var(--font); }
 .node-label.active { fill: #ff3333; }
-#mini-map-svg { width: 100%; height: 230px; display: block; }
+.node-circle { cursor: default; }
+.node-circle.node-selected { stroke: #ffffff !important; stroke-width: 2 !important; }
+#mini-map-svg { width: 100%; height: 230px; display: block; cursor: default; }
+#node-info-panel {
+  display: none;
+  padding: 6px 4px 4px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font);
+  font-size: 9px;
+  line-height: 1.6;
+}
 .stat-row {
   display: flex;
   justify-content: space-between;
@@ -1567,6 +1577,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
           <g id="nodes-layer"></g>
           <g id="packets-layer"></g>
         </svg>
+        <div id="node-info-panel"></div>
       </div>
     </div>
 
@@ -3911,9 +3922,64 @@ function initMap() {
     label.setAttribute('id', `node-label-${nd.id}`);
     label.textContent = nd.label;
 
+    g.style.cursor = 'pointer';
+    g.addEventListener('click', (e) => { e.stopPropagation(); showNodeInfo(nd.id); });
     g.appendChild(circle); g.appendChild(label);
     nodesLayer.appendChild(g);
   });
+
+  document.getElementById('mini-map-svg').addEventListener('click', e => {
+    if (e.target.id === 'mini-map-svg') clearNodeInfo();
+  });
+}
+
+function clearNodeInfo() {
+  const panel = document.getElementById('node-info-panel');
+  if (!panel) return;
+  panel.style.display = 'none';
+  panel.dataset.nodeId = '';
+  NODE_DEFS.forEach(n => document.getElementById(`node-circle-${n.id}`)?.classList.remove('node-selected'));
+}
+
+function showNodeInfo(nodeId) {
+  const panel = document.getElementById('node-info-panel');
+  if (!panel) return;
+  if (panel.dataset.nodeId === nodeId) { clearNodeInfo(); return; }
+
+  clearNodeInfo();
+  document.getElementById(`node-circle-${nodeId}`)?.classList.add('node-selected');
+  panel.dataset.nodeId = nodeId;
+
+  const ns = G.nodes.find(n => n.id === nodeId);
+  const nd = NODE_DEFS.find(n => n.id === nodeId);
+  const statusColor = { healthy:'var(--green)', vulnerable:'var(--amber)', under_attack:'var(--red)', breached:'var(--red)' };
+  const statusLabel = { healthy:'HEALTHY', vulnerable:'VULNERABLE', under_attack:'UNDER ATTACK', breached:'BREACHED' };
+
+  const vulns     = G.vulns.filter(v => v.nodeId === nodeId && !v.patched);
+  const incidents = G.incidents.filter(i => i.targetId === nodeId && i.status !== 'RESOLVED');
+
+  let html = `<div style="color:var(--green);letter-spacing:1px;margin-bottom:3px">${nodeId} // ${nd.type.toUpperCase()}</div>`;
+  html += `<div style="color:${statusColor[ns.status] || 'var(--green)'};margin-bottom:5px">● ${statusLabel[ns.status] || ns.status}</div>`;
+
+  if (vulns.length)
+    html += `<div style="color:var(--amber)">${vulns.length} unpatched vuln${vulns.length > 1 ? 's' : ''}</div>`;
+
+  if (incidents.length)
+    incidents.forEach(i => { html += `<div style="color:var(--red)">▸ ${i.actor}::${i.technique}</div>`; });
+  else
+    html += `<div style="color:var(--green-dark)">no active incidents</div>`;
+
+  if (nd.breachEffect) {
+    const fx = nd.breachEffect;
+    const p = [];
+    if (fx.coveragePenalty) p.push(`-${fx.coveragePenalty}% coverage`);
+    if (fx.spawnPenalty)    p.push(`+${Math.round(fx.spawnPenalty * 100)}% threat rate`);
+    if (fx.budget)          p.push(fmt$(fx.budget));
+    html += `<div style="color:var(--green-dark);border-top:1px solid var(--border);margin-top:5px;padding-top:4px">if breached: ${fx.name}${p.length ? ' — ' + p.join(', ') : ''}</div>`;
+  }
+
+  panel.innerHTML = html;
+  panel.style.display = 'block';
 }
 
 let pulsePhase = 0;
@@ -4939,6 +5005,7 @@ function runBootSequence() {
           _uiTick = 0;
           _intelDisplay = rnd(3, 6);
           initMap();
+          clearNodeInfo();
           const diff = DIFFICULTIES[selectedDifficulty];
           const badge = document.getElementById('diff-badge');
           badge.textContent = diff.label;
@@ -4992,6 +5059,7 @@ function openDifficultyScreen(e) {
     _uiTick = 0;
     _intelDisplay = rnd(3, 6);
     initMap();
+    clearNodeInfo();
     const diff = DIFFICULTIES[selectedDifficulty];
     const badge = document.getElementById('diff-badge');
     badge.textContent = diff.label;
@@ -5067,6 +5135,7 @@ function startGame() {
   document.getElementById('game-screen').classList.add('visible');
   initState();
   initMap();
+  clearNodeInfo();
   _initUICache();
 
   // Reset per-session render state
