@@ -4933,10 +4933,15 @@ function runBootSequence() {
         if (loadSavedState()) {
           document.getElementById('boot-screen').style.display = 'none';
           document.getElementById('game-screen').classList.add('visible');
+          _initUICache();
+          _uiTick = 0;
+          _intelDisplay = rnd(3, 6);
           const diff = DIFFICULTIES[selectedDifficulty];
           const badge = document.getElementById('diff-badge');
           badge.textContent = diff.label;
           badge.className = selectedDifficulty;
+          document.getElementById('hdr-day-max').textContent = `/${WIN_DAYS * (G.week || 1)}`;
+          document.getElementById('hdr-breach-max').textContent = `/${MAX_BREACHES}`;
           updateMuteBtn();
           restoreSiemStrip();
           updateUI();
@@ -4979,10 +4984,15 @@ function openDifficultyScreen(e) {
   if (loadSavedState()) {
     document.getElementById('boot-screen').style.display = 'none';
     document.getElementById('game-screen').classList.add('visible');
+    _initUICache();
+    _uiTick = 0;
+    _intelDisplay = rnd(3, 6);
     const diff = DIFFICULTIES[selectedDifficulty];
     const badge = document.getElementById('diff-badge');
     badge.textContent = diff.label;
     badge.className = selectedDifficulty;
+    document.getElementById('hdr-day-max').textContent = `/${WIN_DAYS * (G.week || 1)}`;
+    document.getElementById('hdr-breach-max').textContent = `/${MAX_BREACHES}`;
     updateMuteBtn();
     restoreSiemStrip();
     updateUI();
