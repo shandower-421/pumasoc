@@ -863,6 +863,26 @@ body::after {
   margin-bottom: 16px;
 }
 .overlay-text { color: var(--green-dim); font-size: 12px; margin: 4px 0; }
+.score-card {
+  width: 340px; border: 1px solid #1a4d1a; padding: 10px 14px; margin: 10px 0 4px;
+  font-size: 11px; text-align: left;
+}
+.score-card-title { color: var(--green-dim); letter-spacing: 2px; margin-bottom: 8px; font-size: 10px; }
+.score-row { display: flex; justify-content: space-between; margin: 3px 0; color: var(--green-dim); }
+.score-green { color: var(--green); }
+.score-red { color: var(--red); }
+.score-mult { border-top: 1px solid #1a3d1a; margin-top: 6px; padding-top: 6px; }
+.score-total {
+  display: flex; align-items: center; gap: 12px; border-top: 1px solid #2a5a2a;
+  margin-top: 8px; padding-top: 8px; color: var(--green);
+}
+.score-total-fail { color: var(--red); border-top-color: #5a1a1a; }
+.score-grade {
+  font-size: 36px; font-weight: bold; line-height: 1;
+  text-shadow: 0 0 16px var(--green);
+}
+.score-grade-fail { text-shadow: 0 0 16px var(--red); color: var(--red); }
+.score-label { font-size: 11px; letter-spacing: 1px; }
 .overlay-btn {
   margin-top: 20px;
   background: none;
@@ -1777,12 +1797,14 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
   <div class="title crit-flash">■■ BREACH CRITICAL ■■</div>
   <div class="overlay-text" id="gameover-reason"></div>
   <div class="overlay-text" id="gameover-stats"></div>
+  <div class="score-card" id="gameover-score-card"></div>
   <button class="overlay-btn" onclick="restartGame()">↺ RESTART OPERATIONS</button>
 </div>
 <div id="win-overlay">
   <div class="title">■ MISSION COMPLETE ■</div>
   <div class="overlay-text">7 days survived. Client estate secured.</div>
   <div class="overlay-text" id="win-stats"></div>
+  <div class="score-card" id="win-score-card"></div>
   <button class="overlay-btn" onclick="restartGame()">↺ NEW OPERATION</button>
 </div>
 
@@ -1884,20 +1906,20 @@ const TECHNIQUES = {
 };
 
 const NODE_DEFS = [
-  { id:'INET',    type:'internet',   label:'INET',     x:115, y:22  },
-  { id:'FW-01',   type:'firewall',   label:'FW-01',    x:55,  y:80  },
-  { id:'FW-02',   type:'firewall',   label:'FW-02',    x:175, y:80  },
-  { id:'WEB-01',  type:'server',     label:'WEB-01',   x:18,  y:150 },
-  { id:'WEB-02',  type:'server',     label:'WEB-02',   x:82,  y:150 },
-  { id:'CLOUD-01',type:'cloud',      label:'CLOUD-01', x:150, y:145 },
-  { id:'CLOUD-02',type:'cloud',      label:'CLOUD-02', x:212, y:145 },
-  { id:'CORE-SW', type:'switch',     label:'CORE-SW',  x:115, y:218 },
-  { id:'AD-01',   type:'server',     label:'AD-01',    x:35,  y:288 },
-  { id:'DB-01',   type:'database',   label:'DB-01',    x:115, y:288 },
-  { id:'DB-02',   type:'database',   label:'DB-02',    x:195, y:288 },
-  { id:'WORK-01', type:'workstation',label:'WRK-01',   x:35,  y:358 },
-  { id:'WORK-02', type:'workstation',label:'WRK-02',   x:115, y:362 },
-  { id:'WORK-03', type:'workstation',label:'WRK-03',   x:195, y:358 },
+  { id:'INET',    type:'internet',   label:'INET',     x:115, y:22,  breachEffect: null },
+  { id:'FW-01',   type:'firewall',   label:'FW-01',    x:55,  y:80,  breachEffect: { name:'Perimeter Down',       coveragePenalty:15, duration:2880 } },
+  { id:'FW-02',   type:'firewall',   label:'FW-02',    x:175, y:80,  breachEffect: { name:'Perimeter Down',       coveragePenalty:15, duration:2880 } },
+  { id:'WEB-01',  type:'server',     label:'WEB-01',   x:18,  y:150, breachEffect: { name:'Web Server Exposed',   spawnPenalty:0.15,  duration:2880 } },
+  { id:'WEB-02',  type:'server',     label:'WEB-02',   x:82,  y:150, breachEffect: { name:'Web Server Exposed',   spawnPenalty:0.15,  duration:2880 } },
+  { id:'CLOUD-01',type:'cloud',      label:'CLOUD-01', x:150, y:145, breachEffect: { name:'Cloud Pivot Active',   spawnPenalty:0.25,  duration:2880 } },
+  { id:'CLOUD-02',type:'cloud',      label:'CLOUD-02', x:212, y:145, breachEffect: { name:'Cloud Pivot Active',   spawnPenalty:0.25,  duration:2880 } },
+  { id:'CORE-SW', type:'switch',     label:'CORE-SW',  x:115, y:218, breachEffect: { name:'Core Network Owned',  coveragePenalty:10, spawnPenalty:0.2, duration:2160 } },
+  { id:'AD-01',   type:'server',     label:'AD-01',    x:35,  y:288, breachEffect: { name:'AD Domain Compromised', coveragePenalty:20, duration:4320 } },
+  { id:'DB-01',   type:'database',   label:'DB-01',    x:115, y:288, breachEffect: { name:'DB Ransomware/Exfil', coveragePenalty:10, budget:-50000,  duration:2880 } },
+  { id:'DB-02',   type:'database',   label:'DB-02',    x:195, y:288, breachEffect: { name:'DB Ransomware/Exfil', coveragePenalty:10, budget:-50000,  duration:2880 } },
+  { id:'WORK-01', type:'workstation',label:'WRK-01',   x:35,  y:358, breachEffect: { name:'Endpoint Implant',    spawnPenalty:0.1,   duration:2160 } },
+  { id:'WORK-02', type:'workstation',label:'WRK-02',   x:115, y:362, breachEffect: { name:'Endpoint Implant',    spawnPenalty:0.1,   duration:2160 } },
+  { id:'WORK-03', type:'workstation',label:'WRK-03',   x:195, y:358, breachEffect: { name:'Endpoint Implant',    spawnPenalty:0.1,   duration:2160 } },
 ];
 const EDGE_DEFS = [
   ['INET','FW-01'],['INET','FW-02'],
@@ -2050,6 +2072,8 @@ function loadSavedState() {
     if (!G.spawnMult)            G.spawnMult            = diff ? diff.spawnMult            : 1.0;
     if (!G.breachDwellMins)      G.breachDwellMins      = diff ? diff.breachDwellMins      : 600;
     if (!G.unhandledBreachMins)  G.unhandledBreachMins  = diff ? diff.unhandledBreachMins  : 1200;
+    if (!G.campaigns)            G.campaigns            = {};
+    if (G._budgetWarned === undefined) G._budgetWarned  = false;
     selectedDifficulty = save.selectedDifficulty || 'analyst';
     siemHistory.length = 0;
     siemHistory.push(...(save.siemHistory || []));
@@ -2145,6 +2169,10 @@ function initState() {
     // random events
     nextRandomEventIn: rndF(1440 * 3, 1440 * 5),
     activeRandomEvents: [],
+    // campaign tracking — keyed by actor name
+    campaigns: {},
+    // budget bankruptcy flag
+    _budgetWarned: false,
   };
 }
 
@@ -2399,22 +2427,45 @@ function spawnThreat() {
   const entryId = pick(ENTRY_NODES);
   const skillMod = 1 + (actor.skill - 3) * 0.15; // skill 1-5, 1.0 base at skill 3
 
+  // Campaign tracking — same actor within 2 game days escalates
+  if (!G.campaigns) G.campaigns = {};
+  if (!G.campaigns[actor.name]) G.campaigns[actor.name] = { count: 0, lastSeen: 0 };
+  const camp = G.campaigns[actor.name];
+  const recentWindow = 1440 * 2; // 2 game days
+  if (G.gameTime - camp.lastSeen < recentWindow) {
+    camp.count++;
+  } else {
+    camp.count = 1;
+  }
+  camp.lastSeen = G.gameTime;
+  const campaignPhase = camp.count >= 3 ? 3 : camp.count >= 2 ? 2 : 1;
+  // Phase 3: actor is skilled up and faster (halved dwell window stored on threat)
+  const effectiveSkill = campaignPhase === 3 ? Math.min(5, actor.skill + 1) : actor.skill;
+  const effSkillMod = 1 + (effectiveSkill - 3) * 0.15;
+
   const threat = {
     id: G.nextThreatId++,
     actor: actor.name,
     actorAka: actor.aka,
     origin: actor.origin,
-    skill: actor.skill,
+    skill: effectiveSkill,
     techniqueCategory: cat,
     technique,
     targetId,
     entryId,
     progress: 0,
-    progressRate: 0.002 / skillMod, // per game minute — will convert
+    progressRate: 0.002 / effSkillMod,
     dwell: 0,
     detected: false,
     breachTriggered: false,
+    campaignPhase,
   };
+
+  if (campaignPhase >= 2) {
+    siemLog('WARN', 'THREAT-INTEL',
+      `${actor.name} campaign phase ${campaignPhase} — persistent attacker pattern detected`,
+      `${actor.aka} | ${actor.origin}${campaignPhase === 3 ? ' | ELEVATED SKILL' : ''}`);
+  }
 
   // Detection check — suppressed categories are always detected
   const isSuppressed = G.suppressedTechniques.some(s => s.category === cat && G.gameTime < s.expiresAt);
@@ -2515,9 +2566,25 @@ function tick() {
     siemLog('OK', 'FINANCE', `Client retainer payment received: +${fmt$(G.incomeAmount)}`, `Total: ${fmt$(G.budget)}`);
     if (G.mssp) {
       const msspFee = 15000;
-      G.budget -= msspFee;
-      siemLog('INFO','FINANCE',`MSSP retainer fee deducted: -${fmt$(msspFee)}`);
+      if (G.budget < msspFee) {
+        G.mssp = false;
+        siemLog('CRIT','FINANCE','MSSP retainer cancelled — insufficient funds. Auto-assignment suspended.');
+      } else {
+        G.budget -= msspFee;
+        siemLog('INFO','FINANCE',`MSSP retainer fee deducted: -${fmt$(msspFee)}`);
+      }
     }
+    if (G.consultant && G.budget <= 0) {
+      G.consultant = null;
+      G.coverage = calcCoverage();
+      G.mttd = calcMTTD();
+      siemLog('CRIT','FINANCE','Consultant contract terminated — budget depleted. Defensive bonuses removed.');
+    }
+    if (G.budget <= 0 && !G._budgetWarned) {
+      G._budgetWarned = true;
+      siemLog('CRIT','FINANCE','BUDGET DEPLETED — unable to fund defensive operations. Hire income sources or reduce spending.');
+    }
+    if (G.budget > 0) G._budgetWarned = false;
   }
 
   // Noise events
@@ -2534,7 +2601,8 @@ function tick() {
     spawnThreat();
     const dayFactor = Math.min(2, 1 + G.gameTime / (1440 * 4)); // ramp up over 4 game days
     const vulnFactor = 1 + (G.vulnScore - 50) * 0.01; // score 80 → 1.3× spawns; score 20 → 0.7×
-    G.nextThreatIn = rndF(THREAT_SPAWN_MIN_MINS, THREAT_SPAWN_MAX_MINS) / (dayFactor * Math.max(0.5, vulnFactor) * G.spawnMult);
+    const spawnPenalty = (G.activeRandomEvents || []).reduce((s, e) => s + (e.spawnPenalty || 0), 0);
+    G.nextThreatIn = rndF(THREAT_SPAWN_MIN_MINS, THREAT_SPAWN_MAX_MINS) / (dayFactor * Math.max(0.5, vulnFactor) * G.spawnMult * (1 + spawnPenalty));
   }
 
   // Advance threat progress & detect undetected threats
@@ -2557,8 +2625,9 @@ function tick() {
       }
     }
 
-    // Undetected breach
-    if (!t.detected && t.dwell >= G.breachDwellMins) {
+    // Undetected breach — campaign phase 3 threats have halved dwell window
+    const dwellLimit = (t.campaignPhase === 3) ? G.breachDwellMins * 0.5 : G.breachDwellMins;
+    if (!t.detected && t.dwell >= dwellLimit) {
       triggerBreach(t, 'UNDETECTED');
     }
   });
@@ -2770,11 +2839,53 @@ function triggerBreach(threat, reason, incident) {
   getNode(target).status = 'breached';
   siemLog('CRIT', 'BREACH', `CONFIRMED BREACH: ${actorName} has compromised ${target} [${reason}]`, `Breach count: ${G.breaches}/${MAX_BREACHES}`);
 
+  // Node-specific breach consequences
+  const nodeDef = NODE_DEFS.find(n => n.id === target);
+  if (nodeDef && nodeDef.breachEffect) {
+    const eff = nodeDef.breachEffect;
+    if (eff.budget) {
+      G.budget = Math.max(0, G.budget + eff.budget);
+      siemLog('CRIT','FINANCE',`Breach consequence [${target}]: emergency costs — ${fmt$(Math.abs(eff.budget))} drained`);
+    }
+    if (eff.duration > 0) {
+      G.activeRandomEvents.push({
+        type: 'breach_effect',
+        name: `[${target}] ${eff.name}`,
+        endsAt: G.gameTime + eff.duration,
+        coveragePenalty: eff.coveragePenalty || 0,
+        vulnPenalty: 0,
+        spawnPenalty: eff.spawnPenalty || 0,
+      });
+      const hrs = Math.round(eff.duration / 60);
+      const effects = [];
+      if (eff.coveragePenalty) effects.push(`-${eff.coveragePenalty}% coverage`);
+      if (eff.spawnPenalty)    effects.push(`+${Math.round(eff.spawnPenalty * 100)}% spawn rate`);
+      siemLog('CRIT','IMPACT',`Breach consequence active: ${eff.name} — ${effects.join(', ')} for ${hrs}h`);
+    }
+  }
+
   if (G.breaches >= MAX_BREACHES) {
     triggerGameOver(`${G.breaches} successful breaches — attacker persistence established in managed estate.`);
   } else if (G.breaches === MAX_BREACHES - 1) {
     siemLog('CRIT', 'BREACH-CTRL', `⚠ ONE BREACH FROM GAME OVER — DEFEND ALL ASSETS`);
   }
+}
+
+function computeFinalScore() {
+  const resolvedPts  = G.totalResolved * 10;
+  const breachPenalty = G.breaches * 200;
+  const budgetPts    = Math.min(200, Math.floor(Math.max(0, G.budget) / 10000));
+  const trainingPts  = G.analystSpeedBonus >= 0.3 ? 100 : G.analystSpeedBonus > 0 ? 50 : 0;
+  const diffMult     = selectedDifficulty === 'adversary' ? 2.5 : selectedDifficulty === 'analyst' ? 1.5 : 1.0;
+  const raw   = resolvedPts - breachPenalty + budgetPts + trainingPts;
+  const score = Math.max(0, Math.round(raw * diffMult));
+  let grade, label;
+  if (score >= 1000)      { grade = 'S'; label = 'EXCEPTIONAL POSTURE'; }
+  else if (score >= 700)  { grade = 'A'; label = 'STRONG DEFENSE'; }
+  else if (score >= 400)  { grade = 'B'; label = 'SOLID RESPONSE'; }
+  else if (score >= 200)  { grade = 'C'; label = 'MARGINAL CONTAINMENT'; }
+  else                    { grade = 'D'; label = 'BARELY FUNCTIONAL'; }
+  return { score, grade, label, resolvedPts, breachPenalty, budgetPts, trainingPts, diffMult };
 }
 
 function triggerGameOver(reason) {
@@ -2785,6 +2896,13 @@ function triggerGameOver(reason) {
   const t = fmtTime(G.gameTime);
   document.getElementById('gameover-stats').textContent =
     `Day ${t.day} | Incidents Resolved: ${G.totalResolved} | Budget Remaining: ${fmt$(G.budget)}`;
+  const s = computeFinalScore();
+  document.getElementById('gameover-score-card').innerHTML = `
+    <div class="score-card-title">── INCIDENT REPORT ──────────────────</div>
+    <div class="score-row"><span>INCIDENTS RESOLVED</span><span class="score-green">+${s.resolvedPts}</span></div>
+    <div class="score-row"><span>BREACHES SUSTAINED</span><span class="score-red">-${s.breachPenalty}</span></div>
+    <div class="score-row"><span>BUDGET REMAINING</span><span>+${s.budgetPts}</span></div>
+    <div class="score-total score-total-fail"><span class="score-grade score-grade-fail">F</span><span class="score-label">OPERATIONS COMPROMISED</span></div>`;
   document.getElementById('gameover-overlay').classList.add('visible');
 }
 
@@ -2794,6 +2912,15 @@ function triggerWin() {
   G.won = true;
   document.getElementById('win-stats').textContent =
     `Breaches: ${G.breaches}/3 | Incidents Resolved: ${G.totalResolved} | Final Budget: ${fmt$(G.budget)}`;
+  const s = computeFinalScore();
+  document.getElementById('win-score-card').innerHTML = `
+    <div class="score-card-title">── FINAL ASSESSMENT ─────────────────</div>
+    <div class="score-row"><span>INCIDENTS RESOLVED</span><span class="score-green">+${s.resolvedPts}</span></div>
+    <div class="score-row"><span>BREACHES SUSTAINED</span><span class="${s.breachPenalty > 0 ? 'score-red' : 'score-green'}">${s.breachPenalty > 0 ? '-' : '+'}${s.breachPenalty}</span></div>
+    <div class="score-row"><span>BUDGET REMAINING</span><span class="score-green">+${s.budgetPts}</span></div>
+    <div class="score-row"><span>ANALYSTS TRAINED</span><span class="${s.trainingPts > 0 ? 'score-green' : ''}">+${s.trainingPts}</span></div>
+    <div class="score-row score-mult"><span>DIFFICULTY (${selectedDifficulty.toUpperCase()})</span><span>×${s.diffMult}</span></div>
+    <div class="score-total"><span class="score-grade">${s.grade}</span><span class="score-label">${s.label} — ${s.score} pts</span></div>`;
   document.getElementById('win-overlay').classList.add('visible');
 }
 
