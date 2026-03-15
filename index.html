@@ -1215,6 +1215,30 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
   color: var(--amber);
   background: rgba(255,176,0,0.04);
 }
+#help-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 8px 12px 0;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--bg2);
+}
+.help-tab {
+  background: none;
+  border: 1px solid transparent;
+  border-bottom: none;
+  color: var(--green-dim);
+  font-family: var(--font);
+  font-size: 10px;
+  letter-spacing: 1px;
+  padding: 4px 10px;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+.help-tab:hover { color: var(--green); border-color: var(--green-dim); }
+.help-tab.active { color: var(--green); border-color: var(--green); background: var(--bg); margin-bottom: -1px; }
+.help-page { display: none; }
+.help-page.active { display: block; }
 
 /* ===================== RESPONSIVE ===================== */
 
@@ -1771,85 +1795,166 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
       <span style="color:var(--green);font-size:12px;letter-spacing:2px;text-shadow:0 0 6px var(--green)">//&nbsp;HOW TO PLAY — PumaSOC</span>
       <button class="modal-close" onclick="closeHelp()">✕ CLOSE</button>
     </div>
+    <div id="help-tabs">
+      <button class="help-tab active" data-tab="overview"     onclick="switchHelpTab('overview')">OVERVIEW</button>
+      <button class="help-tab"        data-tab="capabilities" onclick="switchHelpTab('capabilities')">CAPABILITIES</button>
+      <button class="help-tab"        data-tab="team"         onclick="switchHelpTab('team')">TEAM &amp; PARTNERS</button>
+      <button class="help-tab"        data-tab="strategy"     onclick="switchHelpTab('strategy')">STRATEGY</button>
+    </div>
     <div id="help-body">
-      <div class="help-cols">
-        <div class="help-col">
-          <div class="help-section-title">OBJECTIVE</div>
-          <p>Survive <strong>7 game days</strong> as SOC operator. Defend your client estate against nation-state and criminal threat actors. You lose if <strong>3 breaches</strong> succeed.</p>
 
-          <div class="help-section-title">THE THREAT LOOP</div>
-          <p>Attacks are checked against your <strong>Coverage %</strong>. Detected → incident created, assign an analyst. Undetected → silent dwell, eventual <span class="help-crit">BREACH</span>. Unassigned incidents also breach if ignored. Breach windows tighten on harder difficulties.</p>
+      <!-- PAGE 1: OVERVIEW -->
+      <div class="help-page active" id="help-page-overview">
+        <div class="help-section-title">OBJECTIVE</div>
+        <p>Survive <strong>7 game days</strong> as a SOC operator. Defend your client estate against nation-state and criminal threat actors. You lose if <strong>3 breaches</strong> succeed — or if your budget hits zero.</p>
 
-          <div class="help-section-title">RESPONDING TO INCIDENTS</div>
-          <ol>
-            <li>CRIT alert fires in the <strong>SIEM strip</strong></li>
-            <li>Incident appears in the <strong>center panel</strong></li>
-            <li>Click <strong>ASSIGN ANALYST</strong> to start IR</li>
-            <li>Analyst works: <span class="help-stage">TRIAGE → CONTAIN → ERADICATE → RECOVER</span></li>
-            <li><strong>LESSONS LEARNED</strong> prompt appears after — click it for an IR speed bonus</li>
-          </ol>
+        <div class="help-section-title">THE THREAT LOOP</div>
+        <p>Every few minutes a threat actor attempts an intrusion. It is checked against your <strong>Coverage %</strong>:</p>
+        <ul>
+          <li><span class="help-ok">Detected</span> → CRIT fires in SIEM, incident created — assign an analyst immediately.</li>
+          <li><span class="help-warn">Undetected</span> → silent dwell. Surfaced eventually by your MTTD timer — or not at all until breach.</li>
+          <li><span class="help-crit">Breach</span> → undetected dwell expires, or a detected incident goes unhandled too long.</li>
+        </ul>
 
-          <div class="help-section-title">RANDOM EVENTS</div>
-          <p>Crises fire periodically — DDoS barrages, zero-days, tool outages, insider threats, budget audits. Shown as <span class="help-crit">ACTIVE EVENTS</span> in the left panel. May cut Coverage % or drain budget. Ride them out.</p>
+        <div class="help-section-title">RESPONDING TO INCIDENTS</div>
+        <ol>
+          <li>CRIT alert fires in the <strong>SIEM strip</strong> at the bottom.</li>
+          <li>Incident card appears in the <strong>centre panel</strong> with a breach countdown.</li>
+          <li>Click <strong>ASSIGN ANALYST</strong> — a free analyst begins working it.</li>
+          <li>Analyst works through: <span class="help-stage">TRIAGE → CONTAIN → ERADICATE → RECOVER</span></li>
+          <li>A <strong>LESSONS LEARNED</strong> sign-off appears after — click it for a per-category IR speed bonus.</li>
+        </ol>
 
-          <div class="help-section-title">KEY STATS</div>
-          <ul>
-            <li><strong>Coverage %</strong> — detection chance on spawn. Most important stat.</li>
-            <li><strong>MTTD</strong> — how quickly undetected threats are eventually caught.</li>
-            <li><strong>Vuln Score</strong> — drives threat spawn rate. Lower is better.</li>
-            <li><strong>Analysts</strong> — free / total. Watch this.</li>
-          </ul>
+        <div class="help-section-title">KEY STATS</div>
+        <ul>
+          <li><strong>Coverage %</strong> — detection chance on spawn. Your primary defence. Target 50%+ immediately.</li>
+          <li><strong>MTTD</strong> — Mean Time to Detect: how long before an undetected threat is eventually caught. Lower is safer.</li>
+          <li><strong>Vuln Score</strong> — directly increases threat spawn frequency. Patch regularly; don't let it compound.</li>
+          <li><strong>Analysts Free</strong> — your throughput ceiling. Running 0 free while incidents pile up is the most common way to lose.</li>
+          <li><strong>Budget</strong> — hits zero = game over. Idle money doesn't defend you. Spend it.</li>
+        </ul>
+
+        <div class="help-section-title">RANDOM EVENTS</div>
+        <p>Crises fire periodically — DDoS barrages, zero-days, tool outages, insider threats, budget audits. Shown as <span class="help-crit">ACTIVE EVENTS</span> in the left panel. Events may cut Coverage %, drain budget, or spike threat rates. Ride them out.</p>
+
+        <div class="help-section-title">NETWORK MAP</div>
+        <p>The minimap in the left panel shows your estate in real time. <span class="help-ok">Green</span> = healthy. <span class="help-warn">Amber</span> = vulnerable (unpatched CVEs). <span class="help-crit">Red</span> = under attack or breached. Animated packets show active threats moving through the network.</p>
+      </div>
+
+      <!-- PAGE 2: CAPABILITIES -->
+      <div class="help-page" id="help-page-capabilities">
+        <div class="help-section-title">DETECTION &amp; INTELLIGENCE</div>
+        <div class="help-cap-row">
+          <span class="help-cap-name">DETECTION ENG — $25k–$100k per upgrade</span>
+          <span class="help-cap-desc">Upgrade SIEM detection rules across all 12 MITRE ATT&amp;CK technique categories (up to level 5 each). Each level raises Coverage % and adds a category-specific detection bonus. Your highest-ROI investment — prioritise this above almost everything else.</span>
+        </div>
+        <div class="help-cap-row">
+          <span class="help-cap-name">THREAT INTEL — $100k–$500k per feed</span>
+          <span class="help-cap-desc">Subscribe to commercial threat intel feeds for passive Coverage % boosts and MTTD reductions. Each feed targets specific actor categories and stacks with Detection Engineering. Buy the cheapest feeds first — ROI diminishes as you stack them.</span>
         </div>
 
-        <div class="help-col">
-          <div class="help-section-title">YOUR CAPABILITIES</div>
+        <div class="help-section-title">VULNERABILITY MANAGEMENT</div>
+        <div class="help-cap-row">
+          <span class="help-cap-name">VULN MGMT — $10k scan, variable patch costs</span>
+          <span class="help-cap-desc">Run a scan to discover CVEs across your estate. Patch individually (HIGH: $8–12k, MED: $3–6k, LOW: $1–3k), patch all criticals at a small discount, or patch everything with a 15% bulk discount. Vuln Score directly accelerates threat spawn rate.</span>
+        </div>
 
-          <div class="help-cap-row">
-            <span class="help-cap-name">DETECTION ENG</span>
-            <span class="help-cap-desc">Upgrade SIEM rules per ATT&amp;CK category — raises Coverage %. Your highest-ROI investment.</span>
-          </div>
-          <div class="help-cap-row">
-            <span class="help-cap-name">VULN MGMT</span>
-            <span class="help-cap-desc">Scan assets to find CVEs, then patch them — lowers Vuln Score and slows threat spawn rate.</span>
-          </div>
-          <div class="help-cap-row">
-            <span class="help-cap-name">RED TEAM</span>
-            <span class="help-cap-desc">Commission a pentest — reveals hidden gaps and suppresses certain attack categories while active.</span>
-          </div>
-          <div class="help-cap-row">
-            <span class="help-cap-name">THREAT INTEL</span>
-            <span class="help-cap-desc">Subscribe to feeds for passive Coverage % and MTTD boosts. Stacks with Detection Engineering.</span>
-          </div>
-          <div class="help-cap-row">
-            <span class="help-cap-name">HIRE ANALYST</span>
-            <span class="help-cap-desc">Each analyst handles one incident at a time. Max 8. $75k each. Hire early.</span>
-          </div>
-          <div class="help-cap-row">
-            <span class="help-cap-name">SEND TO TRAINING</span>
-            <span class="help-cap-desc">Takes one analyst offline; permanently boosts all IR speed by 10% (max +30%). Do it early.</span>
-          </div>
-          <div class="help-cap-row">
-            <span class="help-cap-name">MSSP</span>
-            <span class="help-cap-desc">Auto-assigns to incidents when your team is full. $15k/cycle. Safety net, not a strategy.</span>
-          </div>
-          <div class="help-cap-row">
-            <span class="help-cap-name">CONSULTANT</span>
-            <span class="help-cap-desc">Passive defensive bonus + <strong>daily briefing</strong> with one prioritised action recommendation.</span>
-          </div>
+        <div class="help-section-title">AUTOMATED RESPONSE</div>
+        <div class="help-cap-row">
+          <span class="help-cap-name">SOAR PLATFORM — $100k platform + $20k per playbook</span>
+          <span class="help-cap-desc">Security Orchestration, Automation and Response. The platform alone does nothing — deploy playbooks per ATT&amp;CK category ($20k each, 12 total). Each playbook adds +25% speed to TRIAGE and CONTAIN stages for that technique. Best purchased mid-game when incidents are overwhelming analysts.</span>
+        </div>
 
-          <div class="help-section-title">CONTROLS</div>
-          <ul>
-            <li><strong>SPACE</strong> — pause / resume &nbsp;|&nbsp; <strong>1 2 3 4</strong> — speed &nbsp;|&nbsp; <strong>?</strong> — help &nbsp;|&nbsp; <strong>M</strong> — mute</li>
-          </ul>
-
-          <div class="help-section-title">SIEM FEED</div>
-          <p><strong>Click the strip</strong> at the bottom to expand full event history. CRIT entries need immediate attention.</p>
+        <div class="help-section-title">ADVERSARIAL TESTING</div>
+        <div class="help-cap-row">
+          <span class="help-cap-name">RED TEAM — $50k–$200k per engagement</span>
+          <span class="help-cap-desc">Commission a penetration test. While the engagement runs, that attack category is suppressed — all threats in it auto-detect. On completion you receive a coverage bonus and SIEM rule improvement for that category. Use it to shore up a detection blind spot while engineers catch up.</span>
         </div>
       </div>
 
-      <div class="help-tip">
-        <span class="help-crit">▶ FIRST MOVE:</span> Hire a consultant — their daily briefing directs your spending. Then push Detection Engineering above 50%. On Adversary, hire a second analyst immediately.
+      <!-- PAGE 3: TEAM & PARTNERS -->
+      <div class="help-page" id="help-page-team">
+        <div class="help-section-title">ANALYST STAFFING</div>
+        <div class="help-cap-row">
+          <span class="help-cap-name">HIRE ANALYST — $75k</span>
+          <span class="help-cap-desc">Each analyst handles one active incident at a time. Maximum 8. Hire early — analysts are your throughput ceiling and the most common bottleneck.</span>
+        </div>
+
+        <div class="help-section-title">ANALYST ACTIVITIES (consume one slot for the duration)</div>
+        <div class="help-cap-row">
+          <span class="help-cap-name">SEND TO TRAINING — $30k · 24h · permanent +10% IR speed (max +30%)</span>
+          <span class="help-cap-desc">Offline for 24 game-hours. On return, permanently boosts <em>all</em> analysts' IR stage speed by +10%. Three trainings caps the bonus. Do it early before incident waves hit.</span>
+        </div>
+        <div class="help-cap-row">
+          <span class="help-cap-name">THREAT HUNT — $40k · 8h · surfaces 1–3 hidden threats</span>
+          <span class="help-cap-desc">Proactive hunt for lurking undetected threats. On return, creates incidents for any found — turning silent dwell into cases you can close. Use when MTTD is high and you suspect threats are accumulating invisibly.</span>
+        </div>
+        <div class="help-cap-row">
+          <span class="help-cap-name">TABLETOP EXERCISE — $25k · 4h · +15% IR speed for 48h</span>
+          <span class="help-cap-desc">IR team runs through a simulated scenario. On completion, grants a temporary +15% speed boost lasting 48 game-hours — visible in the posture panel. Stack with training bonus for maximum throughput during a surge.</span>
+        </div>
+        <div class="help-cap-row">
+          <span class="help-cap-name">PATCH SPRINT — $10k · 3h · free-patches all LOW vulns</span>
+          <span class="help-cap-desc">Analyst focuses entirely on remediation. On completion, patches every discovered LOW-severity vulnerability at no additional cost. Only available when low vulns are outstanding. Excellent value early in the game.</span>
+        </div>
+        <div class="help-cap-row">
+          <span class="help-cap-name">OSINT RESEARCH — $20k · 6h · 3 guaranteed-detection charges</span>
+          <span class="help-cap-desc">Analyst profiles active threat actors. On completion, loads 3 charges — next 3 threats that spawn are immediately detected regardless of Coverage %, each logged with OSINT attribution in SIEM. Use before anticipated high-activity periods.</span>
+        </div>
+
+        <div class="help-section-title">PARTNERS</div>
+        <div class="help-cap-row">
+          <span class="help-cap-name">SECURITY AWARENESS TRAINING — $50k setup + $10k/cycle</span>
+          <span class="help-cap-desc">Blocks 35% of all Initial Access threat spawns at the employee layer — the threat never enters your environment. Ongoing retainer; auto-cancels on insufficient budget. Cheap early insurance on any difficulty.</span>
+        </div>
+        <div class="help-cap-row">
+          <span class="help-cap-name">MSSP — $150k setup + $15k/cycle</span>
+          <span class="help-cap-desc">Auto-assigns free analysts to unhandled incidents each tick. A safety net so incidents never breach simply because you missed the alert. Expensive — only worth it when you're consistently running out of free analysts.</span>
+        </div>
+        <div class="help-cap-row">
+          <span class="help-cap-name">CONSULTANT — $150k retainer</span>
+          <span class="help-cap-desc">Passive Coverage % and MTTD improvement plus a <strong>daily briefing</strong> with one data-driven action recommendation tailored to your current posture. Hire on day 1 — the briefings alone direct your spending effectively.</span>
+        </div>
       </div>
+
+      <!-- PAGE 4: STRATEGY -->
+      <div class="help-page" id="help-page-strategy">
+        <div class="help-section-title">FIRST MOVES BY DIFFICULTY</div>
+        <div class="help-cap-row">
+          <span class="help-cap-name">ANALYST (Easy) — $800k start, 3 analysts, 45% coverage</span>
+          <span class="help-cap-desc">Hire a Consultant day 1 for guided spending. Push Coverage above 60% fast. Buy Security Awareness Training early — it pays for itself within 2 income cycles. Run a Tabletop once your team is stable.</span>
+        </div>
+        <div class="help-cap-row">
+          <span class="help-cap-name">ENGINEER (Medium) — $500k start, 2 analysts, 25% coverage</span>
+          <span class="help-cap-desc">Hire a third analyst <em>immediately</em>. Send one to training as soon as coverage is above 40%. Buy SAT before the incident wave peaks around day 2. OSINT research is strong here — 6h is affordable when you have 3 analysts.</span>
+        </div>
+        <div class="help-cap-row">
+          <span class="help-cap-name">HUNTER (Hard) — $200k start, 1 analyst, 10% coverage</span>
+          <span class="help-cap-desc">First $75k goes on a second analyst — no exceptions. Patch sprints and OSINT are your best early tools. Don't buy SOAR or MSSP until coverage is above 40%. Every dollar counts; avoid analyst activities until you have 3+ on the team.</span>
+        </div>
+
+        <div class="help-section-title">GENERAL STRATEGY</div>
+        <ul>
+          <li><strong>Coverage first.</strong> Everything else is secondary until you can detect most threats on spawn.</li>
+          <li><strong>Never let analysts sit idle when incidents are open.</strong> Unhandled incidents breach. If all incidents are covered and a slot is free, run an analyst activity.</li>
+          <li><strong>Watch the breach countdown.</strong> The timer on each incident card is how long you have. Triage fast, especially on hard difficulties.</li>
+          <li><strong>Campaign actors escalate.</strong> The same actor appearing multiple times gains skill and speed. Don't ignore repeated names in the SIEM.</li>
+          <li><strong>Vuln Score compounds.</strong> Every point above 50 meaningfully increases spawn rate. Patch regularly — not in bulk emergencies.</li>
+          <li><strong>Budget is a weapon, not a score.</strong> Idle money doesn't defend you. Invest aggressively early.</li>
+        </ul>
+
+        <div class="help-section-title">SCORING</div>
+        <p>Final score is calculated from: incidents resolved, days survived, breaches taken, budget remaining, and analyst speed bonus achieved. Difficulty multiplies your base score.</p>
+
+        <div class="help-section-title">CONTROLS</div>
+        <ul>
+          <li><strong>SPACE</strong> — pause / resume &nbsp;|&nbsp; <strong>1 2 3 4</strong> — set speed &nbsp;|&nbsp; <strong>?</strong> — help &nbsp;|&nbsp; <strong>M</strong> — mute</li>
+        </ul>
+
+        <div class="help-section-title">SIEM FEED</div>
+        <p><strong>Click the strip</strong> at the bottom to expand the full event history. <span class="help-crit">CRIT</span> = immediate action needed. <span class="help-warn">WARN</span> = monitor. <span class="help-ok">OK/INFO</span> = informational. Use the filter buttons to focus on ALERTS or INCIDENTS only.</p>
+      </div>
+
     </div>
   </div>
 </div>
@@ -4418,9 +4523,13 @@ function togglePause() {
   }
 }
 
+function switchHelpTab(name) {
+  document.querySelectorAll('.help-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.help-page').forEach(p => p.classList.toggle('active', p.id === 'help-page-' + name));
+}
 function openHelp() {
   document.getElementById('help-overlay').classList.add('visible');
-  // Help is read-only — don't pause the game
+  switchHelpTab('overview');
 }
 function closeHelp() {
   document.getElementById('help-overlay').classList.remove('visible');
