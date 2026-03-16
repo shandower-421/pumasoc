@@ -5429,14 +5429,6 @@ function startGame() {
 
   updateUI();
 
-  console.log(
-    '%c// PumaSOC\n%cSo you opened DevTools.\n%cExpected.\n\n%cType pumaSOC.help() for available commands.',
-    'color:#00ff41;font-family:monospace;font-size:18px;font-weight:bold',
-    'color:#00cc33;font-family:monospace;font-size:13px',
-    'color:#00ff41;font-family:monospace;font-size:13px;font-weight:bold',
-    'color:#888;font-family:monospace;font-size:11px'
-  );
-
   // Initial SIEM entries
   const diff = DIFFICULTIES[selectedDifficulty];
   siemLog('OK','SYSTEM',`PumaSOC OPERATIONS CENTER — ONLINE  [${diff.label}]`);
@@ -5480,6 +5472,13 @@ function scheduleCrtFlicker() {
 
 window.addEventListener('beforeunload', saveState);
 window.addEventListener('load', () => {
+  console.log(
+    '%c// PumaSOC\n%cSo you opened DevTools.\n%cExpected.\n\n%cType pumaSOC.help() for available commands.',
+    'color:#00ff41;font-family:monospace;font-size:18px;font-weight:bold',
+    'color:#00cc33;font-family:monospace;font-size:13px',
+    'color:#00ff41;font-family:monospace;font-size:13px;font-weight:bold',
+    'color:#888;font-family:monospace;font-size:11px'
+  );
   runBootSequence();
 });
 </script>
