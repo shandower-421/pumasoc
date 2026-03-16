@@ -876,6 +876,7 @@ body::after {
 }
 .redteam-option:hover { border-color: var(--green); }
 .redteam-option.selected { border-color: var(--green); background: var(--surface-lg); }
+.redteam-option.unavailable { opacity: 0.38; cursor: not-allowed; pointer-events: none; }
 .redteam-name { color: var(--green); font-size: 11px; margin-bottom: 3px; }
 .redteam-desc { color: var(--green-dim); font-size: 10px; }
 .redteam-meta { color: var(--amber); font-size: 10px; margin-top: 3px; }
@@ -4960,14 +4961,20 @@ function renderRedTeamModal() {
   optDiv.innerHTML = '';
   REDTEAM_OPTIONS.forEach(opt => {
     const active = G.redTeamJobs.some(j => j.type === opt.id && !j.done);
+    const unaffordable = G.budget < opt.cost;
+    const unavailable = active || unaffordable;
     const d = document.createElement('div');
-    d.className = `redteam-option${selectedRedTeam===opt.id?' selected':''}`;
+    d.className = `redteam-option${selectedRedTeam===opt.id?' selected':''}${unavailable?' unavailable':''}`;
     d.onclick = () => {
+      if (unavailable) return;
       selectedRedTeam = opt.id;
       renderRedTeamModal();
     };
+    const statusTag = active
+      ? ' <span style="color:var(--amber)">[IN PROGRESS]</span>'
+      : unaffordable ? ' <span style="color:var(--red-dim)">[INSUFFICIENT FUNDS]</span>' : '';
     d.innerHTML = `
-      <div class="redteam-name">${opt.name}${active?' <span style="color:var(--amber)">[ACTIVE]</span>':''}</div>
+      <div class="redteam-name">${opt.name}${statusTag}</div>
       <div class="redteam-desc">${opt.desc}</div>
       <div class="redteam-meta">Cost: ${fmt$(opt.cost)} | Duration: ${Math.round(opt.durationMins/60)}h game time</div>
     `;
