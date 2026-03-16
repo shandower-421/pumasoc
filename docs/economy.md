@@ -35,9 +35,9 @@
 
 | Difficulty | Starting Budget | Starting Analysts |
 |------------|-----------------|-------------------|
-| Apprentice | $800,000        | 3                 |
-| Analyst    | $500,000        | 2                 |
-| Adversary  | $300,000        | 1                 |
+| Analyst    | $800,000        | 3                 |
+| Engineer   | $500,000        | 2                 |
+| Hunter     | $300,000        | 1                 |
 
 Budget carries over between weeks — there is no reset. Unspent money from Week 1 rolls into Week 2, which makes early investment decisions consequential for the whole campaign.
 
@@ -50,9 +50,9 @@ Income is the primary budget replenishment mechanism. It fires on a fixed game-t
 | Parameter                  | Value                                    |
 |---------------------------|------------------------------------------|
 | Base interval             | 360 game-minutes (6 game-hours)          |
-| Apprentice amount/cycle   | $75,000                                  |
-| Analyst amount/cycle      | $50,000                                  |
-| Adversary amount/cycle    | $30,000                                  |
+| Analyst amount/cycle      | $75,000                                  |
+| Engineer amount/cycle     | $50,000                                  |
+| Hunter amount/cycle       | $30,000                                  |
 
 **Income decay across weeks:**
 The income amount is permanently reduced at each week transition. Difficulty sets the Week 1 baseline; from there:
@@ -63,7 +63,7 @@ The income amount is permanently reduced at each week transition. Difficulty set
 | → W3 | × 0.80 (−20% of W2 amount)      |
 | → W4 | × 0.75 (−25% of W3 amount)      |
 
-A player who starts at $50k/cycle (Analyst) will earn $42.5k/cycle in Week 2, $34k/cycle in Week 3, and $25.5k/cycle in Week 4.
+A player who starts at $50k/cycle (Engineer) will earn $42.5k/cycle in Week 2, $34k/cycle in Week 3, and $25.5k/cycle in Week 4.
 
 **Implication:** The game is designed around a shrinking income baseline. Capabilities purchased in early weeks must compensate for fewer resources later. Recurring fees become proportionally more expensive over time.
 
@@ -82,7 +82,7 @@ Fees are deducted **after** the income deposit. If the resulting budget would go
 
 Consultants are also auto-cancelled if budget drops to zero at an income tick.
 
-**Combined recurring drag** (both services active): −$25,000/cycle. At late-game Analyst income (~$25k/cycle), this means running both MSSP and SAT at the same time can zero out an entire income cycle.
+**Combined recurring drag** (both services active): −$25,000/cycle. At late-game Engineer income (~$25k/cycle), this means running both MSSP and SAT at the same time can zero out an entire income cycle.
 
 ---
 
@@ -112,7 +112,6 @@ These are one-shot actions with an upfront cost and a game-time duration. All re
 | Tabletop Exercise | $25,000 | 4 game-hours  | +15% IR speed bonus for 48 game-hours                             |
 | Patch Sprint      | $10,000 | 3 game-hours  | Auto-patches all discovered LOW severity vulns at no extra cost   |
 | OSINT Research    | $20,000 | 6 game-hours  | Grants 3 guaranteed-detection charges (next 3 threats auto-detected)|
-| Vulnerability Scan | $10,000 | Instant      | Reveals all undiscovered vulnerabilities                           |
 
 **Patch Sprint economics:** Each LOW vuln would individually cost $1k–$3k; a sprint at $10k can clear multiple at once, but requires a discovered list. Run a scan first.
 
@@ -187,39 +186,39 @@ Vulnerability costs are assigned at spawn based on severity:
 
 ### Threat Intel Feeds
 
-Intel feeds are **per-week subscriptions** — they are cleared at every week transition and must be repurchased.
+Intel feeds are **7-day rolling subscriptions** — each feed expires 7 game-days after purchase, regardless of week boundaries. The SIEM logs a warning when a feed lapses and shows days remaining while active. Higher-tier feeds unlock as the campaign progresses.
 
 **Week 1:**
 
-| Feed                 | Cost     | Detection | MTTD    | Vuln Bonus |
-|----------------------|----------|-----------|---------|------------|
-| OSINT Aggregator     | $50,000  | +5%       | −15 min | —          |
-| IOC Feed Premium     | $100,000 | +8%       | −25 min | —          |
-| Nation-State Intel   | $150,000 | +12%      | −40 min | —          |
+| Feed                 | Cost    | Detection | MTTD    | Vuln Bonus |
+|----------------------|---------|-----------|---------|------------|
+| OSINT Aggregator     | $30,000 | +5%       | −15 min | —          |
+| IOC Feed Premium     | $55,000 | +8%       | −25 min | —          |
+| Nation-State Intel   | $80,000 | +12%      | −40 min | —          |
 
 **Week 2+:**
 
-| Feed             | Cost     | Detection | MTTD    | Vuln Bonus |
-|------------------|----------|-----------|---------|------------|
-| Dark Web Monitor | $200,000 | +10%      | −30 min | —          |
-| Zero-Day Exchange | $250,000 | +5%      | —       | −25        |
+| Feed              | Cost     | Detection | MTTD    | Vuln Bonus |
+|-------------------|----------|-----------|---------|------------|
+| Dark Web Monitor  | $100,000 | +10%      | −30 min | —          |
+| Zero-Day Exchange | $120,000 | +5%       | —       | −25        |
 
 **Week 3+:**
 
-| Feed                      | Cost     | Detection | MTTD    | Vuln Bonus |
-|---------------------------|----------|-----------|---------|------------|
-| Threat Graph Analytics    | $300,000 | +12%      | −35 min | —          |
-| Adversary Profile Database | $350,000 | +8%      | −20 min | —          |
+| Feed                       | Cost     | Detection | MTTD    | Vuln Bonus |
+|----------------------------|----------|-----------|---------|------------|
+| Threat Graph Analytics     | $140,000 | +12%      | −35 min | —          |
+| Adversary Profile Database | $160,000 | +8%       | −20 min | —          |
 
 **Week 4+:**
 
-| Feed                   | Cost     | Detection | MTTD    | Vuln Bonus |
-|------------------------|----------|-----------|---------|------------|
-| Predictive Threat Engine | $400,000 | +15%    | −50 min | —          |
-| Insider Threat Monitor | $450,000 | +10%     | −25 min | −15        |
+| Feed                     | Cost     | Detection | MTTD    | Vuln Bonus |
+|--------------------------|----------|-----------|---------|------------|
+| Predictive Threat Engine | $175,000 | +15%      | −50 min | —          |
+| Insider Threat Monitor   | $190,000 | +10%      | −25 min | −15        |
 
-**All W1 feeds:** $300k for +25% detection and −80 min MTTD.
-**Key tradeoff:** Late-game intel feeds offer massive detection bonuses but cost more than an entire early-game week budget and must be bought again each week.
+**All W1 feeds:** $165k for +25% detection and −80 min MTTD.
+**Subscription timing:** Feeds bought early in a week carry over into the next if they have days remaining — no forced repurchase at week transition. A feed bought on Day 1 expires on Day 8, bridging the week boundary.
 
 ---
 
@@ -232,8 +231,8 @@ Intel feeds are **per-week subscriptions** — they are cleared at every week tr
 
 ### MSSP (Managed Security Service Provider)
 - **Setup:** $150,000 | **Recurring:** $15,000/cycle
-- **Effect:** Auto-assigns analysts to incidents when all human slots are full; prevents incident queue overflow
-- High setup cost; primarily valuable when running with few analysts or expecting high incident volume.
+- **Effect:** Automates analyst assignment — whenever an unassigned incident exists and a free analyst slot is available, the MSSP immediately assigns one. Adds no analyst capacity; removes the manual assignment step.
+- High setup cost for a convenience benefit. Most valuable when managing a large incident queue and missing assignments due to inattention.
 
 ### Red Team Engagements
 
@@ -267,7 +266,7 @@ Consultants provide daily tactical briefings and recommended actions beyond thei
 
 ## 8. Difficulty Modifiers
 
-| Parameter             | Apprentice | Analyst   | Adversary  |
+| Parameter             | Analyst   | Engineer  | Hunter     |
 |-----------------------|-----------|-----------|------------|
 | Starting budget       | $800,000  | $500,000  | $300,000   |
 | Income/cycle          | $75,000   | $50,000   | $30,000    |
@@ -278,7 +277,7 @@ Consultants provide daily tactical briefings and recommended actions beyond thei
 | Breach dwell window   | 720 min   | 600 min   | 480 min    |
 | Incident expire window | 1440 min | 1200 min  | 960 min    |
 
-Difficulty does **not** change capability costs — the same $100k SOAR costs the same on Adversary as on Apprentice. The pressure is entirely on income and starting headroom.
+Difficulty does **not** change capability costs — the same $100k SOAR costs the same on Hunter as on Analyst. The pressure is entirely on income and starting headroom.
 
 ---
 
@@ -291,7 +290,7 @@ At each week boundary the following budget-relevant changes occur:
 | Budget                     | Carries over — no reset                                             |
 | Income amount              | Multiplied down (×0.85 / ×0.80 / ×0.75 cumulatively)              |
 | Detection rules            | Decay by 1–2 levels per category                                    |
-| Intel feed subscriptions   | **Cleared** — must be repurchased                                   |
+| Intel feed subscriptions   | Unaffected — expire by time (7 days from purchase)                  |
 | Consultant                 | **Cancelled** — must be rehired                                     |
 | SOAR playbooks             | Degrade by 1 level per category                                     |
 | SOAR platform              | Persists                                                            |
@@ -301,10 +300,10 @@ At each week boundary the following budget-relevant changes occur:
 | New CVEs                   | 6–9 added depending on week                                         |
 
 **Budget planning implication:** Week transitions create a predictable "reset tax." A player should budget for:
-1. Re-buying intel feeds ($50k–$300k+ depending on tier)
-2. Re-hiring consultant ($75k)
-3. Restoring decayed detection rules (potentially $200k+)
-4. Restoring SOAR playbooks ($20k × affected categories)
+1. Re-hiring consultant ($75k)
+2. Restoring decayed detection rules (potentially $200k+)
+3. Restoring SOAR playbooks ($20k × affected categories)
+4. Renewing any intel feeds that lapsed mid-week ($30k–$190k depending on tier)
 
 ---
 
@@ -365,15 +364,15 @@ Money is the means, not the end. A player who spends efficiently and scores S gr
 
 ### Cost tiers (one-time spends)
 
-| Tier       | Range          | Examples                                            |
-|------------|----------------|-----------------------------------------------------|
-| Micro      | $10k – $30k    | Scan, Patch Sprint, Tabletop, Phishing Sim, Training|
-| Small      | $30k – $75k    | OSINT, Hunt, SAT, Ext Pentest, Consultant, Analyst  |
-| Medium     | $75k – $150k   | MSSP, Int Assessment, Cloud Review, W1 Intel bundle |
-| Large      | $150k – $300k  | Full Red Team, W2–W3 intel feeds, SOAR full stack   |
-| Commitment | $300k+         | Full detection tree restoration, late-game intel    |
+| Tier       | Range          | Examples                                                        |
+|------------|----------------|-----------------------------------------------------------------|
+| Micro      | $10k – $30k    | Scan, Patch Sprint, Tabletop, Phishing Sim, Training, W1 OSINT |
+| Small      | $30k – $75k    | Hunt, SAT, Ext Pentest, Consultant, Analyst, W1 IOC/APT feeds  |
+| Medium     | $75k – $150k   | MSSP, Int Assessment, Cloud Review, W2 feeds                   |
+| Large      | $150k – $300k  | Full Red Team, W3–W4 intel feeds, SOAR full stack              |
+| Commitment | $300k+         | Full detection tree restoration                                 |
 
-### Income vs. fees (Analyst difficulty, W1)
+### Income vs. fees (Engineer difficulty, W1)
 
 ```
 Income per cycle:           $50,000
@@ -391,10 +390,10 @@ Income per cycle:           $50,000
 | Detection rules (3 categories, L1)     | $75,000   |
 | SOAR platform                          | $100,000  |
 | SOAR playbooks (4 categories, L1)      | $80,000   |
-| Intel: OSINT + IOC feeds               | $150,000  |
+| Intel: OSINT + IOC feeds               | $85,000   |
 | Consultant (Cassandra Voss)            | $75,000   |
 | SAT                                    | $50,000   |
 | Vulnerability scan + HIGH patches      | ~$60,000  |
-| **Total**                              | **~$665,000** |
+| **Total**                              | **~$600,000** |
 
-On Analyst difficulty ($500k start, ~2 income cycles before week ends ≈ +$100k), this plan is already over budget by ~$65k. Prioritisation is mandatory.
+On Engineer difficulty ($500k start, ~2 income cycles before week ends ≈ +$100k), this plan nearly fits the available budget — but leaves almost no reserve. Any unplanned expense (emergency audit, extra HIGH vulns) pushes into deficit. Prioritisation is still mandatory.

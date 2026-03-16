@@ -52,7 +52,7 @@ Times are at 1× speed. On Hunter, 90% of threats spawn undetected — invest in
 | **Threat Intel** | Subscribe to feeds for passive Coverage + MTTD boosts |
 | **Hire Analyst** | Add responders (max 8, $75k each) — each handles one incident at a time |
 | **Send to Training** | Takes an analyst offline temporarily; permanently boosts all analyst IR speed by 10% (max +30%) |
-| **MSSP** | Auto-assigns to incidents when all your analysts are busy ($15k/cycle retainer) |
+| **MSSP** | Automates analyst assignment — immediately assigns a free analyst to any unassigned incident ($15k/cycle retainer) |
 | **Consultant** | Retains an expert for a daily prioritised recommendation and passive defensive bonus |
 
 ### Random Events
@@ -80,4 +80,4 @@ APT28 (Fancy Bear), APT29 (Cozy Bear), Lazarus Group, APT41, Sandworm, Volt Typh
 
 ## Tech
 
-Single HTML file (~4200 lines). Vanilla JS game loop at 100ms ticks. No frameworks, no build tooling.
+Single HTML file (~5400 lines). Vanilla JS game loop at 100ms ticks. No frameworks, no build tooling.

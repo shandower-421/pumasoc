@@ -2317,23 +2317,24 @@ const REDTEAM_OPTIONS = [
   { id:'red',     name:'Full Red Team Engagement',   desc:'Adversary simulation: end-to-end APT-style attack chain',        cost:150000, durationMins:4320 },
 ];
 
+const INTEL_FEED_DURATION_DAYS = 7;           // subscription lasts 7 game-days from purchase
 const INTEL_FEEDS = [
-  { id:'osint',  name:'OSINT Aggregator',       desc:'Open-source threat intelligence — low fidelity, broad coverage', cost:50000,  detectionBonus:5,  mttdBonus:15 },
-  { id:'ioc',    name:'IOC Feed Premium',       desc:'Real-time indicators of compromise from global sensor network',   cost:100000, detectionBonus:8,  mttdBonus:25 },
-  { id:'apt',    name:'Nation-State Intel Feed', desc:'Classified APT actor profiles and TTP attribution data',         cost:150000, detectionBonus:12, mttdBonus:40 },
+  { id:'osint',  name:'OSINT Aggregator',       desc:'Open-source threat intelligence — low fidelity, broad coverage', cost:30000,  detectionBonus:5,  mttdBonus:15 },
+  { id:'ioc',    name:'IOC Feed Premium',       desc:'Real-time indicators of compromise from global sensor network',   cost:55000, detectionBonus:8,  mttdBonus:25 },
+  { id:'apt',    name:'Nation-State Intel Feed', desc:'Classified APT actor profiles and TTP attribution data',         cost:80000, detectionBonus:12, mttdBonus:40 },
 ];
 
 const INTEL_FEEDS_W2 = [
-  { id:'darkweb', name:'Dark Web Monitor',  desc:'Threat actor chatter and planned campaign early warnings from underground forums', cost:200000, detectionBonus:10, mttdBonus:30 },
-  { id:'zeroday', name:'Zero-Day Exchange', desc:'Pre-disclosure CVE intelligence from private researchers — neutralise vulns before public exploit', cost:250000, detectionBonus:5, mttdBonus:0, vulnBonus:25 },
+  { id:'darkweb', name:'Dark Web Monitor',  desc:'Threat actor chatter and planned campaign early warnings from underground forums', cost:100000, detectionBonus:10, mttdBonus:30 },
+  { id:'zeroday', name:'Zero-Day Exchange', desc:'Pre-disclosure CVE intelligence from private researchers — neutralise vulns before public exploit', cost:120000, detectionBonus:5, mttdBonus:0, vulnBonus:25 },
 ];
 const INTEL_FEEDS_W3 = [
-  { id:'threatgraph', name:'Threat Graph Analytics',      desc:'AI-correlated attack pattern analysis across global sensor network',                        cost:300000, detectionBonus:12, mttdBonus:35 },
-  { id:'adversarydb', name:'Adversary Profile Database',  desc:'Deep-profile intelligence on active threat actor groups targeting your sector',              cost:350000, detectionBonus:8,  mttdBonus:20 },
+  { id:'threatgraph', name:'Threat Graph Analytics',      desc:'AI-correlated attack pattern analysis across global sensor network',                        cost:140000, detectionBonus:12, mttdBonus:35 },
+  { id:'adversarydb', name:'Adversary Profile Database',  desc:'Deep-profile intelligence on active threat actor groups targeting your sector',              cost:160000, detectionBonus:8,  mttdBonus:20 },
 ];
 const INTEL_FEEDS_W4 = [
-  { id:'predictive',   name:'Predictive Threat Engine',  desc:'ML-driven attack prediction based on current geopolitical indicators',                        cost:400000, detectionBonus:15, mttdBonus:50 },
-  { id:'insiderthreat',name:'Insider Threat Monitor',    desc:'Behavioural analytics detecting anomalous insider activity before exfiltration',              cost:450000, detectionBonus:10, mttdBonus:25, vulnBonus:15 },
+  { id:'predictive',   name:'Predictive Threat Engine',  desc:'ML-driven attack prediction based on current geopolitical indicators',                        cost:175000, detectionBonus:15, mttdBonus:50 },
+  { id:'insiderthreat',name:'Insider Threat Monitor',    desc:'Behavioural analytics detecting anomalous insider activity before exfiltration',              cost:190000, detectionBonus:10, mttdBonus:25, vulnBonus:15 },
 ];
 
 const RULE_UPGRADE_COSTS = [25000, 30000, 35000, 40000, 50000];
@@ -2476,6 +2477,13 @@ function loadSavedState() {
     if (G.w2Grade === undefined) G.w2Grade = '';
     if (G.w3Grade === undefined) G.w3Grade = '';
     if (G.weekBreaches === undefined) G.weekBreaches = G.breaches;
+    if (G.intelFeedExpiry === undefined) {
+      // Migrate old saves: give existing active feeds a fresh 7-day window
+      G.intelFeedExpiry = {};
+      G.activeIntelFeeds.forEach(fid => {
+        G.intelFeedExpiry[fid] = G.gameTime + INTEL_FEED_DURATION_DAYS * 1440;
+      });
+    }
     selectedDifficulty = save.selectedDifficulty || 'analyst';
     siemHistory.length = 0;
     siemHistory.push(...(save.siemHistory || []));
@@ -2550,6 +2558,7 @@ function initState() {
     incidents: [],
     redTeamJobs: [],
     activeIntelFeeds: [],
+    intelFeedExpiry: {},  // feedId → gameTime at which subscription expires
     consultant: null, // { id, lastAdviceDay, advice: { priority, action, text } }
     lessonsLearned: {}, // techniqueCategory → count of lessons completed
     nextThreatIn: 180, // 36s grace period before first threat
@@ -3049,6 +3058,25 @@ function tick() {
     const expired = G.suppressedTechniques.filter(s => G.gameTime >= s.expiresAt);
     expired.forEach(s => siemLog('WARN','RED-TEAM',`${s.category} suppression window expired — threat actors may resume activity`));
     G.suppressedTechniques = G.suppressedTechniques.filter(s => G.gameTime < s.expiresAt);
+  }
+
+  // Expire intel feed subscriptions
+  if (G.activeIntelFeeds.length > 0 && G.intelFeedExpiry) {
+    const expiredFeeds = G.activeIntelFeeds.filter(fid => {
+      const exp = G.intelFeedExpiry[fid];
+      return exp !== undefined && G.gameTime >= exp;
+    });
+    if (expiredFeeds.length > 0) {
+      const allFeeds = [...INTEL_FEEDS, ...INTEL_FEEDS_W2, ...INTEL_FEEDS_W3, ...INTEL_FEEDS_W4];
+      expiredFeeds.forEach(fid => {
+        const feed = allFeeds.find(f => f.id === fid);
+        siemLog('WARN','THREAT-INTEL',`Subscription expired: ${feed ? feed.name : fid}`, 'Renew to maintain detection bonuses');
+        delete G.intelFeedExpiry[fid];
+      });
+      G.activeIntelFeeds = G.activeIntelFeeds.filter(fid => !expiredFeeds.includes(fid));
+      G.coverage = calcCoverage();
+      G.mttd = calcMTTD();
+    }
   }
 
   // End-of-day sitrep
@@ -3576,8 +3604,7 @@ function continueToNextWeek() {
   const decayAmount = G.week >= 4 ? 2 : G.week >= 3 ? 2 : 1;
   TECHNIQUE_CATS.forEach(cat => { G.rules[cat] = Math.max(0, (G.rules[cat] || 0) - decayAmount); });
 
-  // Intel feed subscriptions lapse
-  G.activeIntelFeeds = [];
+  // Intel feed subscriptions now expire by time (7-day rolling window); no week-boundary clear
 
   // Consultant contract ends
   G.consultant = null;
@@ -4054,9 +4081,13 @@ function purchaseIntelFeed(feedId) {
   if (G.budget < feed.cost) { siemLog('WARN','OPS','Insufficient budget for intel feed'); return; }
   G.budget -= feed.cost;
   G.activeIntelFeeds.push(feedId);
+  const expiresAt = G.gameTime + INTEL_FEED_DURATION_DAYS * 1440;
+  if (!G.intelFeedExpiry) G.intelFeedExpiry = {};
+  G.intelFeedExpiry[feedId] = expiresAt;
   G.coverage = calcCoverage();
   G.mttd = calcMTTD();
-  siemLog('OK','THREAT-INTEL',`Feed activated: ${feed.name}`, `Detection: +${feed.detectionBonus}% | MTTD: -${feed.mttdBonus}min`);
+  const expiryDay = Math.floor(expiresAt / 1440) + 1;
+  siemLog('OK','THREAT-INTEL',`Feed activated: ${feed.name}`, `Detection: +${feed.detectionBonus}% | MTTD: -${feed.mttdBonus}min | Expires Day ${expiryDay}`);
   renderIntelModal();
 }
 
@@ -4928,13 +4959,19 @@ function renderIntelModal() {
     const isNewFeed = (G.week === 2 && INTEL_FEEDS_W2.some(f => f.id === feed.id))
                    || (G.week === 3 && INTEL_FEEDS_W3.some(f => f.id === feed.id))
                    || (G.week === 4 && INTEL_FEEDS_W4.some(f => f.id === feed.id));
+    let activeLabel = '';
+    if (active) {
+      const exp = G.intelFeedExpiry && G.intelFeedExpiry[feed.id];
+      const daysLeft = exp ? Math.max(1, Math.ceil((exp - G.gameTime) / 1440)) : '?';
+      activeLabel = `<span class="intel-active">● ACTIVE — ${daysLeft}d left</span>`;
+    }
     const d = document.createElement('div');
     d.className = 'intel-option';
     d.innerHTML = `
-      <div class="intel-name">${feed.name}${isNewFeed ? '<span style="color:var(--amber);font-size:9px"> [NEW]</span>' : ''} ${active?'<span class="intel-active">● ACTIVE</span>':''}</div>
+      <div class="intel-name">${feed.name}${isNewFeed ? '<span style="color:var(--amber);font-size:9px"> [NEW]</span>' : ''} ${activeLabel}</div>
       <div class="intel-desc">${feed.desc}</div>
       <div style="font-size:9px;color:var(--green-dim);margin-top:2px">
-        Detection +${feed.detectionBonus}% | MTTD -${feed.mttdBonus}min${feed.vulnBonus ? ` | Vuln -${feed.vulnBonus}` : ''} | Cost: ${fmt$(feed.cost)}
+        Detection +${feed.detectionBonus}% | MTTD -${feed.mttdBonus}min${feed.vulnBonus ? ` | Vuln -${feed.vulnBonus}` : ''} | ${INTEL_FEED_DURATION_DAYS}-day sub: ${fmt$(feed.cost)}
       </div>
       ${active
         ? ''
