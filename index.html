@@ -1695,14 +1695,14 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
       </div>
       <div class="ops-section">
         <div class="ops-section-title">── CAPABILITIES ─────────</div>
-        <button class="action-btn" onclick="openModal('detection')">▶ DETECTION ENG<span class="btn-cost" id="detection-btn-cost">$25k</span></button>
-        <button class="action-btn" onclick="openModal('vuln')">▶ VULN MGMT<span class="btn-cost">$10k</span></button>
-        <button class="action-btn" onclick="openModal('soar')">▶ SOAR PLATFORM<span class="btn-cost" id="soar-btn-cost">$100k</span></button>
-        <button class="action-btn" onclick="openModal('intel')">▶ THREAT INTEL<span class="btn-cost" id="intel-btn-cost">$100k</span></button>
+        <button class="action-btn" id="detection-action-btn" onclick="openModal('detection')">▶ DETECTION ENG<span class="btn-cost" id="detection-btn-cost">$25k</span></button>
+        <button class="action-btn" id="vuln-action-btn" onclick="openModal('vuln')">▶ VULN MGMT<span class="btn-cost" id="vuln-btn-cost">$10k</span></button>
+        <button class="action-btn" id="soar-action-btn" onclick="openModal('soar')">▶ SOAR PLATFORM<span class="btn-cost" id="soar-btn-cost">$100k</span></button>
+        <button class="action-btn" id="intel-action-btn" onclick="openModal('intel')">▶ THREAT INTEL<span class="btn-cost" id="intel-btn-cost">$100k</span></button>
       </div>
       <div class="ops-section" id="consultant-ops-section">
         <div class="ops-section-title">── PARTNERS ─────────────</div>
-        <button class="action-btn" onclick="openModal('redteam')">▶ RED TEAM<span class="btn-cost">$50k+</span></button>
+        <button class="action-btn" id="redteam-action-btn" onclick="openModal('redteam')">▶ RED TEAM<span class="btn-cost" id="redteam-btn-cost">$30k</span></button>
         <button class="action-btn" id="sat-btn" onclick="hireSAT()">▶ SECURITY AWARENESS<span class="btn-cost" id="sat-btn-cost">$50k</span></button>
         <button class="action-btn" id="mssp-btn" onclick="hireMSSP()">▶ HIRE MSSP<span class="btn-cost">$150k</span></button>
         <div id="consultant-card"><div style="color:var(--green-dark);font-size:10px;margin-bottom:4px">No external consultant engaged.</div></div>
@@ -4184,6 +4184,7 @@ function _initUICache() {
     'budget-display-large','stat-analysts','stat-coverage','bar-coverage',
     'stat-mttd','stat-vuln','bar-vuln','stat-threats','stat-actors','stat-income','stat-progress',
     'hire-btn','training-btn','hunt-btn','tabletop-btn','patch-sprint-btn','osint-btn',
+    'detection-action-btn','vuln-action-btn','soar-action-btn','redteam-action-btn','intel-action-btn',
     'mssp-btn','sat-btn','row-mssp','row-sat','row-tabletop','stat-tabletop','row-osint','stat-osint','row-ir-bonus','stat-ir-bonus',
     'incidents-list','incident-count','analyst-roster',
     'redteam-jobs-section','redteam-jobs-list',
@@ -4518,27 +4519,58 @@ function updateUI() {
     msspBtn.disabled = G.budget < 150000;
   }
 
-  // SOAR button label
+  // SOAR button label; disable only when platform is unaffordable (keep enabled when active — playbooks)
   const soarCostEl = document.getElementById('soar-btn-cost');
-  if (soarCostEl) soarCostEl.textContent = G.soar ? 'ACTIVE' : '$100k';
+  if (soarCostEl) {
+    soarCostEl.textContent = G.soar ? 'ACTIVE' : '$100k';
+    _ui['soar-action-btn'].disabled = !G.soar && G.budget < SOAR_PLATFORM_COST;
+  }
 
-  // Detection ENG button — show cheapest available upgrade or MAXED
+  // Detection ENG button — show cheapest available upgrade or MAXED; disable when nothing affordable
   const detCostEl = document.getElementById('detection-btn-cost');
   if (detCostEl) {
     const upgradableLevels = TECHNIQUE_CATS.map(c => G.rules[c]).filter(l => l < 5);
     if (upgradableLevels.length === 0) {
       detCostEl.textContent = 'MAXED';
+      _ui['detection-action-btn'].disabled = true;
     } else {
       const minCost = Math.min(...upgradableLevels.map(l => RULE_UPGRADE_COSTS[l]));
       detCostEl.textContent = fmt$(minCost);
+      _ui['detection-action-btn'].disabled = G.budget < minCost;
     }
   }
 
-  // Threat Intel button — show cheapest unpurchased feed or ALL OWNED
+  // Threat Intel button — show cheapest unpurchased feed or ALL OWNED; disable when unaffordable
   const intelCostEl = document.getElementById('intel-btn-cost');
   if (intelCostEl) {
     const available = INTEL_FEEDS.filter(f => !G.activeIntelFeeds.includes(f.id));
-    intelCostEl.textContent = available.length === 0 ? 'ALL OWNED' : fmt$(Math.min(...available.map(f => f.cost)));
+    if (available.length === 0) {
+      intelCostEl.textContent = 'ALL OWNED';
+      _ui['intel-action-btn'].disabled = false; // keep enabled — player can review active feeds
+    } else {
+      const minCost = Math.min(...available.map(f => f.cost));
+      intelCostEl.textContent = fmt$(minCost);
+      _ui['intel-action-btn'].disabled = G.budget < minCost;
+    }
+  }
+
+  // Vuln Mgmt button — disable when nothing affordable (no scan budget and no patchable vulns)
+  {
+    const unknownVulns = G.vulns.some(v => !v.discovered);
+    const patchable    = G.vulns.filter(v => v.discovered && !v.patched);
+    const minPatch     = patchable.length > 0 ? Math.min(...patchable.map(v => v.cost || 5000)) : Infinity;
+    const minVulnCost  = Math.min(unknownVulns ? 10000 : Infinity, minPatch);
+    const vulnCostEl   = document.getElementById('vuln-btn-cost');
+    if (vulnCostEl) vulnCostEl.textContent = minVulnCost === Infinity ? 'CLEAR' : fmt$(minVulnCost);
+    _ui['vuln-action-btn'].disabled = G.budget < minVulnCost;
+  }
+
+  // Red Team button — show cheapest engagement cost; disable when unaffordable
+  {
+    const minRedteamCost = Math.min(...REDTEAM_OPTIONS.map(o => o.cost));
+    const redteamCostEl = document.getElementById('redteam-btn-cost');
+    if (redteamCostEl) redteamCostEl.textContent = fmt$(minRedteamCost);
+    _ui['redteam-action-btn'].disabled = G.budget < minRedteamCost;
   }
 
   // MSSP, SAT & IR bonus posture indicators
