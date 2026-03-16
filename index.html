@@ -2037,7 +2037,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
         </div>
         <div class="help-cap-row" style="margin-bottom:4px">
           <span class="help-cap-name" style="color:var(--amber)">Intel Feed Subscriptions Expire</span>
-          <span class="help-cap-desc">Not only do you have to renew them, now there are more.</span>
+          <span class="help-cap-desc">Feeds run for 7 game-days from purchase — check days remaining in the modal and renew before they lapse. New higher-tier feeds also unlock each week.</span>
         </div>
         <div class="help-cap-row" style="margin-bottom:4px">
           <span class="help-cap-name" style="color:var(--amber)">Consultant Contracts End</span>
@@ -3646,7 +3646,7 @@ function continueToNextWeek() {
                      :                'Predictive Threat Engine, Insider Threat Monitor';
   siemLog('CRIT', 'SYSTEM',       `[ WEEK ${G.week} — EXTENDED OPERATIONS ] — adversary activity escalating. Hold the line.`);
   siemLog('WARN', 'DETECTION',    'Signature decay confirmed — adversaries have adapted TTPs. Re-tune detection rules.');
-  siemLog('WARN', 'THREAT-INTEL', 'Intel feed subscriptions lapsed. Re-subscribe to maintain situational awareness.');
+  siemLog('INFO', 'THREAT-INTEL', `New intel feeds unlocked: ${newFeedNames}. Active subscriptions continue until their 7-day window expires.`);
   siemLog('WARN', 'PARTNERS',     'Consultant contract concluded. Re-hire available for new engagement.');
   siemLog('WARN', 'SOAR',         'SOAR playbooks flagged for re-tuning — effectiveness degraded after TTP shift.');
   siemLog('WARN', 'VULN',         `${vulnCount} new CVE disclosures identified across company infrastructure. Immediate assessment recommended.`);
