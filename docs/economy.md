@@ -260,7 +260,7 @@ All consultants cost a flat **$75,000** one-time engagement fee. Only one can be
 | Marcus Webb      | Offensive security    | +3% coverage, −20 vuln score           |
 | Priya Nair       | Risk & resilience     | +5% coverage, −10 min MTTD, −10 vuln  |
 
-Consultants provide daily tactical briefings and recommended actions beyond their passive bonuses. They are cancelled at week transition.
+Consultants provide daily tactical briefings and recommended actions beyond their passive bonuses. Each engagement runs for **7 game-days from hire** — the days remaining are shown in the left panel and in the modal. Re-engage before expiry to maintain uninterrupted bonuses. Consultants are also auto-cancelled if budget drops to zero at an income tick.
 
 ---
 
@@ -291,7 +291,7 @@ At each week boundary the following budget-relevant changes occur:
 | Income amount              | Multiplied down (×0.85 / ×0.80 / ×0.75 cumulatively)              |
 | Detection rules            | Decay by 1–2 levels per category                                    |
 | Intel feed subscriptions   | Unaffected — expire by time (7 days from purchase)                  |
-| Consultant                 | **Cancelled** — must be rehired                                     |
+| Consultant                 | Unaffected — expires by time (7 days from hire)                     |
 | SOAR playbooks             | Degrade by 1 level per category                                     |
 | SOAR platform              | Persists                                                            |
 | Analysts                   | Carry over                                                          |
@@ -300,10 +300,9 @@ At each week boundary the following budget-relevant changes occur:
 | New CVEs                   | 6–9 added depending on week                                         |
 
 **Budget planning implication:** Week transitions create a predictable "reset tax." A player should budget for:
-1. Re-hiring consultant ($75k)
-2. Restoring decayed detection rules (potentially $200k+)
-3. Restoring SOAR playbooks ($20k × affected categories)
-4. Renewing any intel feeds that lapsed mid-week ($30k–$190k depending on tier)
+1. Restoring decayed detection rules (potentially $200k+)
+2. Restoring SOAR playbooks ($20k × affected categories)
+3. Renewing any intel feeds or consultant engagements that lapse ($30k–$190k for feeds; $75k for consultant)
 
 ---
 

@@ -1881,6 +1881,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
         Engage an external security consultant or advisory firm. They provide a passive defensive bonus
         and deliver a daily operational briefing — one prioritized recommendation based on your
         current threat posture and the most effective action you can take next.
+        Each engagement runs for 7 game-days from hire. Re-engage before it lapses to maintain bonuses.
       </div>
       <div class="section-header">SELECT CONSULTANT</div>
       <div id="consultant-profiles-list"></div>
@@ -2040,8 +2041,8 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
           <span class="help-cap-desc">Feeds run for 7 game-days from purchase — check days remaining in the modal and renew before they lapse. New higher-tier feeds also unlock each week.</span>
         </div>
         <div class="help-cap-row" style="margin-bottom:4px">
-          <span class="help-cap-name" style="color:var(--amber)">Consultant Contracts End</span>
-          <span class="help-cap-desc">Your consultant was only booked for a week.</span>
+          <span class="help-cap-name" style="color:var(--amber)">Consultant Engagements Expire</span>
+          <span class="help-cap-desc">Consultant engagements run for 7 game-days from hire — check days remaining in the left panel and re-engage before they lapse to maintain defensive bonuses.</span>
         </div>
         <div class="help-cap-row" style="margin-bottom:4px">
           <span class="help-cap-name" style="color:var(--amber)">SOAR Platform Staleness</span>
@@ -2318,6 +2319,7 @@ const REDTEAM_OPTIONS = [
 ];
 
 const INTEL_FEED_DURATION_DAYS = 7;           // subscription lasts 7 game-days from purchase
+const CONSULTANT_DURATION_DAYS = 7;          // engagement lasts 7 game-days from hire
 const INTEL_FEEDS = [
   { id:'osint',  name:'OSINT Aggregator',       desc:'Open-source threat intelligence — low fidelity, broad coverage', cost:30000,  detectionBonus:5,  mttdBonus:15 },
   { id:'ioc',    name:'IOC Feed Premium',       desc:'Real-time indicators of compromise from global sensor network',   cost:55000, detectionBonus:8,  mttdBonus:25 },
@@ -2484,6 +2486,10 @@ function loadSavedState() {
         G.intelFeedExpiry[fid] = G.gameTime + INTEL_FEED_DURATION_DAYS * 1440;
       });
     }
+    if (G.consultantExpiry === undefined) {
+      // Migrate old saves: give existing consultant a fresh 7-day window
+      G.consultantExpiry = G.consultant ? G.gameTime + CONSULTANT_DURATION_DAYS * 1440 : null;
+    }
     selectedDifficulty = save.selectedDifficulty || 'analyst';
     siemHistory.length = 0;
     siemHistory.push(...(save.siemHistory || []));
@@ -2559,7 +2565,8 @@ function initState() {
     redTeamJobs: [],
     activeIntelFeeds: [],
     intelFeedExpiry: {},  // feedId → gameTime at which subscription expires
-    consultant: null, // { id, lastAdviceDay, advice: { priority, action, text } }
+    consultant: null,       // { id, lastAdviceDay, advice: { priority, action, text } }
+    consultantExpiry: null, // gameTime at which engagement expires
     lessonsLearned: {}, // techniqueCategory → count of lessons completed
     nextThreatIn: 180, // 36s grace period before first threat
     nextIncomeIn: INCOME_INTERVAL_MINS,
@@ -3077,6 +3084,18 @@ function tick() {
       G.coverage = calcCoverage();
       G.mttd = calcMTTD();
     }
+  }
+
+  // Expire consultant engagement
+  if (G.consultant && G.consultantExpiry !== null && G.gameTime >= G.consultantExpiry) {
+    const c = CONSULTANTS.find(c => c.id === G.consultant.id);
+    G.consultant = null;
+    G.consultantExpiry = null;
+    G.coverage = calcCoverage();
+    G.mttd = calcMTTD();
+    G.vulnScore = calcVulnScore();
+    siemLog('WARN','CONSULTANT', `Engagement concluded: ${c ? c.name : 'Consultant'} — 7-day contract expired.`, 'Re-hire to restore defensive bonuses');
+    renderConsultantCard();
   }
 
   // End-of-day sitrep
@@ -3604,10 +3623,7 @@ function continueToNextWeek() {
   const decayAmount = G.week >= 4 ? 2 : G.week >= 3 ? 2 : 1;
   TECHNIQUE_CATS.forEach(cat => { G.rules[cat] = Math.max(0, (G.rules[cat] || 0) - decayAmount); });
 
-  // Intel feed subscriptions now expire by time (7-day rolling window); no week-boundary clear
-
-  // Consultant contract ends
-  G.consultant = null;
+  // Intel feed subscriptions and consultant engagements expire by time (7-day rolling window); no week-boundary clear
 
   // SOAR playbooks need re-tuning
   Object.keys(G.soarPlaybooks).forEach(cat => {
@@ -3646,8 +3662,7 @@ function continueToNextWeek() {
                      :                'Predictive Threat Engine, Insider Threat Monitor';
   siemLog('CRIT', 'SYSTEM',       `[ WEEK ${G.week} — EXTENDED OPERATIONS ] — adversary activity escalating. Hold the line.`);
   siemLog('WARN', 'DETECTION',    'Signature decay confirmed — adversaries have adapted TTPs. Re-tune detection rules.');
-  siemLog('INFO', 'THREAT-INTEL', `New intel feeds unlocked: ${newFeedNames}. Active subscriptions continue until their 7-day window expires.`);
-  siemLog('WARN', 'PARTNERS',     'Consultant contract concluded. Re-hire available for new engagement.');
+  siemLog('INFO', 'THREAT-INTEL', `New intel feeds unlocked: ${newFeedNames}. Active subscriptions and consultant engagements continue until their 7-day window expires.`);
   siemLog('WARN', 'SOAR',         'SOAR playbooks flagged for re-tuning — effectiveness degraded after TTP shift.');
   siemLog('WARN', 'VULN',         `${vulnCount} new CVE disclosures identified across company infrastructure. Immediate assessment recommended.`);
   siemLog('INFO', 'FINANCE',      `Security budget revised downward: allocation reduced to ${fmt$(G.incomeAmount)}/cycle.`);
@@ -4064,11 +4079,14 @@ function hireConsultant(id) {
   if (G.budget < c.cost) { siemLog('WARN','OPS',`Insufficient budget to retain ${c.name}`); return; }
   G.budget -= c.cost;
   const advice = generateConsultantAdvice();
+  const expiresAt = G.gameTime + CONSULTANT_DURATION_DAYS * 1440;
+  const expiryDay = Math.floor(expiresAt / 1440) + 1;
   G.consultant = { id, lastAdviceDay: fmtTime(G.gameTime).day, advice };
+  G.consultantExpiry = expiresAt;
   G.coverage = calcCoverage();
   G.mttd = calcMTTD();
   G.vulnScore = calcVulnScore();
-  siemLog('OK','HR',`Consultant retained: ${c.name} — ${c.title}`, c.bonusDesc);
+  siemLog('OK','HR',`Consultant retained: ${c.name} — ${c.title}`, `${c.bonusDesc} | Expires Day ${expiryDay}`);
   siemLog('INFO',c.name.split(' ')[0],`Day 1 briefing: ${advice.text.substring(0,80)}...`);
   closeModal('consultant');
   renderConsultantCard();
@@ -5003,7 +5021,7 @@ function renderConsultantCard() {
     <div class="consultant-name">${c.name}</div>
     <div class="consultant-title">${c.title}</div>
     <div class="consultant-header">
-      <div class="consultant-bonus">● ACTIVE &nbsp;${c.bonusDesc}</div>
+      <div class="consultant-bonus">● ACTIVE &nbsp;${c.bonusDesc}${G.consultantExpiry ? ` — ${Math.max(1, Math.ceil((G.consultantExpiry - G.gameTime) / 1440))}d left` : ''}</div>
       <button class="briefing-toggle" data-action="toggle-briefing">${collapseLabel}</button>
     </div>
     <div class="consultant-advice${consultantBriefingCollapsed ? ' collapsed' : ''}">
@@ -5028,7 +5046,7 @@ function renderConsultantModal() {
     d.className = `consultant-profile${selectedConsultant === c.id ? ' selected' : ''}`;
     d.onclick = () => { selectedConsultant = c.id; renderConsultantModal(); };
     d.innerHTML = `
-      <div class="cp-name">${c.name} ${isCurrent ? '<span style="color:var(--green-dim);font-size:9px">● CURRENT</span>' : ''}</div>
+      <div class="cp-name">${c.name} ${isCurrent ? `<span style="color:var(--green-dim);font-size:9px">● ACTIVE${G.consultantExpiry ? ` — ${Math.max(1, Math.ceil((G.consultantExpiry - G.gameTime) / 1440))}d left` : ''}</span>` : ''}</div>
       <div class="cp-title">${c.title}</div>
       <div class="cp-flavor">${c.flavor}</div>
       <div class="cp-bonus">Defensive bonus: ${c.bonusDesc}</div>
