@@ -17,6 +17,7 @@
 
 /* yes, the terminal font is intentional. no, i'm not sorry. */
 :root {
+  /* ── Base palette ── */
   --green: #00ff41;
   --green-dim: #00aa2b;
   --green-dark: #003d0e;
@@ -28,6 +29,58 @@
   --bg2: #040f05;
   --border: #00aa2b;
   --font: 'Share Tech Mono', 'Courier New', monospace;
+  --accent: var(--amber);
+
+  /* ── Green translucent background tints ── */
+  --green-bg-ghost: rgba(0,255,65,0.03);
+  --green-bg-faint: rgba(0,255,65,0.04);
+  --green-bg-dim:   rgba(0,255,65,0.06);
+
+  /* ── Green glow / shadow effects ── */
+  --green-glow-xs:  rgba(0,255,65,0.05);
+  --green-glow-sm:  rgba(0,255,65,0.08);
+  --green-glow-md:  rgba(0,255,65,0.15);
+  --green-glow:     rgba(0,255,65,0.18);
+  --green-glow-lg:  rgba(0,255,65,0.25);
+  --green-glow-xl:  rgba(0,255,65,0.35);
+  --green-glow-max: rgba(0,255,65,0.4);
+
+  /* ── Red translucent ── */
+  --red-bg-dim:   rgba(255,51,51,0.06);
+  --red-bg-soft:  rgba(255,51,51,0.08);
+  --red-bg-md:    rgba(255,51,51,0.12);
+  --red-vignette: rgba(255,51,51,0.38);
+
+  /* ── Amber translucent ── */
+  --amber-bg-faint: rgba(255,176,0,0.04);
+  --amber-bg-dim:   rgba(255,176,0,0.08);
+
+  /* ── Overlay backdrops ── */
+  --backdrop-sm:   rgba(0,8,2,0.85);
+  --backdrop-md:   rgba(0,8,2,0.88);
+  --backdrop-lg:   rgba(0,8,2,0.92);
+  --backdrop-dark: rgba(0,0,0,0.9);
+
+  /* ── Surface tints (mid-dark card backgrounds) ── */
+  --surface-sm: rgba(0,20,5,0.5);
+  --surface-md: rgba(0,30,8,0.4);
+  --surface-lg: rgba(0,50,10,0.3);
+
+  /* ── CRT effect colours ── */
+  --crt-scanline: rgba(0,0,0,0.08);
+  --crt-vignette: rgba(0,0,0,0.5);
+
+  /* ── Mid-tone greens (SVG map / score UI) ── */
+  --green-stroke: #1e3e1e;
+  --green-label:  #2e6e2e;
+  --border-score: #2a5a2a;
+
+  /* ── Z-index scale ── */
+  --z-crt:     10000;
+  --z-screen:   9000;
+  --z-flash:    4999;
+  --z-overlay:   600;
+  --z-modal:     500;
 }
 
 html, body {
@@ -48,25 +101,25 @@ body::before {
     0deg,
     transparent,
     transparent 2px,
-    rgba(0,0,0,0.08) 2px,
-    rgba(0,0,0,0.08) 4px
+    var(--crt-scanline) 2px,
+    var(--crt-scanline) 4px
   );
   pointer-events: none;
-  z-index: 10000;
+  z-index: var(--z-crt);
 }
 body::after {
   content: '';
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.5) 100%);
+  background: radial-gradient(ellipse at center, transparent 60%, var(--crt-vignette) 100%);
   pointer-events: none;
-  z-index: 10001;
+  z-index: calc(var(--z-crt) + 1);
 }
 
 /* ===================== BOOT SCREEN ===================== */
 #boot-screen {
   position: fixed; inset: 0;
   background: var(--bg);
-  z-index: 9000;
+  z-index: var(--z-screen);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -81,7 +134,7 @@ body::after {
   font-size: 13px;
   letter-spacing: 0;
   color: var(--green);
-  text-shadow: 0 0 8px var(--green), 0 0 20px rgba(0,255,65,0.4);
+  text-shadow: 0 0 8px var(--green), 0 0 20px var(--green-glow-max);
   line-height: 1.2;
   margin-bottom: 12px;
   white-space: pre;
@@ -126,15 +179,15 @@ body::after {
 #breach-flash {
   position: fixed; inset: 0;
   pointer-events: none;
-  z-index: 4999;
+  z-index: var(--z-flash);
   opacity: 0;
-  background: radial-gradient(ellipse at center, transparent 25%, rgba(255,51,51,0.38) 100%);
+  background: radial-gradient(ellipse at center, transparent 25%, var(--red-vignette) 100%);
 }
 #breach-flash.active { animation: breach-flash-anim 0.9s cubic-bezier(0.16,1,0.3,1) forwards; }
 
 /* New incident card entrance */
 @keyframes incident-enter {
-  from { opacity: 0; transform: translateX(-10px); box-shadow: 0 0 14px rgba(0,255,65,0.35); border-color: var(--green); }
+  from { opacity: 0; transform: translateX(-10px); box-shadow: 0 0 14px var(--green-glow-xl); border-color: var(--green); }
   to   { opacity: 1; transform: none; box-shadow: none; }
 }
 .incident-card.incident-enter { animation: incident-enter 0.3s cubic-bezier(0.22,1,0.36,1) forwards; }
@@ -198,6 +251,12 @@ body::after {
 .speed-btn:hover { color: var(--green); border-color: var(--green); }
 .speed-btn:active { transform: scale(0.92); }
 .speed-btn.active { color: var(--bg); background: var(--green); border-color: var(--green); }
+/* ── Focus styles for keyboard navigation ── */
+:focus-visible {
+  outline: 1px solid var(--green);
+  outline-offset: 2px;
+  box-shadow: 0 0 6px var(--green-glow-xl);
+}
 #pause-btn {
   background: none; border: 1px solid var(--amber); color: var(--amber);
   font-family: var(--font); font-size: 10px;
@@ -239,7 +298,7 @@ body::after {
   font-size: 28px;
   font-weight: bold;
   color: var(--green);
-  text-shadow: 0 0 4px rgba(0,255,65,0.4);
+  text-shadow: 0 0 4px var(--green-glow-max);
   letter-spacing: 1px;
   line-height: 1;
 }
@@ -344,11 +403,11 @@ body::after {
   padding: 0;
   line-height: 1.45;
   font-size: 11px;
-  opacity: 0;
-  animation: siem-slide 0.15s ease forwards;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  opacity: 0;
+  animation: siem-slide 0.15s ease forwards;
   flex-shrink: 0;
 }
 @keyframes siem-slide {
@@ -356,8 +415,8 @@ body::after {
   to { opacity: 1; transform: translateY(0); }
 }
 @keyframes siem-slide-crit {
-  from { opacity: 0; transform: translateY(3px); background: rgba(255,51,51,0.12); }
-  50%  { background: rgba(255,51,51,0.06); }
+  from { opacity: 0; transform: translateY(3px); background: var(--red-bg-md); }
+  50%  { background: var(--red-bg-dim); }
   to   { opacity: 1; transform: translateY(0); background: transparent; }
 }
 .siem-entry[data-sev="CRIT"] { animation: siem-slide-crit 0.3s ease forwards; }
@@ -382,8 +441,8 @@ body::after {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0,8,2,0.88);
-  z-index: 500;
+  background: var(--backdrop-md);
+  z-index: var(--z-modal);
   align-items: flex-end;
 }
 #siem-popout.visible { display: flex; }
@@ -394,7 +453,7 @@ body::after {
   border-top: 1px solid var(--green);
   display: flex;
   flex-direction: column;
-  box-shadow: 0 -10px 40px rgba(0,255,65,0.08);
+  box-shadow: 0 -10px 40px var(--green-glow-sm);
   animation: slide-up 0.18s ease;
 }
 @keyframes slide-up {
@@ -437,6 +496,7 @@ body::after {
   cursor: pointer;
   letter-spacing: 1px;
 }
+.siem-filter-btn { transition: border-color 0.1s, color 0.1s; }
 .siem-filter-btn:hover { border-color: var(--green); color: var(--green); }
 .siem-filter-btn:active { transform: scale(0.93); }
 .siem-filter-btn.active { background: var(--green-dark); border-color: var(--green); color: var(--green); }
@@ -444,7 +504,7 @@ body::after {
   border: 1px solid var(--green-dark);
   margin: 2px 0;
   padding: 5px 7px;
-  background: rgba(0,20,5,0.5);
+  background: var(--surface-sm);
   position: relative;
   transition: border-color 0.3s;
 }
@@ -456,9 +516,9 @@ body::after {
   align-items: center;
   margin-bottom: 3px;
 }
-.incident-actor { color: var(--red); font-size: 11px; font-weight: bold; }
-.incident-target { color: var(--amber); font-size: 10px; }
-.incident-technique { color: var(--green-dim); font-size: 10px; }
+.incident-actor { color: var(--red); font-size: 11px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.incident-target { color: var(--amber); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%; }
+.incident-technique { color: var(--green-dim); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .incident-dwell { font-size: 10px; }
 .dwell-ok { color: var(--green-dim); }
 .dwell-warn { color: var(--amber); }
@@ -531,9 +591,10 @@ body::after {
   display: block;
   margin-top: 2px;
 }
+.actor-intel-btn { transition: color 0.1s; }
 .actor-intel-btn:hover { color: var(--green-dim); }
 .actor-intel-panel {
-  background: rgba(0,255,65,0.03);
+  background: var(--green-bg-ghost);
   border-top: 1px solid var(--green-dark);
   margin-top: 3px;
   padding: 3px 4px;
@@ -549,12 +610,12 @@ body::after {
 }
 .incident-card.lessons-pending {
   border-color: var(--green);
-  background: rgba(0,255,65,0.04);
+  background: var(--green-bg-faint);
   animation: lessons-pulse 2s ease-in-out infinite;
 }
 @keyframes lessons-pulse {
   0%, 100% { box-shadow: none; }
-  50% { box-shadow: 0 0 8px rgba(0,255,65,0.25); }
+  50% { box-shadow: 0 0 8px var(--green-glow-lg); }
 }
 .lessons-btn {
   background: var(--green-dark);
@@ -578,13 +639,13 @@ body::after {
 .lessons-btn.warn {
   border-color: var(--amber);
   color: var(--amber);
-  background: rgba(255,176,0,0.08);
+  background: var(--amber-bg-dim);
 }
 .lessons-btn.warn:hover { background: var(--amber); color: var(--bg); }
 .lessons-btn.crit {
   border-color: var(--red);
   color: var(--red);
-  background: rgba(255,51,51,0.08);
+  background: var(--red-bg-soft);
 }
 .lessons-btn.crit:hover { background: var(--red); color: var(--bg); }
 
@@ -608,7 +669,8 @@ body::after {
   color: var(--green-dim);
   letter-spacing: 0.5px;
 }
-.analyst-slot-row span { font-size: 9px; }
+.analyst-slot-row span { font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.analyst-slot-row span:last-child { max-width: 75%; }
 .analyst-slot-row.free span { color: var(--green); }
 .analyst-slot-row.busy span { color: var(--amber); }
 .analyst-slot-row.training span { color: var(--green-dim); font-style: italic; }
@@ -619,9 +681,9 @@ body::after {
   margin-bottom: 6px;
 }
 .ops-section-title-crit { color: var(--red); }
-.edge-line { stroke: #1e3e1e; stroke-width: 1.5; }
-.node-label { fill: #2e6e2e; font-size: 10px; text-anchor: middle; font-family: var(--font); }
-.node-label.active { fill: #ff3333; }
+.edge-line { stroke: var(--green-stroke); stroke-width: 1.5; }
+.node-label { fill: var(--green-label); font-size: 10px; text-anchor: middle; font-family: var(--font); }
+.node-label.active { fill: var(--red); }
 .node-circle { cursor: default; }
 .node-circle.node-selected { stroke: #ffffff !important; stroke-width: 2 !important; }
 #mini-map-svg { width: 100%; height: 230px; display: block; cursor: default; }
@@ -683,8 +745,8 @@ body::after {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0,8,2,0.85);
-  z-index: 500;
+  background: var(--backdrop-sm);
+  z-index: var(--z-modal);
   align-items: center;
   justify-content: center;
 }
@@ -697,7 +759,7 @@ body::after {
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 0 30px rgba(0,255,65,0.15), 0 0 60px rgba(0,255,65,0.05);
+  box-shadow: 0 0 30px var(--green-glow-md), 0 0 60px var(--green-glow-xs);
   animation: modal-in 0.15s ease;
 }
 @keyframes modal-in {
@@ -813,7 +875,7 @@ body::after {
   transition: border-color 0.1s;
 }
 .redteam-option:hover { border-color: var(--green); }
-.redteam-option.selected { border-color: var(--green); background: rgba(0,50,10,0.3); }
+.redteam-option.selected { border-color: var(--green); background: var(--surface-lg); }
 .redteam-name { color: var(--green); font-size: 11px; margin-bottom: 3px; }
 .redteam-desc { color: var(--green-dim); font-size: 10px; }
 .redteam-meta { color: var(--amber); font-size: 10px; margin-top: 3px; }
@@ -847,8 +909,8 @@ body::after {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.9);
-  z-index: 600;
+  background: var(--backdrop-dark);
+  z-index: var(--z-overlay);
   align-items: center;
   justify-content: center;
   flex-direction: column;
@@ -897,7 +959,7 @@ body::after {
 .score-amber { color: var(--amber); }
 .score-red { color: var(--red); }
 .score-total {
-  display: flex; align-items: center; gap: 12px; border-top: 1px solid #2a5a2a;
+  display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-score);
   margin-top: 8px; padding-top: 8px; color: var(--green);
 }
 .score-grade {
@@ -926,7 +988,7 @@ body::after {
   border: 1px solid var(--green-dim);
   padding: 6px 8px;
   margin-bottom: 6px;
-  background: rgba(0,30,8,0.4);
+  background: var(--surface-md);
 }
 .consultant-name {
   color: var(--green);
@@ -937,7 +999,7 @@ body::after {
 .consultant-title {
   color: var(--green-dim);
   font-size: 9px;
-  margin: 1px 0 4px;
+  margin: 0 0 4px;
 }
 .consultant-bonus {
   color: var(--green);
@@ -1012,7 +1074,7 @@ body::after {
 .consultant-profile:hover { border-color: var(--green); }
 .consultant-profile.selected {
   border-color: var(--green);
-  background: rgba(0,50,10,0.35);
+  background: var(--surface-lg);
 }
 .cp-name { color: var(--green); font-size: 12px; letter-spacing: 1px; margin-bottom: 2px; }
 .cp-title { color: var(--green-dim); font-size: 9px; margin-bottom: 5px; }
@@ -1070,7 +1132,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 #difficulty-screen {
   position: fixed; inset: 0;
   background: var(--bg);
-  z-index: 9000;
+  z-index: var(--z-screen);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1112,7 +1174,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 }
 .diff-option.selected {
   border-color: var(--green);
-  background: rgba(0,255,65,0.04);
+  background: var(--green-bg-faint);
 }
 .diff-option:hover { border-color: var(--green-dim); }
 .diff-key {
@@ -1159,8 +1221,8 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0,8,2,0.92);
-  z-index: 600;
+  background: var(--backdrop-lg);
+  z-index: var(--z-overlay);
   align-items: center;
   justify-content: center;
   cursor: pointer;
@@ -1174,7 +1236,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
   max-height: 88vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 0 40px rgba(0,255,65,0.18), 0 0 80px rgba(0,255,65,0.06);
+  box-shadow: 0 0 40px var(--green-glow), 0 0 80px var(--green-bg-dim);
   animation: modal-in 0.15s ease;
   cursor: default;
   overflow: hidden;
@@ -1210,7 +1272,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
   color: var(--green-dim);
   border-bottom: 1px solid var(--green-dark);
   padding-bottom: 2px;
-  margin: 9px 0 5px;
+  margin: 8px 0 4px;
   text-transform: uppercase;
 }
 .help-col:first-child .help-section-title:first-child { margin-top: 0; }
@@ -1220,7 +1282,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 #help-body strong { color: var(--green); }
 #help-body em { color: var(--amber); font-style: normal; }
 .help-cap-row { display: flex; flex-direction: column; margin-bottom: 5px; border-left: 2px solid var(--green-dark); padding-left: 8px; }
-.help-cap-name { font-size: 10px; letter-spacing: 1px; color: var(--amber); margin-bottom: 1px; }
+.help-cap-name { font-size: 10px; letter-spacing: 1px; color: var(--amber); margin-bottom: 2px; }
 .help-cap-desc { font-size: 11px; color: var(--green); line-height: 1.45; }
 .help-stage { color: var(--amber); font-size: 11px; }
 .help-ok   { color: var(--green); }
@@ -1233,7 +1295,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
   font-size: 11px;
   line-height: 1.55;
   color: var(--amber);
-  background: rgba(255,176,0,0.04);
+  background: var(--amber-bg-faint);
 }
 #help-tabs {
   display: flex;
@@ -1265,10 +1327,9 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 /* Mobile tab bar — hidden on desktop */
 #mobile-tabs { display: none; }
 
-/* TABLET: two-column layout (incidents + ops) */
+/* TABLET: three-column layout with tighter widths */
 @media (max-width: 1023px) and (min-width: 768px) {
-  #main { grid-template-columns: 1fr 240px; }
-  #status-panel { display: none; }
+  #main { grid-template-columns: 190px 1fr 210px; }
   .modal-window { width: 90vw; max-width: 90vw; }
 }
 
@@ -1331,7 +1392,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
     -webkit-tap-highlight-color: transparent;
   }
   .mobile-tab:last-child { border-right: none; }
-  .mobile-tab.active { color: var(--green); background: rgba(0,255,65,0.06); }
+  .mobile-tab.active { color: var(--green); background: var(--green-bg-dim); }
   .mobile-tab-icon { font-size: 11px; line-height: 1; }
   .mobile-tab-badge {
     display: none;
@@ -1371,6 +1432,24 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 
   /* Analyst roster more readable */
   .analyst-slot-row { font-size: 10px; padding: 2px 0; }
+
+  /* Hide header controls that overflow — sound can be toggled elsewhere */
+  #mute-btn, #newgame-btn { display: none; }
+
+  /* Overlay titles: scale down to fit narrow screens */
+  #gameover-overlay .title,
+  #win-overlay .title { font-size: clamp(13px, 4.5vw, 22px); letter-spacing: 1px; }
+
+  /* Score card: fluid width on mobile */
+  .score-card { width: min(340px, 90vw); }
+
+  /* Overlays: scrollable when content exceeds viewport */
+  #gameover-overlay, #win-overlay {
+    overflow-y: auto;
+    padding: 24px 16px;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1475,17 +1554,17 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
     <div class="header-stat">BREACHES: <span id="hdr-breaches" class="stat-val">0</span><span id="hdr-breach-max">/3</span></div>
     <div class="header-stat" id="hdr-resolved-wrap">RESOLVED: <span id="hdr-resolved">0</span></div>
     <div class="header-spacer"></div>
-    <button class="speed-btn" id="help-btn" onclick="openHelp()" title="Help [?]" style="color:var(--accent);border-color:var(--accent)">?</button>
+    <button class="speed-btn" id="help-btn" onclick="openHelp()" aria-label="How to play" title="Help [?]" style="color:var(--accent);border-color:var(--accent)">?</button>
     <div class="header-gap"></div>
-    <button class="speed-btn active" id="spd-1" onclick="setSpeed(1)">1×</button>
-    <button class="speed-btn" id="spd-2" onclick="setSpeed(2)">2×</button>
-    <button class="speed-btn" id="spd-3" onclick="setSpeed(3)">3×</button>
-    <button class="speed-btn" id="spd-4" onclick="setSpeed(4)">4×</button>
-    <button id="pause-btn" onclick="togglePause()">PAUSE</button>
+    <button class="speed-btn active" id="spd-1" onclick="setSpeed(1)" aria-label="Speed 1×" aria-pressed="true">1×</button>
+    <button class="speed-btn" id="spd-2" onclick="setSpeed(2)" aria-label="Speed 2×" aria-pressed="false">2×</button>
+    <button class="speed-btn" id="spd-3" onclick="setSpeed(3)" aria-label="Speed 3×" aria-pressed="false">3×</button>
+    <button class="speed-btn" id="spd-4" onclick="setSpeed(4)" aria-label="Speed 4×" aria-pressed="false">4×</button>
+    <button id="pause-btn" onclick="togglePause()" aria-label="Pause game" aria-pressed="false">PAUSE</button>
     <div class="header-gap"></div>
-    <button class="speed-btn active" id="mute-btn" onclick="toggleMute()">SOUND</button>
+    <button class="speed-btn active" id="mute-btn" onclick="toggleMute()" aria-label="Toggle sound" aria-pressed="false">SOUND</button>
     <div class="header-gap"></div>
-    <button class="speed-btn" id="newgame-btn" onclick="newGameClick()">NEW GAME</button>
+    <button class="speed-btn" id="newgame-btn" onclick="newGameClick()" aria-label="Start new game">NEW GAME</button>
   </div>
   <div id="day-progress-bar"><div id="day-progress-fill"></div></div>
 
@@ -1634,44 +1713,47 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 
   <!-- Mobile tab bar — hidden on desktop via CSS -->
   <div id="mobile-tabs">
-    <button class="mobile-tab active" id="tab-incidents" onclick="switchTab('incidents')">
+    <button class="mobile-tab active" id="tab-incidents" onclick="switchTab('incidents')" aria-label="Incidents panel" aria-pressed="true">
       <span class="mobile-tab-icon">⬛</span>INCIDENTS
       <span class="mobile-tab-badge" id="incident-tab-badge"></span>
     </button>
-    <button class="mobile-tab" id="tab-ops" onclick="switchTab('ops')">
+    <button class="mobile-tab" id="tab-ops" onclick="switchTab('ops')" aria-label="Operations panel" aria-pressed="false">
       <span class="mobile-tab-icon">▶</span>OPERATIONS
     </button>
-    <button class="mobile-tab" id="tab-status" onclick="switchTab('status')">
+    <button class="mobile-tab" id="tab-status" onclick="switchTab('status')" aria-label="Status panel" aria-pressed="false">
       <span class="mobile-tab-icon">■</span>STATUS
     </button>
   </div>
 
   <!-- SIEM Strip — full width flex child of #game-screen, click to expand -->
-  <div id="siem-strip" onclick="openSiemPopout()">
+  <div id="siem-strip" onclick="openSiemPopout()" role="button" tabindex="0" aria-label="SIEM event feed — activate to expand" aria-expanded="false" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openSiemPopout();}">
     <div id="siem-strip-header">
       <div class="panel-title-dot"></div>
       <span style="color:var(--green-dim);font-size:10px;letter-spacing:1px">SIEM FEED</span>
       <span style="color:var(--green-dark);font-size:9px" id="siem-count">0 events</span>
       <span style="margin-left:auto;color:var(--green-dark);font-size:9px">▲ CLICK TO EXPAND</span>
     </div>
-    <div id="siem-strip-list"></div>
+    <div id="siem-strip-list" role="log" aria-live="polite" aria-label="SIEM event log"></div>
   </div>
 
 </div><!-- /#game-screen -->
 
+<!-- Hidden live region for critical SIEM alerts (screen readers) -->
+<div id="siem-critical-announcer" aria-live="assertive" aria-atomic="true" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap"></div>
+
 <!-- SIEM Popout -->
-<div id="siem-popout" onclick="closeSiemPopout()">
+<div id="siem-popout" onclick="closeSiemPopout()" role="dialog" aria-modal="true" aria-label="SIEM event log — expanded view">
   <div id="siem-popout-window" onclick="event.stopPropagation()">
     <div id="siem-popout-header">
       <div class="panel-title-dot"></div>
       <span style="color:var(--green);font-size:11px;letter-spacing:2px;text-shadow:0 0 6px var(--green)">SIEM CORRELATION ENGINE</span>
       <span style="color:var(--green-dark);font-size:9px" id="siem-popout-count"></span>
       <div style="margin-left:auto;display:flex;gap:4px;align-items:center">
-        <button class="siem-filter-btn active" id="sfbtn-all" onclick="setSiemFilter('all')">ALL</button>
-        <button class="siem-filter-btn" id="sfbtn-alerts" onclick="setSiemFilter('alerts')">ALERTS</button>
-        <button class="siem-filter-btn" id="sfbtn-incidents" onclick="setSiemFilter('incidents')">INCIDENTS</button>
+        <button class="siem-filter-btn active" id="sfbtn-all" onclick="setSiemFilter('all')" aria-label="Show all events" aria-pressed="true">ALL</button>
+        <button class="siem-filter-btn" id="sfbtn-alerts" onclick="setSiemFilter('alerts')" aria-label="Show alerts only" aria-pressed="false">ALERTS</button>
+        <button class="siem-filter-btn" id="sfbtn-incidents" onclick="setSiemFilter('incidents')" aria-label="Show incidents only" aria-pressed="false">INCIDENTS</button>
       </div>
-      <button class="modal-close" style="margin-left:8px" onclick="closeSiemPopout()">✕ CLOSE</button>
+      <button class="modal-close" style="margin-left:8px" onclick="closeSiemPopout()" aria-label="Close SIEM feed">✕ CLOSE</button>
     </div>
     <div id="siem-popout-feed"></div>
   </div>
@@ -1680,11 +1762,11 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 <!-- ===================== MODALS ===================== -->
 
 <!-- Detection Engineering Modal -->
-<div class="modal-overlay" id="modal-detection">
+<div class="modal-overlay" id="modal-detection" role="dialog" aria-modal="true" aria-label="Detection engineering">
   <div class="modal-window">
     <div class="modal-header">
       <div class="modal-title">// DETECTION ENGINEERING</div>
-      <button class="modal-close" onclick="closeModal('detection')">✕ CLOSE</button>
+      <button class="modal-close" onclick="closeModal('detection')" aria-label="Close detection engineering">✕ CLOSE</button>
     </div>
     <div class="modal-body">
       <div class="modal-desc">
@@ -1700,11 +1782,11 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 </div>
 
 <!-- SOAR Modal -->
-<div class="modal-overlay" id="modal-soar">
+<div class="modal-overlay" id="modal-soar" role="dialog" aria-modal="true" aria-label="SOAR platform">
   <div class="modal-window">
     <div class="modal-header">
       <div class="modal-title">// SOAR PLATFORM</div>
-      <button class="modal-close" onclick="closeModal('soar')">✕ CLOSE</button>
+      <button class="modal-close" onclick="closeModal('soar')" aria-label="Close SOAR platform">✕ CLOSE</button>
     </div>
     <div class="modal-body">
       <div class="modal-desc">
@@ -1724,11 +1806,11 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 </div>
 
 <!-- Vulnerability Management Modal -->
-<div class="modal-overlay" id="modal-vuln">
+<div class="modal-overlay" id="modal-vuln" role="dialog" aria-modal="true" aria-label="Vulnerability management">
   <div class="modal-window">
     <div class="modal-header">
       <div class="modal-title">// VULNERABILITY MANAGEMENT</div>
-      <button class="modal-close" onclick="closeModal('vuln')">✕ CLOSE</button>
+      <button class="modal-close" onclick="closeModal('vuln')" aria-label="Close vulnerability management">✕ CLOSE</button>
     </div>
     <div class="modal-body">
       <div class="modal-desc">
@@ -1748,11 +1830,11 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 </div>
 
 <!-- Red Team Modal -->
-<div class="modal-overlay" id="modal-redteam">
+<div class="modal-overlay" id="modal-redteam" role="dialog" aria-modal="true" aria-label="Red team operations">
   <div class="modal-window">
     <div class="modal-header">
       <div class="modal-title">// RED TEAM OPERATIONS</div>
-      <button class="modal-close" onclick="closeModal('redteam')">✕ CLOSE</button>
+      <button class="modal-close" onclick="closeModal('redteam')" aria-label="Close red team operations">✕ CLOSE</button>
     </div>
     <div class="modal-body">
       <div class="modal-desc">
@@ -1770,11 +1852,11 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 </div>
 
 <!-- Threat Intel Modal -->
-<div class="modal-overlay" id="modal-intel">
+<div class="modal-overlay" id="modal-intel" role="dialog" aria-modal="true" aria-label="Threat intelligence">
   <div class="modal-window">
     <div class="modal-header">
       <div class="modal-title">// THREAT INTELLIGENCE</div>
-      <button class="modal-close" onclick="closeModal('intel')">✕ CLOSE</button>
+      <button class="modal-close" onclick="closeModal('intel')" aria-label="Close threat intelligence">✕ CLOSE</button>
     </div>
     <div class="modal-body">
       <div class="modal-desc">
@@ -1788,11 +1870,11 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 </div>
 
 <!-- Consultant Modal -->
-<div class="modal-overlay" id="modal-consultant">
+<div class="modal-overlay" id="modal-consultant" role="dialog" aria-modal="true" aria-label="Retain a consultant">
   <div class="modal-window">
     <div class="modal-header">
       <div class="modal-title">// RETAIN A CONSULTANT</div>
-      <button class="modal-close" onclick="closeModal('consultant')">✕ CLOSE</button>
+      <button class="modal-close" onclick="closeModal('consultant')" aria-label="Close consultant">✕ CLOSE</button>
     </div>
     <div class="modal-body">
       <div class="modal-desc">
@@ -1816,7 +1898,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
   <div id="help-window" onclick="event.stopPropagation()">
     <div id="help-header">
       <span style="color:var(--green);font-size:12px;letter-spacing:2px;text-shadow:0 0 6px var(--green)">//&nbsp;HOW TO PLAY — PumaSOC</span>
-      <button class="modal-close" onclick="closeHelp()">✕ CLOSE</button>
+      <button class="modal-close" onclick="closeHelp()" aria-label="Close help">✕ CLOSE</button>
     </div>
     <div id="help-tabs">
       <button class="help-tab active" data-tab="overview"     onclick="switchHelpTab('overview')">OVERVIEW</button>
@@ -2040,14 +2122,14 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 </div>
 
 <!-- ===================== GAME OVER / WIN ===================== -->
-<div id="gameover-overlay">
+<div id="gameover-overlay" role="alertdialog" aria-modal="true" aria-label="Game over — containment failed">
   <div class="title crit-flash">■ CONTAINMENT FAILED ■</div>
   <div class="overlay-text" id="gameover-reason"></div>
   <div class="overlay-text" id="gameover-stats"></div>
   <div class="score-card" id="gameover-score-card"></div>
   <button class="overlay-btn" onclick="restartGame()">↺ RESTART OPERATIONS</button>
 </div>
-<div id="win-overlay">
+<div id="win-overlay" role="alertdialog" aria-modal="true" aria-label="Mission complete">
   <div class="title">■ MISSION COMPLETE ■</div>
   <div class="overlay-text" id="win-subtitle">7 days survived. Infrastructure secured.</div>
   <div class="score-card" id="win-score-card"></div>
@@ -2245,6 +2327,14 @@ const INTEL_FEEDS_W2 = [
   { id:'darkweb', name:'Dark Web Monitor',  desc:'Threat actor chatter and planned campaign early warnings from underground forums', cost:200000, detectionBonus:10, mttdBonus:30 },
   { id:'zeroday', name:'Zero-Day Exchange', desc:'Pre-disclosure CVE intelligence from private researchers — neutralise vulns before public exploit', cost:250000, detectionBonus:5, mttdBonus:0, vulnBonus:25 },
 ];
+const INTEL_FEEDS_W3 = [
+  { id:'threatgraph', name:'Threat Graph Analytics',      desc:'AI-correlated attack pattern analysis across global sensor network',                        cost:300000, detectionBonus:12, mttdBonus:35 },
+  { id:'adversarydb', name:'Adversary Profile Database',  desc:'Deep-profile intelligence on active threat actor groups targeting your sector',              cost:350000, detectionBonus:8,  mttdBonus:20 },
+];
+const INTEL_FEEDS_W4 = [
+  { id:'predictive',   name:'Predictive Threat Engine',  desc:'ML-driven attack prediction based on current geopolitical indicators',                        cost:400000, detectionBonus:15, mttdBonus:50 },
+  { id:'insiderthreat',name:'Insider Threat Monitor',    desc:'Behavioural analytics detecting anomalous insider activity before exfiltration',              cost:450000, detectionBonus:10, mttdBonus:25, vulnBonus:15 },
+];
 
 const RULE_UPGRADE_COSTS = [25000, 30000, 35000, 40000, 50000];
 
@@ -2383,6 +2473,8 @@ function loadSavedState() {
     if (G.totalDwellResolved === undefined) G.totalDwellResolved = 0;
     if (G.totalIncome === undefined)       G.totalIncome       = 0;
     if (G.w1Grade === undefined) G.w1Grade = '';
+    if (G.w2Grade === undefined) G.w2Grade = '';
+    if (G.w3Grade === undefined) G.w3Grade = '';
     selectedDifficulty = save.selectedDifficulty || 'analyst';
     siemHistory.length = 0;
     siemHistory.push(...(save.siemHistory || []));
@@ -2503,6 +2595,8 @@ function initState() {
     // Extended operations
     week: 1,
     w1Grade: '',
+    w2Grade: '',
+    w3Grade: '',
     // Scoring accumulators
     totalDwellResolved: 0,
     totalIncome: 0,
@@ -2574,6 +2668,7 @@ function updateMuteBtn() {
   if (!btn) return;
   btn.textContent = _muted ? 'MUTE' : 'SOUND';
   btn.classList.toggle('active', !_muted);
+  btn.setAttribute('aria-pressed', !_muted ? 'true' : 'false');
 }
 function toggleMute() {
   _muted = !_muted;
@@ -2667,8 +2762,15 @@ function siemLog(severity, source, msg, extra) {
   siemHistory.push({ severity, source, msg, extra });
   if (siemHistory.length > 1000) siemHistory.shift(); // cap to prevent localStorage overflow
   siemEntryCount++;
-  if (severity === 'CRIT') soundCrit();
-  else if (severity === 'WARN') soundWarn();
+  if (severity === 'CRIT') {
+    soundCrit();
+    // Announce critical alerts to screen readers via assertive live region
+    const announcer = document.getElementById('siem-critical-announcer');
+    if (announcer) {
+      announcer.textContent = '';
+      setTimeout(() => { announcer.textContent = `Critical alert: ${source} — ${msg}`; }, 50);
+    }
+  } else if (severity === 'WARN') soundWarn();
 
   // Update strip — keep last SIEM_STRIP_MAX entries
   const strip = document.getElementById('siem-strip-list');
@@ -2691,13 +2793,15 @@ function openSiemPopout() {
   const feed = document.getElementById('siem-popout-feed');
   feed.innerHTML = '';
   siemHistory.forEach(e => feed.appendChild(makeSiemEntry(e.severity, e.source, e.msg, e.extra, false)));
-  feed.scrollTop = feed.scrollHeight;
   document.getElementById('siem-popout-count').textContent = `${siemEntryCount} events`;
   popout.classList.add('visible');
+  document.getElementById('siem-strip').setAttribute('aria-expanded', 'true');
+  requestAnimationFrame(() => requestAnimationFrame(() => { feed.scrollTop = 999999; }));
 }
 
 function closeSiemPopout() {
   document.getElementById('siem-popout').classList.remove('visible');
+  document.getElementById('siem-strip').setAttribute('aria-expanded', 'false');
 }
 
 function setSiemFilter(f) {
@@ -2706,7 +2810,9 @@ function setSiemFilter(f) {
   if (f === 'alerts') feed.classList.add('filter-alerts');
   if (f === 'incidents') feed.classList.add('filter-incidents');
   ['all','alerts','incidents'].forEach(k => {
-    document.getElementById(`sfbtn-${k}`).classList.toggle('active', k === f);
+    const btn = document.getElementById(`sfbtn-${k}`);
+    btn.classList.toggle('active', k === f);
+    btn.setAttribute('aria-pressed', k === f ? 'true' : 'false');
   });
 }
 
@@ -2721,7 +2827,7 @@ function getConsultantBonuses() {
 
 function getIntelVulnBonus() {
   return G.activeIntelFeeds.reduce((sum, fid) => {
-    const feed = [...INTEL_FEEDS, ...INTEL_FEEDS_W2].find(f => f.id === fid);
+    const feed = [...INTEL_FEEDS, ...INTEL_FEEDS_W2, ...INTEL_FEEDS_W3, ...INTEL_FEEDS_W4].find(f => f.id === fid);
     return sum + (feed && feed.vulnBonus ? feed.vulnBonus : 0);
   }, 0);
 }
@@ -2734,6 +2840,10 @@ function calcVulnScore() {
 }
 
 function generateWeek2Vulns(count) {
+  return generateWeekVulns(count, 2);
+}
+
+function generateWeekVulns(count, week) {
   const nodeIds = G.nodes.map(n => n.id);
   const descs = [
     'CVE disclosure — remote code execution vector',
@@ -2742,11 +2852,15 @@ function generateWeek2Vulns(count) {
     'Privilege escalation path discovered',
     'Unpatched service exposure',
     'Authentication bypass in legacy component',
+    'Zero-day exploit published for in-use component',
+    'Lateral movement path via misconfigured trust',
+    'Credential exposure in leaked configuration file',
   ];
+  const critChance = week >= 4 ? 0.45 : week >= 3 ? 0.35 : 0.25;
   return Array.from({ length: count }, () => ({
     id: G.nextVulnId++,
     nodeId: pick(nodeIds),
-    severity: Math.random() < 0.25 ? 'CRIT' : Math.random() < 0.5 ? 'HIGH' : 'MEDIUM',
+    severity: Math.random() < critChance ? 'CRIT' : Math.random() < 0.6 ? 'HIGH' : 'MEDIUM',
     discovered: false,
     patched: false,
     desc: pick(descs),
@@ -2759,7 +2873,7 @@ function calcCoverage() {
   const avgBonus = bonus / TECHNIQUE_CATS.length;
   let intelBonus = 0;
   G.activeIntelFeeds.forEach(fid => {
-    const feed = [...INTEL_FEEDS, ...INTEL_FEEDS_W2].find(f => f.id === fid);
+    const feed = [...INTEL_FEEDS, ...INTEL_FEEDS_W2, ...INTEL_FEEDS_W3, ...INTEL_FEEDS_W4].find(f => f.id === fid);
     if (feed) intelBonus += feed.detectionBonus;
   });
   const eventPenalty = (G.activeRandomEvents || []).reduce((s, e) => s + (e.coveragePenalty || 0), 0);
@@ -2772,7 +2886,7 @@ function calcMTTD() {
   TECHNIQUE_CATS.forEach(cat => { ruleBonus += G.rules[cat] * 8; });
   let intelBonus = 0;
   G.activeIntelFeeds.forEach(fid => {
-    const feed = [...INTEL_FEEDS, ...INTEL_FEEDS_W2].find(f => f.id === fid);
+    const feed = [...INTEL_FEEDS, ...INTEL_FEEDS_W2, ...INTEL_FEEDS_W3, ...INTEL_FEEDS_W4].find(f => f.id === fid);
     if (feed) intelBonus += feed.mttdBonus;
   });
   return Math.max(10, base - ruleBonus - intelBonus - getConsultantBonuses().mttdBonus);
@@ -3384,11 +3498,18 @@ function buildScoreCardHTML(s) {
   html += infoRow('DIFFICULTY', (DIFFICULTIES[selectedDifficulty]?.label || selectedDifficulty).toUpperCase());
 
   const wcls = gradeClass(s.grade);
-  if (G.week === 2) {
+  if (G.week >= 2) {
     html += `<div class="score-section-label">WEEKLY ASSESSMENT</div>`;
-    const g1cls = gradeClass(G.w1Grade || 'B');
-    html += `<div class="score-row"><span>WEEK 1</span><span class="${g1cls}">${G.w1Grade || '—'}</span></div>`;
-    html += `<div class="score-row"><span>WEEK 2</span><span class="${wcls}">${s.grade}</span></div>`;
+    if (G.w1Grade) html += `<div class="score-row"><span>WEEK 1</span><span class="${gradeClass(G.w1Grade)}">${G.w1Grade}</span></div>`;
+    if (G.week === 2) html += `<div class="score-row"><span>WEEK 2</span><span class="${wcls}">${s.grade}</span></div>`;
+    if (G.week > 2) {
+      html += `<div class="score-row"><span>WEEK 2</span><span class="${gradeClass(G.w2Grade || '—')}">${G.w2Grade || '—'}</span></div>`;
+    }
+    if (G.week === 3) html += `<div class="score-row"><span>WEEK 3</span><span class="${wcls}">${s.grade}</span></div>`;
+    if (G.week > 3) {
+      html += `<div class="score-row"><span>WEEK 3</span><span class="${gradeClass(G.w3Grade || '—')}">${G.w3Grade || '—'}</span></div>`;
+    }
+    if (G.week === 4) html += `<div class="score-row"><span>WEEK 4</span><span class="${wcls}">${s.grade}</span></div>`;
   }
   html += `<div class="score-total"><span class="score-grade ${wcls}">${s.grade}</span><span class="score-label">${s.label}</span></div>`;
 
@@ -3414,27 +3535,41 @@ function triggerWin() {
   G.won = true;
   const s = computeFinalScore();
   document.getElementById('win-score-card').innerHTML = buildScoreCardHTML(s);
-  document.getElementById('win-subtitle').textContent =
-    G.week === 1 ? '7 days survived. Infrastructure secured.' : '14 days survived. Extended operations complete.';
-  document.getElementById('continue-w2-btn').style.display = G.week === 1 ? 'block' : 'none';
+  const winSubtitles = {
+    1: '7 days survived. Infrastructure secured.',
+    2: '14 days survived. Extended operations complete.',
+    3: '21 days survived. Persistent threat neutralised.',
+    4: '28 days survived. Full campaign attribution achieved.',
+  };
+  document.getElementById('win-subtitle').textContent = winSubtitles[G.week] || winSubtitles[4];
+  const contBtn = document.getElementById('continue-w2-btn');
+  contBtn.style.display = G.week < 4 ? 'block' : 'none';
+  contBtn.textContent = G.week === 1 ? '▶ EXTEND OPERATIONS — WEEK 2'
+                      : G.week === 2 ? '▶ EXTEND OPERATIONS — WEEK 3'
+                      :                '▶ EXTEND OPERATIONS — WEEK 4';
   document.getElementById('win-overlay').classList.add('visible');
 }
 
-function continueToWeek2() {
+function continueToWeek2() { continueToNextWeek(); }
+
+function continueToNextWeek() {
   const s = computeFinalScore();
-  G.w1Grade = s.grade;
+  if (G.week === 1)      G.w1Grade = s.grade;
+  else if (G.week === 2) G.w2Grade = s.grade;
+  else if (G.week === 3) G.w3Grade = s.grade;
 
   document.getElementById('win-overlay').classList.remove('visible');
 
-  G.week = 2;
+  G.week++;
   G.gameOver = false;
   G.won = false;
   G.breaches = 0;
   G.totalDwellResolved = 0;
   G.totalIncome = 0;
 
-  // Signature decay — adversaries adapted TTPs
-  TECHNIQUE_CATS.forEach(cat => { G.rules[cat] = Math.max(0, (G.rules[cat] || 0) - 1); });
+  // Signature decay — adversaries adapted TTPs (deeper decay in later weeks)
+  const decayAmount = G.week >= 4 ? 2 : G.week >= 3 ? 2 : 1;
+  TECHNIQUE_CATS.forEach(cat => { G.rules[cat] = Math.max(0, (G.rules[cat] || 0) - decayAmount); });
 
   // Intel feed subscriptions lapse
   G.activeIntelFeeds = [];
@@ -3447,8 +3582,9 @@ function continueToWeek2() {
     G.soarPlaybooks[cat] = Math.max(0, (G.soarPlaybooks[cat] || 0) - 1);
   });
 
-  // Client retainer renegotiation
-  G.incomeAmount = Math.floor(G.incomeAmount * 0.85);
+  // Escalating budget pressure
+  const budgetFactor = G.week >= 4 ? 0.75 : G.week >= 3 ? 0.80 : 0.85;
+  G.incomeAmount = Math.floor(G.incomeAmount * budgetFactor);
 
   // Escalated adversary activity
   G.spawnMult *= 1.25;
@@ -3456,12 +3592,13 @@ function continueToWeek2() {
   // Fresh threat actor wave
   G.campaigns = {};
 
-  // New CVE disclosures
-  const newVulns = generateWeek2Vulns(6);
+  // New CVE disclosures — more and higher severity each week
+  const vulnCount = G.week >= 4 ? 9 : G.week >= 3 ? 7 : 6;
+  const newVulns = generateWeekVulns(vulnCount, G.week);
   G.vulns.push(...newVulns);
   G.vulnScore = calcVulnScore();
 
-  // Grace period before first week-2 threat
+  // Grace period before first threat of new week
   G.nextThreatIn = 240;
 
   // Recalculate derived stats
@@ -3471,15 +3608,18 @@ function continueToWeek2() {
   // Update header day max
   document.getElementById('hdr-day-max').textContent = `/${WIN_DAYS * G.week}`;
 
-  // Week 2 briefing via SIEM
-  siemLog('CRIT', 'SYSTEM',       '[ WEEK 2 — EXTENDED OPERATIONS ] — adversary activity escalating. Hold the line.');
+  // Week briefing via SIEM
+  const newFeedNames = G.week === 2 ? 'Dark Web Monitor, Zero-Day Exchange'
+                     : G.week === 3 ? 'Threat Graph Analytics, Adversary Profile Database'
+                     :                'Predictive Threat Engine, Insider Threat Monitor';
+  siemLog('CRIT', 'SYSTEM',       `[ WEEK ${G.week} — EXTENDED OPERATIONS ] — adversary activity escalating. Hold the line.`);
   siemLog('WARN', 'DETECTION',    'Signature decay confirmed — adversaries have adapted TTPs. Re-tune detection rules.');
   siemLog('WARN', 'THREAT-INTEL', 'Intel feed subscriptions lapsed. Re-subscribe to maintain situational awareness.');
   siemLog('WARN', 'PARTNERS',     'Consultant contract concluded. Re-hire available for new engagement.');
   siemLog('WARN', 'SOAR',         'SOAR playbooks flagged for re-tuning — effectiveness degraded after TTP shift.');
-  siemLog('WARN', 'VULN',         '6 new CVE disclosures identified across company infrastructure. Immediate assessment recommended.');
+  siemLog('WARN', 'VULN',         `${vulnCount} new CVE disclosures identified across company infrastructure. Immediate assessment recommended.`);
   siemLog('INFO', 'FINANCE',      `Security budget revised downward: allocation reduced to ${fmt$(G.incomeAmount)}/cycle.`);
-  siemLog('INFO', 'PARTNERS',     'New intelligence products now available: Dark Web Monitor, Zero-Day Exchange.');
+  siemLog('INFO', 'PARTNERS',     `New intelligence products now available: ${newFeedNames}.`);
 
   updateUI(true);
 }
@@ -3904,7 +4044,7 @@ function hireConsultant(id) {
 
 function purchaseIntelFeed(feedId) {
   if (G.activeIntelFeeds.includes(feedId)) return;
-  const feed = [...INTEL_FEEDS, ...INTEL_FEEDS_W2].find(f => f.id === feedId);
+  const feed = [...INTEL_FEEDS, ...INTEL_FEEDS_W2, ...INTEL_FEEDS_W3, ...INTEL_FEEDS_W4].find(f => f.id === feedId);
   if (!feed) return;
   if (G.budget < feed.cost) { siemLog('WARN','OPS','Insufficient budget for intel feed'); return; }
   G.budget -= feed.cost;
@@ -4742,14 +4882,19 @@ function renderRedTeamModal() {
 function renderIntelModal() {
   const optDiv = document.getElementById('intel-options');
   optDiv.innerHTML = '';
-  const allFeeds = G.week >= 2 ? [...INTEL_FEEDS, ...INTEL_FEEDS_W2] : INTEL_FEEDS;
+  const allFeeds = G.week >= 4 ? [...INTEL_FEEDS, ...INTEL_FEEDS_W2, ...INTEL_FEEDS_W3, ...INTEL_FEEDS_W4]
+               : G.week >= 3 ? [...INTEL_FEEDS, ...INTEL_FEEDS_W2, ...INTEL_FEEDS_W3]
+               : G.week >= 2 ? [...INTEL_FEEDS, ...INTEL_FEEDS_W2]
+               : INTEL_FEEDS;
   allFeeds.forEach(feed => {
     const active = G.activeIntelFeeds.includes(feed.id);
-    const isW2Feed = INTEL_FEEDS_W2.some(f => f.id === feed.id);
+    const isNewFeed = (G.week === 2 && INTEL_FEEDS_W2.some(f => f.id === feed.id))
+                   || (G.week === 3 && INTEL_FEEDS_W3.some(f => f.id === feed.id))
+                   || (G.week === 4 && INTEL_FEEDS_W4.some(f => f.id === feed.id));
     const d = document.createElement('div');
     d.className = 'intel-option';
     d.innerHTML = `
-      <div class="intel-name">${feed.name}${isW2Feed ? '<span style="color:var(--amber);font-size:9px"> [NEW]</span>' : ''} ${active?'<span class="intel-active">● ACTIVE</span>':''}</div>
+      <div class="intel-name">${feed.name}${isNewFeed ? '<span style="color:var(--amber);font-size:9px"> [NEW]</span>' : ''} ${active?'<span class="intel-active">● ACTIVE</span>':''}</div>
       <div class="intel-desc">${feed.desc}</div>
       <div style="font-size:9px;color:var(--green-dim);margin-top:2px">
         Detection +${feed.detectionBonus}% | MTTD -${feed.mttdBonus}min${feed.vulnBonus ? ` | Vuln -${feed.vulnBonus}` : ''} | Cost: ${fmt$(feed.cost)}
@@ -4836,7 +4981,9 @@ function renderConsultantModal() {
 function setSpeed(s) {
   G.speed = s;
   [1,2,3,4].forEach(v => {
-    document.getElementById(`spd-${v}`).classList.toggle('active', v === s);
+    const btn = document.getElementById(`spd-${v}`);
+    btn.classList.toggle('active', v === s);
+    btn.setAttribute('aria-pressed', v === s ? 'true' : 'false');
   });
 }
 
@@ -4845,6 +4992,7 @@ function togglePause() {
   const btn = document.getElementById('pause-btn');
   const ind = document.getElementById('live-indicator');
   btn.textContent = G.paused ? 'RESUME' : 'PAUSE';
+  btn.setAttribute('aria-pressed', G.paused ? 'true' : 'false');
   if (G.paused) {
     ind.className = 'paused';
     ind.textContent = '■ PAUSED';
@@ -4944,10 +5092,15 @@ function switchTab(tab) {
   const panelMap = { incidents: 'incidents-panel', ops: 'ops-panel', status: 'status-panel' };
   ['incidents-panel', 'ops-panel', 'status-panel'].forEach(id =>
     document.getElementById(id).classList.remove('mobile-active'));
-  ['tab-incidents', 'tab-ops', 'tab-status'].forEach(id =>
-    document.getElementById(id).classList.remove('active'));
+  ['tab-incidents', 'tab-ops', 'tab-status'].forEach(id => {
+    const btn = document.getElementById(id);
+    btn.classList.remove('active');
+    btn.setAttribute('aria-pressed', 'false');
+  });
   document.getElementById(panelMap[tab]).classList.add('mobile-active');
-  document.getElementById(`tab-${tab}`).classList.add('active');
+  const activeBtn = document.getElementById(`tab-${tab}`);
+  activeBtn.classList.add('active');
+  activeBtn.setAttribute('aria-pressed', 'true');
 }
 
 function updateTabBadge() {
