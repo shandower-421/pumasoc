@@ -4568,11 +4568,24 @@ function updateUI() {
     msspBtn.disabled = G.budget < 150000;
   }
 
-  // SOAR button label; disable only when platform is unaffordable (keep enabled when active — playbooks)
-  const soarCostEl = document.getElementById('soar-btn-cost');
-  if (soarCostEl) {
-    soarCostEl.textContent = G.soar ? 'ACTIVE' : '$100k';
-    _ui['soar-action-btn'].disabled = !G.soar && G.budget < SOAR_PLATFORM_COST;
+  // SOAR button: before platform — show platform cost; after — show playbook cost or MAXED
+  {
+    const soarCostEl = document.getElementById('soar-btn-cost');
+    if (soarCostEl) {
+      if (!G.soar) {
+        soarCostEl.textContent = fmt$(SOAR_PLATFORM_COST);
+        _ui['soar-action-btn'].disabled = G.budget < SOAR_PLATFORM_COST;
+      } else {
+        const upgradablePlaybooks = TECHNIQUE_CATS.filter(cat => (G.soarPlaybooks[cat] || 0) < SOAR_MAX_LEVEL);
+        if (upgradablePlaybooks.length === 0) {
+          soarCostEl.textContent = 'MAXED';
+          _ui['soar-action-btn'].disabled = true;
+        } else {
+          soarCostEl.textContent = fmt$(SOAR_PLAYBOOK_COST);
+          _ui['soar-action-btn'].disabled = G.budget < SOAR_PLAYBOOK_COST;
+        }
+      }
+    }
   }
 
   // Detection ENG button — show cheapest available upgrade or MAXED; disable when nothing affordable
@@ -4589,17 +4602,23 @@ function updateUI() {
     }
   }
 
-  // Threat Intel button — show cheapest unpurchased feed or ALL OWNED; disable when unaffordable
-  const intelCostEl = document.getElementById('intel-btn-cost');
-  if (intelCostEl) {
-    const available = INTEL_FEEDS.filter(f => !G.activeIntelFeeds.includes(f.id));
-    if (available.length === 0) {
-      intelCostEl.textContent = 'ALL OWNED';
-      _ui['intel-action-btn'].disabled = false; // keep enabled — player can review active feeds
-    } else {
-      const minCost = Math.min(...available.map(f => f.cost));
-      intelCostEl.textContent = fmt$(minCost);
-      _ui['intel-action-btn'].disabled = G.budget < minCost;
+  // Threat Intel button — show cheapest available (unsubscribed) feed or ALL ACTIVE; disable when unaffordable
+  {
+    const intelCostEl = document.getElementById('intel-btn-cost');
+    if (intelCostEl) {
+      const weekFeeds = G.week >= 4 ? [...INTEL_FEEDS, ...INTEL_FEEDS_W2, ...INTEL_FEEDS_W3, ...INTEL_FEEDS_W4]
+                     : G.week >= 3 ? [...INTEL_FEEDS, ...INTEL_FEEDS_W2, ...INTEL_FEEDS_W3]
+                     : G.week >= 2 ? [...INTEL_FEEDS, ...INTEL_FEEDS_W2]
+                     : INTEL_FEEDS;
+      const available = weekFeeds.filter(f => !G.activeIntelFeeds.includes(f.id));
+      if (available.length === 0) {
+        intelCostEl.textContent = 'ALL ACTIVE';
+        _ui['intel-action-btn'].disabled = true;
+      } else {
+        const minCost = Math.min(...available.map(f => f.cost));
+        intelCostEl.textContent = fmt$(minCost);
+        _ui['intel-action-btn'].disabled = G.budget < minCost;
+      }
     }
   }
 
