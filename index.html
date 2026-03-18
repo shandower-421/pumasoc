@@ -1675,11 +1675,11 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
         <div class="ops-section-title">── STAFFING ─────────────</div>
         <div id="analyst-roster"></div>
         <button class="action-btn" id="hire-btn" onclick="hireAnalyst()">▶ HIRE ANALYST<span class="btn-cost" id="hire-cost">$75k</span></button>
-        <button class="action-btn" id="training-btn" onclick="startTraining()">▶ SEND TO TRAINING<span class="btn-cost">$30k</span></button>
-        <button class="action-btn" id="hunt-btn" onclick="startHunt()">▶ THREAT HUNT<span class="btn-cost">$40k</span></button>
+        <button class="action-btn" id="training-btn" onclick="startTraining()">▶ SEND TO TRAINING<span class="btn-cost">$50k</span></button>
+        <button class="action-btn" id="hunt-btn" onclick="startHunt()">▶ THREAT HUNT<span class="btn-cost">$60k</span></button>
         <button class="action-btn" id="tabletop-btn" onclick="startTabletop()">▶ TABLETOP EXERCISE<span class="btn-cost">$25k</span></button>
-        <button class="action-btn" id="patch-sprint-btn" onclick="startPatchSprint()">▶ PATCH SPRINT<span class="btn-cost">$10k</span></button>
-        <button class="action-btn" id="osint-btn" onclick="startOSINT()">▶ OSINT RESEARCH<span class="btn-cost">$20k</span></button>
+        <button class="action-btn" id="patch-sprint-btn" onclick="startPatchSprint()">▶ PATCH SPRINT<span class="btn-cost">$25k</span></button>
+        <button class="action-btn" id="osint-btn" onclick="startOSINT()">▶ OSINT RESEARCH<span class="btn-cost">$40k</span></button>
       </div>
       <div class="ops-section">
         <div class="ops-section-title">── CAPABILITIES ─────────</div>
@@ -1807,7 +1807,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
         the blast radius of any breach.
       </div>
       <div class="modal-actions">
-        <button class="modal-action-btn" id="scan-btn" onclick="runVulnScan()">▶ RUN SCAN ($10k)</button>
+        <button class="modal-action-btn" id="scan-btn" onclick="runVulnScan()">▶ RUN SCAN ($15k)</button>
         <button class="modal-action-btn" id="patch-crit-btn" onclick="patchCritical()">▶ PATCH CRITICAL ($25k)</button>
         <button class="modal-action-btn" id="patch-all-btn" onclick="patchAll()">▶ PATCH ALL ($75k)</button>
       </div>
@@ -1998,7 +1998,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 
         <div class="help-section-title">VULNERABILITY MANAGEMENT</div>
         <div class="help-cap-row">
-          <span class="help-cap-name">VULN MGMT — $10k scan, variable patch costs</span>
+          <span class="help-cap-name">VULN MGMT — $15k scan, variable patch costs</span>
           <span class="help-cap-desc">Run a scan to discover CVEs across your infrastructure. Patch individually (HIGH: $8–12k, MED: $3–6k, LOW: $1–3k), patch all criticals at a small discount, or patch everything with a 15% bulk discount. Vuln Score directly accelerates threat spawn rate.</span>
         </div>
 
@@ -2025,11 +2025,11 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 
         <div class="help-section-title">ANALYST ACTIVITIES (consume one slot for the duration)</div>
         <div class="help-cap-row">
-          <span class="help-cap-name">SEND TO TRAINING — $30k · 24h · permanent +10% IR speed (max +30%)</span>
+          <span class="help-cap-name">SEND TO TRAINING — $50k · 24h · permanent +10% IR speed (max +30%)</span>
           <span class="help-cap-desc">Offline for 24 game-hours. On return, permanently boosts <em>all</em> analysts' IR stage speed by +10%. Three trainings caps the bonus. Do it early before incident waves hit.</span>
         </div>
         <div class="help-cap-row">
-          <span class="help-cap-name">THREAT HUNT — $40k · 8h · surfaces 1–3 hidden threats</span>
+          <span class="help-cap-name">THREAT HUNT — $60k · 8h · surfaces 1–3 hidden threats</span>
           <span class="help-cap-desc">Proactive hunt for lurking undetected threats. On return, creates incidents for any found — turning silent dwell into cases you can close. Use when MTTD is high and you suspect threats are accumulating invisibly.</span>
         </div>
         <div class="help-cap-row">
@@ -2037,11 +2037,11 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
           <span class="help-cap-desc">IR team runs through a simulated scenario. On completion, grants a temporary +15% speed boost lasting 48 game-hours — visible in the posture panel. Stack with training bonus for maximum throughput during a surge.</span>
         </div>
         <div class="help-cap-row">
-          <span class="help-cap-name">PATCH SPRINT — $10k · 3h · free-patches all LOW vulns</span>
+          <span class="help-cap-name">PATCH SPRINT — $25k · 3h · free-patches all LOW vulns</span>
           <span class="help-cap-desc">Analyst focuses entirely on remediation. On completion, patches every discovered LOW-severity vulnerability at no additional cost. Only available when low vulns are outstanding. Excellent value early in the game.</span>
         </div>
         <div class="help-cap-row">
-          <span class="help-cap-name">OSINT RESEARCH — $20k · 6h · 3 guaranteed-detection charges</span>
+          <span class="help-cap-name">OSINT RESEARCH — $40k · 6h · 3 guaranteed-detection charges</span>
           <span class="help-cap-desc">Analyst profiles active threat actors. On completion, loads 3 charges — next 3 threats that spawn are immediately detected regardless of Coverage %, each logged with OSINT attribution in SIEM. Use before anticipated high-activity periods.</span>
         </div>
 
@@ -2382,13 +2382,13 @@ const MSSP_TIERS = [
   {
     id: 'fullmanaged',
     name: 'FULLY MANAGED SOC',
-    startup: 450000,
+    startup: 350000,
     renewal: 50000,
     autoAssign: true,
     autoLessons: true,
-    irSpeedBonus: 0.10,
+    irSpeedBonus: 0.15,
     overflow: true,
-    bonusDesc: 'Full co-managed + overflow capacity when analyst slots saturated',
+    bonusDesc: 'Full co-managed + overflow capacity + 15% IR speed (vs 10%)',
   },
 ];
 const SAT_DURATION_DAYS = 7;            // subscription lasts 7 game-days from purchase
@@ -2398,7 +2398,7 @@ const SAT_TIERS = [
     name: 'PHISHING SIMULATION',
     desc: 'Automated phishing tests against employees. Reduces email-based initial access. Narrow scope, low overhead.',
     startup: 20000,
-    renewal: 8000,
+    renewal: 15000,
     intercept: 0.25,
     coverageBonus: 0,
     bonusDesc: '-25% phishing-based initial access',
@@ -2408,7 +2408,7 @@ const SAT_TIERS = [
     name: 'AWARENESS PROGRAM',
     desc: 'Full curriculum: phishing, social engineering, password hygiene, device security. Employees begin self-reporting suspicious activity.',
     startup: 50000,
-    renewal: 20000,
+    renewal: 30000,
     intercept: 0.40,
     coverageBonus: 5,
     bonusDesc: '-40% initial access attempts, +5% detection coverage',
@@ -2431,16 +2431,16 @@ const INTEL_FEEDS = [
 ];
 
 const INTEL_FEEDS_W2 = [
-  { id:'darkweb', name:'Dark Web Monitor',  desc:'Threat actor chatter and planned campaign early warnings from underground forums', cost:100000, detectionBonus:10, mttdBonus:30 },
-  { id:'zeroday', name:'Zero-Day Exchange', desc:'Pre-disclosure CVE intelligence from private researchers — neutralise vulns before public exploit', cost:120000, detectionBonus:5, mttdBonus:0, vulnBonus:25 },
+  { id:'darkweb', name:'Dark Web Monitor',  desc:'Threat actor chatter and planned campaign early warnings from underground forums', cost:100000, detectionBonus:12, mttdBonus:35 },
+  { id:'zeroday', name:'Zero-Day Exchange', desc:'Pre-disclosure CVE intelligence from private researchers — neutralise vulns before public exploit', cost:120000, detectionBonus:8, mttdBonus:0, vulnBonus:25 },
 ];
 const INTEL_FEEDS_W3 = [
-  { id:'threatgraph', name:'Threat Graph Analytics',      desc:'AI-correlated attack pattern analysis across global sensor network',                        cost:140000, detectionBonus:12, mttdBonus:35 },
-  { id:'adversarydb', name:'Adversary Profile Database',  desc:'Deep-profile intelligence on active threat actor groups targeting your sector',              cost:160000, detectionBonus:8,  mttdBonus:20 },
+  { id:'threatgraph', name:'Threat Graph Analytics',      desc:'AI-correlated attack pattern analysis across global sensor network',                        cost:140000, detectionBonus:15, mttdBonus:40 },
+  { id:'adversarydb', name:'Adversary Profile Database',  desc:'Deep-profile intelligence on active threat actor groups targeting your sector',              cost:160000, detectionBonus:15, mttdBonus:40 },
 ];
 const INTEL_FEEDS_W4 = [
   { id:'predictive',   name:'Predictive Threat Engine',  desc:'ML-driven attack prediction based on current geopolitical indicators',                        cost:175000, detectionBonus:15, mttdBonus:50 },
-  { id:'insiderthreat',name:'Insider Threat Monitor',    desc:'Behavioural analytics detecting anomalous insider activity before exfiltration',              cost:190000, detectionBonus:10, mttdBonus:25, vulnBonus:15 },
+  { id:'insiderthreat',name:'Insider Threat Monitor',    desc:'Behavioural analytics detecting anomalous insider activity before exfiltration',              cost:190000, detectionBonus:12, mttdBonus:30, vulnBonus:20 },
 ];
 
 const RULE_UPGRADE_COSTS = [25000, 30000, 35000, 40000, 50000];
@@ -3907,10 +3907,10 @@ function upgradeRule(cat) {
 
 function runVulnScan() {
   if (G.scanJob) { siemLog('WARN','VULN','Scan already in progress'); return; }
-  if (G.budget < 10000) { siemLog('WARN','OPS','Insufficient budget for vulnerability scan'); return; }
+  if (G.budget < 15000) { siemLog('WARN','OPS','Insufficient budget for vulnerability scan'); return; }
   const unknown = G.vulns.filter(v => !v.discovered).length;
   if (unknown === 0) { siemLog('OK','VULN','All vulnerabilities already identified — no scan needed'); return; }
-  G.budget -= 10000;
+  G.budget -= 15000;
   G.scanJob = { completesAt: G.gameTime + 120 };
   siemLog('OK','VULN-SCAN',`Vulnerability scan initiated — automated scanner running, results in 2h`);
   renderVulnModal();
@@ -3998,8 +3998,8 @@ function startTraining() {
   if (G.analystTotal <= 1) { siemLog('WARN','HR','Cannot send analyst to training — minimum staffing required'); return; }
   const freeIdx = G.analystSlots.findIndex(s => s === null);
   if (freeIdx === -1) { siemLog('WARN','HR','No free analyst available for training'); return; }
-  if (G.budget < 30000) { siemLog('WARN','HR','Insufficient budget for analyst training'); return; }
-  G.budget -= 30000;
+  if (G.budget < 50000) { siemLog('WARN','HR','Insufficient budget for analyst training'); return; }
+  G.budget -= 50000;
   G.analystSlots[freeIdx] = 'TRAINING';
   G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
   G.trainingJob = { completesAt: G.gameTime + 1440 };
@@ -4011,8 +4011,8 @@ function startHunt() {
   if (G.analystTotal <= 1) { siemLog('WARN','HR','Cannot deploy threat hunter — minimum staffing required'); return; }
   const freeIdx = G.analystSlots.findIndex(s => s === null);
   if (freeIdx === -1) { siemLog('WARN','HR','No free analyst available for threat hunt'); return; }
-  if (G.budget < 40000) { siemLog('WARN','HR','Insufficient budget for threat hunt'); return; }
-  G.budget -= 40000;
+  if (G.budget < 60000) { siemLog('WARN','HR','Insufficient budget for threat hunt'); return; }
+  G.budget -= 60000;
   G.analystSlots[freeIdx] = 'HUNTING';
   G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
   G.huntJob = { completesAt: G.gameTime + 480, slotIdx: freeIdx };
@@ -4037,10 +4037,10 @@ function startPatchSprint() {
   if (G.analystTotal <= 1) { siemLog('WARN','HR','Cannot run patch sprint — minimum staffing required'); return; }
   const freeIdx = G.analystSlots.findIndex(s => s === null);
   if (freeIdx === -1) { siemLog('WARN','HR','No free analyst available for patch sprint'); return; }
-  if (G.budget < 10000) { siemLog('WARN','HR','Insufficient budget for patch sprint'); return; }
+  if (G.budget < 25000) { siemLog('WARN','HR','Insufficient budget for patch sprint'); return; }
   const lowVulns = G.vulns.filter(v => v.discovered && !v.patched && v.severity === 'LOW');
   if (lowVulns.length === 0) { siemLog('INFO','VULN','No low-severity vulnerabilities to remediate'); return; }
-  G.budget -= 10000;
+  G.budget -= 25000;
   G.analystSlots[freeIdx] = 'PATCHING';
   G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
   G.patchJob = { completesAt: G.gameTime + 180, slotIdx: freeIdx };
@@ -4052,8 +4052,8 @@ function startOSINT() {
   if (G.analystTotal <= 1) { siemLog('WARN','HR','Cannot run OSINT research — minimum staffing required'); return; }
   const freeIdx = G.analystSlots.findIndex(s => s === null);
   if (freeIdx === -1) { siemLog('WARN','HR','No free analyst available for OSINT research'); return; }
-  if (G.budget < 20000) { siemLog('WARN','HR','Insufficient budget for OSINT research'); return; }
-  G.budget -= 20000;
+  if (G.budget < 40000) { siemLog('WARN','HR','Insufficient budget for OSINT research'); return; }
+  G.budget -= 40000;
   G.analystSlots[freeIdx] = 'OSINT';
   G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
   G.osintJob = { completesAt: G.gameTime + 360, slotIdx: freeIdx };
@@ -4706,7 +4706,7 @@ function updateUI() {
   // Training btn — only rebuild innerHTML when training state changes (avoids string alloc every tick)
   const trainingBtn = _ui['training-btn'];
   const hasFreeAnalyst = G.analystSlots.some(s => s === null);
-  trainingBtn.disabled = !!G.trainingJob || !hasFreeAnalyst || G.analystTotal <= 1 || G.budget < 30000 || G.analystSpeedBonus >= 0.30;
+  trainingBtn.disabled = !!G.trainingJob || !hasFreeAnalyst || G.analystTotal <= 1 || G.budget < 50000 || G.analystSpeedBonus >= 0.30;
   if (G.analystSpeedBonus >= 0.30) {
     if (!trainingBtn._state || trainingBtn._state !== 'maxed') {
       trainingBtn.innerHTML = '▶ TRAINING MAXED<span class="btn-cost">+30%</span>';
@@ -4718,7 +4718,7 @@ function updateUI() {
     trainingBtn._state = 'active';
   } else {
     if (!trainingBtn._state || trainingBtn._state !== 'idle') {
-      trainingBtn.innerHTML = '▶ SEND TO TRAINING<span class="btn-cost">$30k</span>';
+      trainingBtn.innerHTML = '▶ SEND TO TRAINING<span class="btn-cost">$50k</span>';
       trainingBtn._state = 'idle';
     }
   }
@@ -4726,14 +4726,14 @@ function updateUI() {
   // Hunt btn
   const huntBtn = _ui['hunt-btn'];
   const hasFreeForHunt = G.analystSlots.some(s => s === null);
-  huntBtn.disabled = !!G.huntJob || !hasFreeForHunt || G.analystTotal <= 1 || G.budget < 40000;
+  huntBtn.disabled = !!G.huntJob || !hasFreeForHunt || G.analystTotal <= 1 || G.budget < 60000;
   if (G.huntJob) {
     const huntRem = Math.max(0, G.huntJob.completesAt - G.gameTime);
     huntBtn.innerHTML = `▶ HUNTING...<span class="btn-cost">${Math.round(huntRem/60)}h left</span>`;
     huntBtn._state = 'active';
   } else {
     if (!huntBtn._state || huntBtn._state !== 'idle') {
-      huntBtn.innerHTML = '▶ THREAT HUNT<span class="btn-cost">$40k</span>';
+      huntBtn.innerHTML = '▶ THREAT HUNT<span class="btn-cost">$60k</span>';
       huntBtn._state = 'idle';
     }
   }
@@ -4757,14 +4757,14 @@ function updateUI() {
   const patchSprintBtn = _ui['patch-sprint-btn'];
   const hasFreeForPatch = G.analystSlots.some(s => s === null);
   const hasLowVulns = G.vulns.some(v => v.discovered && !v.patched && v.severity === 'LOW');
-  patchSprintBtn.disabled = !!G.patchJob || !hasFreeForPatch || G.analystTotal <= 1 || G.budget < 10000 || !hasLowVulns;
+  patchSprintBtn.disabled = !!G.patchJob || !hasFreeForPatch || G.analystTotal <= 1 || G.budget < 25000 || !hasLowVulns;
   if (G.patchJob) {
     const prRem = Math.max(0, G.patchJob.completesAt - G.gameTime);
     patchSprintBtn.innerHTML = `▶ PATCHING...<span class="btn-cost">${Math.round(prRem/60)}h left</span>`;
     patchSprintBtn._state = 'active';
   } else {
     if (!patchSprintBtn._state || patchSprintBtn._state !== 'idle') {
-      patchSprintBtn.innerHTML = '▶ PATCH SPRINT<span class="btn-cost">$10k</span>';
+      patchSprintBtn.innerHTML = '▶ PATCH SPRINT<span class="btn-cost">$25k</span>';
       patchSprintBtn._state = 'idle';
     }
   }
@@ -4772,14 +4772,14 @@ function updateUI() {
   // OSINT btn
   const osintBtn = _ui['osint-btn'];
   const hasFreeForOSINT = G.analystSlots.some(s => s === null);
-  osintBtn.disabled = !!G.osintJob || !hasFreeForOSINT || G.analystTotal <= 1 || G.budget < 20000;
+  osintBtn.disabled = !!G.osintJob || !hasFreeForOSINT || G.analystTotal <= 1 || G.budget < 40000;
   if (G.osintJob) {
     const orRem = Math.max(0, G.osintJob.completesAt - G.gameTime);
     osintBtn.innerHTML = `▶ RESEARCHING...<span class="btn-cost">${Math.round(orRem/60)}h left</span>`;
     osintBtn._state = 'active';
   } else {
     if (!osintBtn._state || osintBtn._state !== 'idle') {
-      osintBtn.innerHTML = '▶ OSINT RESEARCH<span class="btn-cost">$20k</span>';
+      osintBtn.innerHTML = '▶ OSINT RESEARCH<span class="btn-cost">$40k</span>';
       osintBtn._state = 'idle';
     }
   }
@@ -5337,8 +5337,8 @@ function renderVulnModal() {
   const critBtn = document.getElementById('patch-crit-btn');
   const allBtn  = document.getElementById('patch-all-btn');
 
-  scanBtn.textContent = G.scanJob ? '▶ SCAN IN PROGRESS...' : '▶ RUN SCAN ($10k)';
-  scanBtn.disabled = G.budget < 10000 || unknown === 0 || !!G.scanJob;
+  scanBtn.textContent = G.scanJob ? '▶ SCAN IN PROGRESS...' : '▶ RUN SCAN ($15k)';
+  scanBtn.disabled = G.budget < 15000 || unknown === 0 || !!G.scanJob;
   critBtn.textContent = `▶ PATCH CRITICAL (${crits.length ? fmt$(critCost) : '$0'})`;
   critBtn.disabled = crits.length === 0 || G.budget < critCost;
   allBtn.textContent  = `▶ PATCH ALL (${allUnpatched.length ? fmt$(allCost) : '$0'})`;
