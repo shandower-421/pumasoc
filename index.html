@@ -5822,8 +5822,8 @@ function runBootSequence() {
           return;
         }
         document.getElementById('boot-prompt').style.display = 'block';
-        document.addEventListener('keydown', openDifficultyScreen, { once: true });
-        document.addEventListener('click', openDifficultyScreen, { once: true });
+        document.addEventListener('keydown', openDifficultyScreen);
+        document.addEventListener('click', openDifficultyScreen);
       }, 300);
       return;
     }
@@ -5847,8 +5847,12 @@ const DIFF_KEYS = ['apprentice', 'analyst', 'adversary'];
 let diffIdx = 1; // default: analyst
 
 function openDifficultyScreen(e) {
-  // Don't intercept if it was a modifier key or similar
+  // Don't intercept modifier-only keypresses — leave listeners alive so a real key can still fire
   if (e && e.type === 'keydown' && (e.key === 'Tab' || e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt')) return;
+
+  // We're proceeding — remove both listeners so neither fires again during gameplay
+  document.removeEventListener('keydown', openDifficultyScreen);
+  document.removeEventListener('click', openDifficultyScreen);
 
   // Silent restore — if a saved game exists, skip difficulty screen entirely
   if (loadSavedState()) {
