@@ -3392,8 +3392,8 @@ function tick() {
     renderVulnModal();
     updateRedTeamJobsUI();
   }
-  // Roll off completed scan after 10 game-minutes
-  if (G.scanJob?.done && G.gameTime > (G.scanJob.completedAt || 0) + 10) {
+  // Roll off completed scan after 1 game-day
+  if (G.scanJob?.done && G.gameTime > (G.scanJob.completedAt || 0) + 1440) {
     G.scanJob = null;
     updateRedTeamJobsUI();
   }
@@ -3413,9 +3413,14 @@ function tick() {
     job.elapsedMins += delta;
     if (job.elapsedMins >= job.durationMins) {
       job.done = true;
+      job.completedAt = G.gameTime;
       completeRedTeam(job);
     }
   });
+  // Roll off completed red team jobs after 1 game-day
+  const _rtBefore = G.redTeamJobs.length;
+  G.redTeamJobs = G.redTeamJobs.filter(j => !j.done || G.gameTime <= (j.completedAt || 0) + 1440);
+  if (G.redTeamJobs.length !== _rtBefore) updateRedTeamJobsUI();
 
   // Recalculate stats
   G.coverage = calcCoverage();
@@ -4901,7 +4906,7 @@ function updateRedTeamJobsUI() {
     const pct = Math.min(100, Math.round((elapsed / 120) * 100));
     const d = document.createElement('div');
     d.className = 'redteam-job';
-    d.innerHTML = `<div class="stat-row"><span class="stat-label">VULN SCAN</span><span class="stat-val">${G.scanJob.done ? '[DONE]' : fmtDuration(remaining)}</span></div>
+    d.innerHTML = `<div class="stat-row"><span class="stat-label">VULN SCAN</span><span class="stat-val">${G.scanJob.done ? 'Done' : fmtDuration(remaining)}</span></div>
       <div class="redteam-job-bar"><div class="redteam-job-fill" style="width:${pct}%"></div></div>`;
     list.appendChild(d);
   }
@@ -4911,7 +4916,7 @@ function updateRedTeamJobsUI() {
     const pct = Math.min(100, Math.round((job.elapsedMins / job.durationMins) * 100));
     const d = document.createElement('div');
     d.className = 'redteam-job';
-    d.innerHTML = `<div class="stat-row"><span class="stat-label">${job.name.substring(0,22)}</span><span class="stat-val">${job.done ? '[DONE]' : fmtDuration(remaining)}</span></div>
+    d.innerHTML = `<div class="stat-row"><span class="stat-label">${job.name.substring(0,22)}</span><span class="stat-val">${job.done ? 'Done' : fmtDuration(remaining)}</span></div>
       <div class="redteam-job-bar"><div class="redteam-job-fill" style="width:${pct}%"></div></div>`;
     list.appendChild(d);
   });
