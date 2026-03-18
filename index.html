@@ -1133,6 +1133,13 @@ body::after {
 @keyframes bar-levelup { 0%{ filter: brightness(3); } 60%{ filter: brightness(1.6); } 100%{ filter: brightness(1); } }
 .bar-levelup { animation: bar-levelup 0.6s ease forwards; }
 
+/* Help button pulse — drawn attention for new players */
+@keyframes btn-pulse {
+  0%, 100% { box-shadow: 0 0 4px var(--green-dim); }
+  50%       { box-shadow: 0 0 12px var(--green), 0 0 20px var(--green-dim); }
+}
+.btn-pulse { animation: btn-pulse 1.2s ease-in-out infinite; }
+
 /* Subtle CRT phosphor flicker */
 @keyframes crt-flicker-anim {
   0%,100%{ opacity:1 } 18%{ opacity:0.87 } 36%{ opacity:1 } 66%{ opacity:0.93 } 82%{ opacity:1 }
@@ -2760,6 +2767,7 @@ let _prevBudget = null;               // for budget flash
 let _prevCoverage = 0;                // for coverage bar level-up flash
 let _prevCoverageRaw = null;          // raw (non-rounded) for sub-1% change detection
 let _prevMttd = null;                 // for MTTD flash
+let _helpPausedGame = false;          // true if openHelp() caused an auto-pause
 let _contractsStructureKey = null;    // for contracts section rebuild detection
 let _intelBarEls = {};                // feedId → bar fill element ref
 let _intelTimeEls = {};               // feedId → time text element ref
@@ -5222,9 +5230,21 @@ function switchHelpTab(name) {
 function openHelp() {
   document.getElementById('help-overlay').classList.add('visible');
   switchHelpTab('overview');
+  // Auto-pause while player reads (only if game is running and not already paused)
+  if (G && !G.gameOver && !G.paused) {
+    _helpPausedGame = true;
+    togglePause();
+  }
+  // Remove first-run pulse hint if present
+  document.getElementById('help-btn').classList.remove('btn-pulse');
 }
 function closeHelp() {
   document.getElementById('help-overlay').classList.remove('visible');
+  // Resume only if we caused the pause — preserve manual pause state
+  if (_helpPausedGame) {
+    _helpPausedGame = false;
+    togglePause();
+  }
 }
 
 // ↑↑↓↓←→←→BA — yeah, it does what you think it does.
@@ -5365,6 +5385,7 @@ function restartGame() {
   _prevCoverage = 0;
   _prevCoverageRaw = null;
   _prevMttd = null;
+  _helpPausedGame = false;
   _contractsStructureKey = null;
   _intelBarEls = {};
   _intelTimeEls = {};
@@ -5600,6 +5621,17 @@ function startGame() {
       if (!G || G.gameOver) return;
       siemLog('INFO', 'ONBOARD', 'Coverage % is your primary defense metric. Each rule level adds +5%. Target 50%+ before Day 2.');
     }, 45000);
+  }
+
+  // Help auto-show: first-time players see the manual immediately (game auto-pauses).
+  // Returning players get a 60-second pulse on the ? button as a soft reminder.
+  if (!localStorage.getItem('puma-seen-help')) {
+    localStorage.setItem('puma-seen-help', '1');
+    openHelp();
+  } else {
+    const helpBtn = document.getElementById('help-btn');
+    helpBtn.classList.add('btn-pulse');
+    setTimeout(() => helpBtn.classList.remove('btn-pulse'), 60000);
   }
 }
 
