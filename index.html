@@ -4189,6 +4189,7 @@ function launchRedTeam() {
   const opt = REDTEAM_OPTIONS.find(o => o.id === selectedRedTeam);
   if (!opt) return;
   if (G.budget < opt.cost) { siemLog('WARN','OPS',`Insufficient budget for red team engagement: ${opt.name}`); return; }
+  if (G.redTeamJobs.some(j => j.type === opt.id && !j.done)) { siemLog('WARN','OPS',`Engagement already in progress: ${opt.name}`); return; }
   G.budget -= opt.cost;
   const job = {
     id: Date.now(),
@@ -5345,6 +5346,13 @@ function renderVulnModal() {
 }
 
 function renderRedTeamModal() {
+  // Clear stale selection if the previously-chosen option is now running or unaffordable
+  if (selectedRedTeam) {
+    const selOpt = REDTEAM_OPTIONS.find(o => o.id === selectedRedTeam);
+    if (!selOpt || G.redTeamJobs.some(j => j.type === selOpt.id && !j.done) || G.budget < selOpt.cost) {
+      selectedRedTeam = null;
+    }
+  }
   const optDiv = document.getElementById('redteam-options');
   optDiv.innerHTML = '';
   REDTEAM_OPTIONS.forEach(opt => {
