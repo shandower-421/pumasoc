@@ -3454,6 +3454,9 @@ function tick() {
     G.vulnScore = calcVulnScore();
     G.scanJob.done = true;
     G.scanJob.completedAt = G.gameTime;
+    G.scanJob.foundHigh = found.filter(v => v.severity === 'HIGH').length;
+    G.scanJob.foundMed  = found.filter(v => v.severity === 'MED').length;
+    G.scanJob.foundLow  = found.filter(v => v.severity === 'LOW').length;
     const stillHidden = G.vulns.filter(v => !v.discovered).length;
     if (found.length === 0) {
       siemLog('OK','VULN-SCAN','Scan complete — no new vulnerabilities identified');
@@ -5019,8 +5022,11 @@ function updateRedTeamJobsUI() {
     const pct = Math.min(100, Math.round((elapsed / 120) * 100));
     const d = document.createElement('div');
     d.className = 'redteam-job';
+    const _scanSub = G.scanJob.done && (G.scanJob.foundHigh + G.scanJob.foundMed + G.scanJob.foundLow > 0)
+      ? `<div style="padding-left:8px;margin-top:3px"><div class="stat-row"><span class="stat-label" style="opacity:0.8">↳ ${G.scanJob.foundHigh}H / ${G.scanJob.foundMed}M / ${G.scanJob.foundLow}L found</span></div></div>`
+      : (G.scanJob.done ? `<div style="padding-left:8px;margin-top:3px"><div class="stat-row"><span class="stat-label" style="opacity:0.8">↳ No new vulnerabilities</span></div></div>` : '');
     d.innerHTML = `<div class="stat-row"><span class="stat-label">VULN SCAN</span><span class="stat-val">${G.scanJob.done ? '[DONE]' : fmtDuration(remaining)}</span></div>
-      <div class="redteam-job-bar"><div class="redteam-job-fill" style="width:${pct}%"></div></div>`;
+      <div class="redteam-job-bar"><div class="redteam-job-fill" style="width:${pct}%"></div></div>${_scanSub}`;
     list.appendChild(d);
   }
   // Red team assessments
