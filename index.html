@@ -3254,7 +3254,7 @@ function tick() {
   if (G.trainingJob && G.gameTime >= G.trainingJob.completesAt) {
     const idx = G.analystSlots.indexOf('TRAINING');
     if (idx !== -1) G.analystSlots[idx] = null;
-    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT' && s !== 'SCANNING').length;
+    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
     G.analystSpeedBonus = Math.min(0.30, G.analystSpeedBonus + 0.10);
     G.trainingJob = null;
     const pct = Math.round(G.analystSpeedBonus * 100);
@@ -3264,7 +3264,7 @@ function tick() {
   // Threat hunt completion
   if (G.huntJob && G.gameTime >= G.huntJob.completesAt) {
     G.analystSlots[G.huntJob.slotIdx] = null;
-    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT' && s !== 'SCANNING').length;
+    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
     const undetected = G.threats.filter(t => !t.detected && !t.breachTriggered);
     const findCount = Math.min(undetected.length, rnd(1, 3));
     const found = undetected.slice(0, findCount);
@@ -3281,7 +3281,7 @@ function tick() {
   // Tabletop exercise completion
   if (G.tabletopJob && G.gameTime >= G.tabletopJob.completesAt) {
     G.analystSlots[G.tabletopJob.slotIdx] = null;
-    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT' && s !== 'SCANNING').length;
+    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
     G.tabletopBonusExpiresAt = G.gameTime + 2880; // +15% IR speed for 48 game-hours
     G.tabletopJob = null;
     siemLog('OK','TABLETOP','Exercise complete — team response procedures rehearsed, IR efficiency +15% for 48h');
@@ -3290,7 +3290,7 @@ function tick() {
   // Patch sprint completion
   if (G.patchJob && G.gameTime >= G.patchJob.completesAt) {
     G.analystSlots[G.patchJob.slotIdx] = null;
-    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT' && s !== 'SCANNING').length;
+    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
     const lowVulns = G.vulns.filter(v => v.discovered && !v.patched && v.severity === 'LOW');
     lowVulns.forEach(v => { v.patched = true; });
     G.vulnScore = calcVulnScore();
@@ -3305,7 +3305,7 @@ function tick() {
   // OSINT / actor profiling completion
   if (G.osintJob && G.gameTime >= G.osintJob.completesAt) {
     G.analystSlots[G.osintJob.slotIdx] = null;
-    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT' && s !== 'SCANNING').length;
+    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
     G.osintCharges = 3;
     G.osintJob = null;
     siemLog('OK','OSINT','Actor profiling complete — TTPs documented, next 3 threats will be immediately flagged on entry');
@@ -3313,8 +3313,6 @@ function tick() {
 
   // Vulnerability scan completion
   if (G.scanJob && G.gameTime >= G.scanJob.completesAt) {
-    G.analystSlots[G.scanJob.slotIdx] = null;
-    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT' && s !== 'SCANNING').length;
     const undiscovered = G.vulns.filter(v => !v.discovered);
     // Partial discovery: 60-80% of unknown vulns, random selection
     const discoverCount = Math.max(1, Math.floor(undiscovered.length * (0.6 + Math.random() * 0.2)));
@@ -3425,7 +3423,7 @@ function resolveIncident(inc, earnReward = true) {
   // Free analyst
   if (inc.analystId !== null) {
     G.analystSlots[inc.analystId - 1] = null;
-    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT' && s !== 'SCANNING').length;
+    G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
   }
 
   // Remove associated threat
@@ -3732,17 +3730,12 @@ function upgradeRule(cat) {
 
 function runVulnScan() {
   if (G.scanJob) { siemLog('WARN','VULN','Scan already in progress'); return; }
-  if (G.analystTotal <= 1) { siemLog('WARN','VULN','Cannot run scan — minimum staffing required'); return; }
-  const freeIdx = G.analystSlots.findIndex(s => s === null);
-  if (freeIdx === -1) { siemLog('WARN','VULN','No free analyst available for vulnerability scan'); return; }
   if (G.budget < 10000) { siemLog('WARN','OPS','Insufficient budget for vulnerability scan'); return; }
   const unknown = G.vulns.filter(v => !v.discovered).length;
   if (unknown === 0) { siemLog('OK','VULN','All vulnerabilities already identified — no scan needed'); return; }
   G.budget -= 10000;
-  G.analystSlots[freeIdx] = 'SCANNING';
-  G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT' && s !== 'SCANNING').length;
-  G.scanJob = { completesAt: G.gameTime + 120, slotIdx: freeIdx };
-  siemLog('OK','VULN-SCAN',`Vulnerability scan initiated — analyst assigned, results in 2h`);
+  G.scanJob = { completesAt: G.gameTime + 120 };
+  siemLog('OK','VULN-SCAN',`Vulnerability scan initiated — automated scanner running, results in 2h`);
   renderVulnModal();
 }
 
@@ -3830,7 +3823,7 @@ function startTraining() {
   if (G.budget < 30000) { siemLog('WARN','HR','Insufficient budget for analyst training'); return; }
   G.budget -= 30000;
   G.analystSlots[freeIdx] = 'TRAINING';
-  G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT' && s !== 'SCANNING').length;
+  G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
   G.trainingJob = { completesAt: G.gameTime + 1440 };
   siemLog('OK','HR','Analyst dispatched to training — team capacity reduced for 24h');
 }
@@ -3843,7 +3836,7 @@ function startHunt() {
   if (G.budget < 40000) { siemLog('WARN','HR','Insufficient budget for threat hunt'); return; }
   G.budget -= 40000;
   G.analystSlots[freeIdx] = 'HUNTING';
-  G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT' && s !== 'SCANNING').length;
+  G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
   G.huntJob = { completesAt: G.gameTime + 480, slotIdx: freeIdx };
   siemLog('OK','HUNT','Analyst deployed on threat hunt — active sweep of environment underway');
 }
@@ -3856,7 +3849,7 @@ function startTabletop() {
   if (G.budget < 25000) { siemLog('WARN','HR','Insufficient budget for tabletop exercise'); return; }
   G.budget -= 25000;
   G.analystSlots[freeIdx] = 'TABLETOP';
-  G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT' && s !== 'SCANNING').length;
+  G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
   G.tabletopJob = { completesAt: G.gameTime + 240, slotIdx: freeIdx };
   siemLog('OK','HR','Tabletop exercise underway — IR team rehearsing response procedures');
 }
@@ -3871,7 +3864,7 @@ function startPatchSprint() {
   if (lowVulns.length === 0) { siemLog('INFO','VULN','No low-severity vulnerabilities to remediate'); return; }
   G.budget -= 10000;
   G.analystSlots[freeIdx] = 'PATCHING';
-  G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT' && s !== 'SCANNING').length;
+  G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
   G.patchJob = { completesAt: G.gameTime + 180, slotIdx: freeIdx };
   siemLog('OK','VULN',`Patch sprint initiated — analyst remediating ${lowVulns.length} low-severity vulnerability${lowVulns.length > 1 ? 's' : ''}`);
 }
@@ -3884,7 +3877,7 @@ function startOSINT() {
   if (G.budget < 20000) { siemLog('WARN','HR','Insufficient budget for OSINT research'); return; }
   G.budget -= 20000;
   G.analystSlots[freeIdx] = 'OSINT';
-  G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT' && s !== 'SCANNING').length;
+  G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
   G.osintJob = { completesAt: G.gameTime + 360, slotIdx: freeIdx };
   siemLog('OK','OSINT','Analyst profiling active threat actors — TTP research underway');
 }
