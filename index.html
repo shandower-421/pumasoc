@@ -1653,21 +1653,6 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
         <div class="ops-section-title ops-section-title-crit">── ACTIVE EVENTS ─────────</div>
         <div id="active-events-list"></div>
       </div>
-      <div class="ops-section" style="border-bottom:none;padding:6px 4px 4px">
-        <div class="ops-section-title">── NETWORK MAP ──────────</div>
-        <svg id="mini-map-svg" viewBox="0 0 230 390" preserveAspectRatio="xMidYMid meet">
-          <defs>
-            <filter id="glow-red" x="-60%" y="-60%" width="220%" height="220%">
-              <feGaussianBlur stdDeviation="2.5" result="blur"/>
-              <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-            </filter>
-          </defs>
-          <g id="edges-layer"></g>
-          <g id="nodes-layer"></g>
-          <g id="packets-layer"></g>
-        </svg>
-        <div id="node-info-panel"></div>
-      </div>
     </div>
 
     <!-- CENTER: Incidents (full height) -->
@@ -4828,7 +4813,6 @@ function updateRedTeamJobsUI() {
 function renderInitiatives() {
   const tabletopActive = G.gameTime < (G.tabletopBonusExpiresAt || 0);
   const suppressed = (G.suppressedTechniques || []).filter(s => s.expiresAt > G.gameTime);
-  const consultant = G.consultant ? CONSULTANTS.find(c => c.id === G.consultant.id) : null;
 
   // Active analyst jobs with time remaining
   const jobs = [
@@ -4839,7 +4823,7 @@ function renderInitiatives() {
     G.osintJob    ? { label: 'OSINT RESEARCH', duration: 360,  job: G.osintJob    } : null,
   ].filter(Boolean);
 
-  const hasAny = jobs.length > 0 || G.analystSpeedBonus > 0 || tabletopActive || G.osintCharges > 0 || consultant || suppressed.length > 0;
+  const hasAny = jobs.length > 0 || G.analystSpeedBonus > 0 || tabletopActive || G.osintCharges > 0 || suppressed.length > 0;
   _ui['initiatives-section'].style.display = hasAny ? '' : 'none';
   if (!hasAny) return;
 
@@ -4858,22 +4842,19 @@ function renderInitiatives() {
     html += `<div class="stat-row"><span class="stat-label">IR SPEED BONUS</span><span class="stat-val">+${Math.round(G.analystSpeedBonus * 100)}%</span></div>`;
   }
   if (tabletopActive) {
-    const tabRem = Math.max(0, G.tabletopBonusExpiresAt - G.gameTime);
-    html += `<div class="stat-row"><span class="stat-label">TABLETOP BOOST</span><span class="stat-val">+15% (${Math.round(tabRem/60)}h)</span></div>`;
+    const remaining = Math.max(0, G.tabletopBonusExpiresAt - G.gameTime);
+    const pct = Math.min(100, (remaining / 2880) * 100);
+    html += `<div class="stat-row" style="margin-top:4px"><span class="stat-label">TABLETOP BOOST</span><span class="stat-val">${fmtDuration(remaining)}</span></div>`;
+    html += `<div class="mini-bar"><div class="mini-bar-fill" style="width:${pct}%"></div></div>`;
   }
   if (G.osintCharges > 0) {
     html += `<div class="stat-row"><span class="stat-label">OSINT CHARGES</span><span class="stat-val">${G.osintCharges} left</span></div>`;
   }
-  if (consultant) {
-    const b = consultant.bonus;
-    html += `<div class="stat-row"><span class="stat-label">CONSULTANT</span><span class="stat-val">${consultant.name.split(' ')[0]}</span></div>`;
-    if (b.coverageBonus) html += `<div class="stat-row"><span class="stat-label" style="padding-left:8px">↳ coverage</span><span class="stat-val">+${b.coverageBonus}%</span></div>`;
-    if (b.mttdBonus)     html += `<div class="stat-row"><span class="stat-label" style="padding-left:8px">↳ MTTD</span><span class="stat-val">-${b.mttdBonus}min</span></div>`;
-    if (b.vulnBonus)     html += `<div class="stat-row"><span class="stat-label" style="padding-left:8px">↳ vuln</span><span class="stat-val">-${b.vulnBonus}</span></div>`;
-  }
   suppressed.forEach(s => {
-    const rem = Math.round((s.expiresAt - G.gameTime) / 60);
-    html += `<div class="stat-row"><span class="stat-label">SUPPRESSED</span><span class="stat-val">${s.category.substring(0,10)} ${rem}h</span></div>`;
+    const remaining = Math.max(0, s.expiresAt - G.gameTime);
+    const pct = Math.min(100, (remaining / 2880) * 100);
+    html += `<div class="stat-row" style="margin-top:4px"><span class="stat-label">SUPP: ${s.category.substring(0,10)}</span><span class="stat-val">${fmtDuration(remaining)}</span></div>`;
+    html += `<div class="mini-bar"><div class="mini-bar-fill" style="width:${pct}%"></div></div>`;
   });
 
   _ui['initiatives-list'].innerHTML = html;
@@ -4882,11 +4863,11 @@ function renderInitiatives() {
 function renderContracts() {
   const allFeeds = [...INTEL_FEEDS, ...INTEL_FEEDS_W2, ...INTEL_FEEDS_W3, ...INTEL_FEEDS_W4];
   const soarPbCount = G.soar ? Object.values(G.soarPlaybooks).filter(l => l > 0).length : 0;
-  const hasAny = G.mssp || G.sat || G.soar || G.activeIntelFeeds.length > 0;
+  const hasAny = G.mssp || G.sat || G.soar || G.consultant || G.activeIntelFeeds.length > 0;
   _ui['contracts-section'].style.display = hasAny ? '' : 'none';
   if (!hasAny) return;
 
-  const structureKey = `${G.mssp}|${G.sat}|${G.soar}|${soarPbCount}|${G.activeIntelFeeds.slice().sort().join(',')}`;
+  const structureKey = `${G.mssp}|${G.sat}|${G.soar}|${soarPbCount}|${!!G.consultant}|${G.activeIntelFeeds.slice().sort().join(',')}`;
   if (structureKey !== _contractsStructureKey) {
     _contractsStructureKey = structureKey;
     _intelBarEls = {};
@@ -4898,6 +4879,12 @@ function renderContracts() {
       const pbLabel = soarPbCount > 0 ? `${soarPbCount} playbook${soarPbCount !== 1 ? 's' : ''}` : 'ACTIVE';
       html += `<div class="stat-row"><span class="stat-label">SOAR</span><span class="stat-val">${pbLabel}</span></div>`;
     }
+    if (G.consultant) {
+      const remaining = Math.max(0, (G.consultantExpiry || 0) - G.gameTime);
+      const pct = Math.min(100, (remaining / (CONSULTANT_DURATION_DAYS * 1440)) * 100);
+      html += `<div class="stat-row" style="margin-top:5px"><span class="stat-label">CONSULTING RETAINER</span><span class="stat-val" id="intel-time-consulting">${fmtDuration(remaining)}</span></div>`;
+      html += `<div class="mini-bar"><div class="mini-bar-fill warn" id="intel-bar-consulting" style="width:${pct}%"></div></div>`;
+    }
     G.activeIntelFeeds.forEach(fid => {
       const feed = allFeeds.find(f => f.id === fid);
       const name = feed ? feed.name : fid;
@@ -4907,11 +4894,21 @@ function renderContracts() {
       html += `<div class="mini-bar"><div class="mini-bar-fill warn" id="intel-bar-${fid}" style="width:${pct}%"></div></div>`;
     });
     _ui['contracts-list'].innerHTML = html;
+    if (G.consultant) {
+      _intelBarEls['consulting'] = document.getElementById('intel-bar-consulting');
+      _intelTimeEls['consulting'] = document.getElementById('intel-time-consulting');
+    }
     G.activeIntelFeeds.forEach(fid => {
       _intelBarEls[fid] = document.getElementById(`intel-bar-${fid}`);
       _intelTimeEls[fid] = document.getElementById(`intel-time-${fid}`);
     });
   } else {
+    if (G.consultant) {
+      const remaining = Math.max(0, (G.consultantExpiry || 0) - G.gameTime);
+      const pct = Math.min(100, (remaining / (CONSULTANT_DURATION_DAYS * 1440)) * 100);
+      if (_intelBarEls['consulting']) _intelBarEls['consulting'].style.width = `${pct}%`;
+      if (_intelTimeEls['consulting']) _intelTimeEls['consulting'].textContent = fmtDuration(remaining);
+    }
     G.activeIntelFeeds.forEach(fid => {
       const remaining = Math.max(0, (G.intelFeedExpiry[fid] || 0) - G.gameTime);
       const pct = Math.min(100, (remaining / (INTEL_FEED_DURATION_DAYS * 1440)) * 100);
