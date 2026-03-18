@@ -1095,11 +1095,9 @@ body::after {
 
 /* Red team job progress in ops panel */
 .redteam-job {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--amber);
   margin: 3px 0;
-  border-left: 2px solid var(--amber-dim);
-  padding-left: 5px;
 }
 .redteam-job-bar {
   height: 2px;
@@ -3312,14 +3310,14 @@ function tick() {
   }
 
   // Vulnerability scan completion
-  if (G.scanJob && G.gameTime >= G.scanJob.completesAt) {
+  if (G.scanJob && !G.scanJob.done && G.gameTime >= G.scanJob.completesAt) {
     const undiscovered = G.vulns.filter(v => !v.discovered);
-    // Partial discovery: 60-80% of unknown vulns, random selection
     const discoverCount = Math.max(1, Math.floor(undiscovered.length * (0.6 + Math.random() * 0.2)));
     const found = undiscovered.slice().sort(() => Math.random() - 0.5).slice(0, discoverCount);
     found.forEach(v => { v.discovered = true; });
     G.vulnScore = calcVulnScore();
-    G.scanJob = null;
+    G.scanJob.done = true;
+    G.scanJob.completedAt = G.gameTime;
     const stillHidden = G.vulns.filter(v => !v.discovered).length;
     if (found.length === 0) {
       siemLog('OK','VULN-SCAN','Scan complete — no new vulnerabilities identified');
@@ -3327,6 +3325,12 @@ function tick() {
       siemLog('WARN','VULN-SCAN',`Scan complete — ${found.length} vulnerabilities identified${stillHidden > 0 ? `, ${stillHidden} assets not yet assessed` : ' — full environment assessed'}`);
     }
     renderVulnModal();
+    updateRedTeamJobsUI();
+  }
+  // Roll off completed scan after 10 game-minutes
+  if (G.scanJob?.done && G.gameTime > (G.scanJob.completedAt || 0) + 10) {
+    G.scanJob = null;
+    updateRedTeamJobsUI();
   }
 
   // MSSP auto-assignment
@@ -4259,7 +4263,7 @@ function _initUICache() {
     'hdr-day','day-progress-fill','hdr-time','hdr-breaches','game-screen','hdr-resolved',
     'budget-display-large','stat-analysts','stat-coverage','bar-coverage',
     'stat-mttd','stat-mttr','stat-vuln','bar-vuln','stat-threats','stat-income','bar-income','stat-progress','bar-win-progress',
-    'hire-btn','training-btn','hunt-btn','tabletop-btn','patch-sprint-btn','osint-btn',
+    'hire-btn','hire-cost','training-btn','hunt-btn','tabletop-btn','patch-sprint-btn','osint-btn',
     'detection-action-btn','vuln-action-btn','soar-action-btn','redteam-action-btn','intel-action-btn',
     'mssp-btn','sat-btn','initiatives-section','initiatives-list','contracts-section','contracts-list',
     'incidents-list','incident-count','analyst-roster',
@@ -4485,6 +4489,7 @@ function updateUI() {
 
   // Hire btn
   _ui['hire-btn'].disabled = G.analystTotal >= MAX_ANALYSTS || G.budget < ANALYST_COST;
+  (_ui['hire-cost'] || document.getElementById('hire-cost')).textContent = G.analystTotal >= MAX_ANALYSTS ? 'Max' : `$${(ANALYST_COST/1000).toFixed(0)}k`;
 
   // Training btn — only rebuild innerHTML when training state changes (avoids string alloc every tick)
   const trainingBtn = _ui['training-btn'];
@@ -4807,20 +4812,30 @@ function renderIncidents() {
 }
 
 function updateRedTeamJobsUI() {
-  const active = G.redTeamJobs.filter(j => !j.done);
   const section = _ui['redteam-jobs-section'] || document.getElementById('redteam-jobs-section');
   const list = _ui['redteam-jobs-list'] || document.getElementById('redteam-jobs-list');
-  if (active.length === 0 && G.redTeamJobs.filter(j=>j.done).length === 0) {
-    section.style.display = 'none';
-    return;
-  }
+  const hasAnything = G.scanJob || G.redTeamJobs.length > 0;
+  if (!hasAnything) { section.style.display = 'none'; return; }
   section.style.display = '';
   list.innerHTML = '';
+  // Vuln scan at the top
+  if (G.scanJob) {
+    const remaining = Math.max(0, G.scanJob.completesAt - G.gameTime);
+    const elapsed = 120 - remaining;
+    const pct = Math.min(100, Math.round((elapsed / 120) * 100));
+    const d = document.createElement('div');
+    d.className = 'redteam-job';
+    d.innerHTML = `<div class="stat-row"><span class="stat-label">VULN SCAN</span><span class="stat-val">${G.scanJob.done ? '[DONE]' : fmtDuration(remaining)}</span></div>
+      <div class="redteam-job-bar"><div class="redteam-job-fill" style="width:${pct}%"></div></div>`;
+    list.appendChild(d);
+  }
+  // Red team assessments
   G.redTeamJobs.slice(-3).forEach(job => {
+    const remaining = Math.max(0, job.durationMins - job.elapsedMins);
     const pct = Math.min(100, Math.round((job.elapsedMins / job.durationMins) * 100));
     const d = document.createElement('div');
     d.className = 'redteam-job';
-    d.innerHTML = `${job.name.substring(0,28)}${job.done ? ' [DONE]' : ` ${pct}%`}
+    d.innerHTML = `<div class="stat-row"><span class="stat-label">${job.name.substring(0,22)}</span><span class="stat-val">${job.done ? '[DONE]' : fmtDuration(remaining)}</span></div>
       <div class="redteam-job-bar"><div class="redteam-job-fill" style="width:${pct}%"></div></div>`;
     list.appendChild(d);
   });
@@ -4837,7 +4852,6 @@ function renderInitiatives() {
     G.tabletopJob ? { label: 'TABLETOP EX.',   duration: 240,  job: G.tabletopJob } : null,
     G.patchJob    ? { label: 'PATCH SPRINT',   duration: 180,  job: G.patchJob    } : null,
     G.osintJob    ? { label: 'OSINT RESEARCH', duration: 360,  job: G.osintJob    } : null,
-    G.scanJob     ? { label: 'VULN SCAN',      duration: 120,  job: G.scanJob     } : null,
   ].filter(Boolean);
 
   const hasAny = jobs.length > 0 || G.analystSpeedBonus > 0 || tabletopActive || G.osintCharges > 0 || suppressed.length > 0;
@@ -4950,8 +4964,7 @@ function updateActiveEventsUI() {
     const d = document.createElement('div');
     d.className = 'redteam-job';
     d.style.color = 'var(--red)';
-    const hrs = Math.round(remaining / 60);
-    d.innerHTML = `${ev.name} — ${hrs}h remaining
+    d.innerHTML = `<div class="stat-row"><span class="stat-label">${ev.name}</span><span class="stat-val">${fmtDuration(remaining)}</span></div>
       <div class="redteam-job-bar"><div class="redteam-job-fill" style="width:${Math.min(100, Math.round((remaining / (ev.type === 'ddos' ? 480 : 240)) * 100))}%;background:var(--red)"></div></div>`;
     list.appendChild(d);
   });
