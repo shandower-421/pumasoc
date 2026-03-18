@@ -4829,10 +4829,31 @@ function renderInitiatives() {
   const tabletopActive = G.gameTime < (G.tabletopBonusExpiresAt || 0);
   const suppressed = (G.suppressedTechniques || []).filter(s => s.expiresAt > G.gameTime);
   const consultant = G.consultant ? CONSULTANTS.find(c => c.id === G.consultant.id) : null;
-  const hasAny = G.analystSpeedBonus > 0 || tabletopActive || G.osintCharges > 0 || consultant || suppressed.length > 0;
+
+  // Active analyst jobs with time remaining
+  const jobs = [
+    G.trainingJob ? { label: 'TRAINING',       duration: 1440, job: G.trainingJob } : null,
+    G.huntJob     ? { label: 'THREAT HUNT',    duration: 480,  job: G.huntJob     } : null,
+    G.tabletopJob ? { label: 'TABLETOP EX.',   duration: 240,  job: G.tabletopJob } : null,
+    G.patchJob    ? { label: 'PATCH SPRINT',   duration: 180,  job: G.patchJob    } : null,
+    G.osintJob    ? { label: 'OSINT RESEARCH', duration: 360,  job: G.osintJob    } : null,
+  ].filter(Boolean);
+
+  const hasAny = jobs.length > 0 || G.analystSpeedBonus > 0 || tabletopActive || G.osintCharges > 0 || consultant || suppressed.length > 0;
   _ui['initiatives-section'].style.display = hasAny ? '' : 'none';
   if (!hasAny) return;
+
   let html = '';
+
+  // Analyst jobs first — most actionable, with shrinking timer bars
+  jobs.forEach(({ label, duration, job }) => {
+    const remaining = Math.max(0, job.completesAt - G.gameTime);
+    const pct = Math.min(100, (remaining / duration) * 100);
+    html += `<div class="stat-row" style="margin-top:4px"><span class="stat-label">${label}</span><span class="stat-val">${fmtDuration(remaining)}</span></div>`;
+    html += `<div class="mini-bar"><div class="mini-bar-fill" style="width:${pct}%"></div></div>`;
+  });
+
+  // Persistent bonuses and charges below
   if (G.analystSpeedBonus > 0) {
     html += `<div class="stat-row"><span class="stat-label">IR SPEED BONUS</span><span class="stat-val">+${Math.round(G.analystSpeedBonus * 100)}%</span></div>`;
   }
@@ -4854,6 +4875,7 @@ function renderInitiatives() {
     const rem = Math.round((s.expiresAt - G.gameTime) / 60);
     html += `<div class="stat-row"><span class="stat-label">SUPPRESSED</span><span class="stat-val">${s.category.substring(0,10)} ${rem}h</span></div>`;
   });
+
   _ui['initiatives-list'].innerHTML = html;
 }
 
