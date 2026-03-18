@@ -1692,7 +1692,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
         <div class="ops-section-title">── PARTNERS ─────────────</div>
         <button class="action-btn" id="redteam-action-btn" onclick="openModal('redteam')">▶ RED TEAM<span class="btn-cost" id="redteam-btn-cost">$30k</span></button>
         <button class="action-btn" id="sat-btn" onclick="openModal('sat')">▶ SECURITY AWARENESS<span class="btn-cost" id="sat-btn-cost">$20k</span></button>
-        <button class="action-btn" id="mssp-btn" onclick="hireMSSP()">▶ HIRE MSSP<span class="btn-cost">$150k</span></button>
+        <button class="action-btn" id="mssp-btn" onclick="openModal('mssp')">▶ HIRE MSSP<span class="btn-cost" id="mssp-btn-cost">$100k</span></button>
         <div id="consultant-card"><div style="color:var(--green-dark);font-size:10px;margin-bottom:4px">No external consultant engaged.</div></div>
         <button class="action-btn" id="hire-consultant-btn" onclick="openModal('consultant')">▶ HIRE CONSULTANT<span class="btn-cost">$75k</span></button>
       </div>
@@ -1875,6 +1875,29 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
       <div id="consultant-profiles-list"></div>
       <div class="modal-actions">
         <button class="modal-action-btn" id="hire-consultant-confirm-btn" onclick="hireConsultant(selectedConsultant)" disabled>▶ SELECT A CONSULTANT</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MSSP Modal -->
+<div class="modal-overlay" id="modal-mssp" role="dialog" aria-modal="true" aria-label="MSSP contract">
+  <div class="modal-window">
+    <div class="modal-header">
+      <div class="modal-title">// MANAGED SECURITY SERVICES</div>
+      <button class="modal-close" onclick="closeModal('mssp')" aria-label="Close MSSP">✕ CLOSE</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-desc">
+        Contract a Managed Security Service Provider. Contracts run for 7 game-days from purchase —
+        renew before expiry to maintain automated response. Only one tier active at a time.
+        Upgrading charges the new startup fee and cancels the current contract with no refund on remaining days.
+      </div>
+      <div class="section-header">SELECT SERVICE TIER</div>
+      <div id="mssp-tiers-list"></div>
+      <div class="modal-actions">
+        <button class="modal-action-btn" id="mssp-confirm-btn" onclick="enrollMSSP(selectedMSSPTier)" disabled>▶ SELECT A TIER</button>
+        <button class="modal-action-btn" id="mssp-cancel-btn" onclick="terminateMSSP();closeModal('mssp')" style="display:none">▶ TERMINATE CONTRACT (no refund)</button>
       </div>
     </div>
   </div>
@@ -2332,6 +2355,42 @@ const REDTEAM_OPTIONS = [
 
 const INTEL_FEED_DURATION_DAYS = 7;           // subscription lasts 7 game-days from purchase
 const CONSULTANT_DURATION_DAYS = 7;          // engagement lasts 7 game-days from hire
+const MSSP_DURATION_DAYS = 7;               // contract lasts 7 game-days from purchase
+const MSSP_TIERS = [
+  {
+    id: 'monitoring',
+    name: 'ALERT MONITORING',
+    startup: 100000,
+    renewal: 10000,
+    autoAssign: true,
+    autoLessons: false,
+    irSpeedBonus: 0,
+    overflow: false,
+    bonusDesc: 'Auto-assigns analysts to new incidents',
+  },
+  {
+    id: 'comanaged',
+    name: 'CO-MANAGED SOC',
+    startup: 225000,
+    renewal: 25000,
+    autoAssign: true,
+    autoLessons: true,
+    irSpeedBonus: 0.10,
+    overflow: false,
+    bonusDesc: 'Auto-assign + auto lessons learned sign-off + 10% IR speed',
+  },
+  {
+    id: 'fullmanaged',
+    name: 'FULLY MANAGED SOC',
+    startup: 450000,
+    renewal: 50000,
+    autoAssign: true,
+    autoLessons: true,
+    irSpeedBonus: 0.10,
+    overflow: true,
+    bonusDesc: 'Full co-managed + overflow capacity when analyst slots saturated',
+  },
+];
 const SAT_DURATION_DAYS = 7;            // subscription lasts 7 game-days from purchase
 const SAT_TIERS = [
   {
@@ -2509,6 +2568,12 @@ function loadSavedState() {
     if (G.soar === undefined)            G.soar            = false;
     if (!G.soarPlaybooks)                G.soarPlaybooks   = {};
     if (G.huntJob === undefined)         G.huntJob         = null;
+    if (G.mssp === undefined || G.mssp === false) G.mssp = null;
+    if (G.msspExpiry === undefined) {
+      G.msspExpiry = G.mssp ? G.gameTime + MSSP_DURATION_DAYS * 1440 : null;
+      if (G.mssp === true) G.mssp = 'monitoring';
+    }
+    if (G.msspOverflowIncId === undefined) G.msspOverflowIncId = null;
     if (G.sat === undefined || G.sat === false) G.sat = null;
     if (G.satExpiry === undefined) {
       // Migrate old saves: G.sat was boolean; treat as phishing tier with fresh 7-day window
@@ -2634,7 +2699,9 @@ function initState() {
     trainingJob: null,      // null | { completesAt: gameTimeMinutes }
     analystSpeedBonus: 0,   // 0.0 → 0.30, applied globally to IR stage progression
     // MSSP
-    mssp: false,
+    mssp: null,           // null | 'monitoring' | 'comanaged' | 'fullmanaged'
+    msspExpiry: null,     // gameTime when current contract expires
+    msspOverflowIncId: null, // incident ID being worked by MSSP overflow (T3)
     // SOAR
     soar: false,
     soarPlaybooks: {},
@@ -3158,6 +3225,18 @@ function tick() {
     }
   }
 
+  // Resolve active MSSP tier once per tick (used in incident progression below)
+  const _msspTier = G.mssp ? MSSP_TIERS.find(t => t.id === G.mssp) : null;
+
+  // Expire MSSP contract
+  if (G.mssp && G.msspExpiry !== null && G.gameTime >= G.msspExpiry) {
+    const _expiredMssp = MSSP_TIERS.find(t => t.id === G.mssp);
+    G.mssp = null;
+    G.msspExpiry = null;
+    G.msspOverflowIncId = null;
+    siemLog('WARN','HR',`MSSP contract expired — ${_expiredMssp ? _expiredMssp.name : 'MSSP'} lapsed. Renew to maintain automated response.`);
+  }
+
   // Expire SAT subscription
   if (G.sat && G.satExpiry !== null && G.gameTime >= G.satExpiry) {
     const _expiredTier = SAT_TIERS.find(t => t.id === G.sat);
@@ -3200,16 +3279,6 @@ function tick() {
     if (!G._onboardIncome && !localStorage.getItem('puma-seen-intro')) {
       G._onboardIncome = true;
       siemLog('INFO', 'ONBOARD', 'Budget allocated. Idle budget does not defend you — invest in Detection Engineering rules and analysts.');
-    }
-    if (G.mssp) {
-      const msspFee = 15000;
-      if (G.budget < msspFee) {
-        G.mssp = false;
-        siemLog('CRIT','FINANCE','MSSP contract cancelled — insufficient funds. Auto-assignment suspended.');
-      } else {
-        G.budget -= msspFee;
-        siemLog('INFO','FINANCE',`MSSP fee deducted: -${fmt$(msspFee)}`);
-      }
     }
     if (G.consultant && G.budget <= 0) {
       G.consultant = null;
@@ -3296,7 +3365,9 @@ function tick() {
     const soarLevel = G.soar ? (G.soarPlaybooks[inc.techniqueCategory] || 0) : 0;
     const soarBonus = (inc.stageIdx <= 1 && soarLevel > 0) ? soarLevel * 0.25 : 0;
     const tabletopBonus = G.gameTime < G.tabletopBonusExpiresAt ? 0.15 : 0;
-    const speedMult = (1 + G.analystSpeedBonus + soarBonus + tabletopBonus) * (1 + Math.min(0.25, lessonCount * 0.10));
+    const msspSpeedBonus = _msspTier ? _msspTier.irSpeedBonus : 0;
+    const overflowPenalty = inc.analystId === 0 ? 0.6 : 1; // MSSP overflow works at 60% speed
+    const speedMult = (1 + G.analystSpeedBonus + soarBonus + tabletopBonus + msspSpeedBonus) * (1 + Math.min(0.25, lessonCount * 0.10)) * overflowPenalty;
     inc.stageProgress += delta * speedMult;
     if (inc.stageProgress >= stage.durationMins) {
       inc.stageProgress = 0;
@@ -3398,13 +3469,41 @@ function tick() {
     updateRedTeamJobsUI();
   }
 
-  // MSSP auto-assignment
-  if (G.mssp) {
+  // MSSP logic
+  if (_msspTier) {
+    // Tier 1+: auto-assign free analysts to unassigned incidents
     G.incidents.forEach(inc => {
       if (!inc.resolved && !inc.breachTriggered && inc.analystId === null && inc.status !== 'LESSONS_PENDING') {
         if (G.analystSlots.some(s => s === null)) assignAnalystToIncident(inc.id);
       }
     });
+    // Tier 2+: auto-sign off lessons learned
+    if (_msspTier.autoLessons) {
+      G.incidents.forEach(inc => {
+        if (!inc.resolved && inc.status === 'LESSONS_PENDING') {
+          completeLessonsLearned(inc.id);
+        }
+      });
+    }
+    // Tier 3: overflow capacity — work one unassigned incident when all slots full
+    if (_msspTier.overflow) {
+      // Clean up overflow ref if incident was resolved or reassigned to real analyst
+      if (G.msspOverflowIncId !== null) {
+        const _ov = G.incidents.find(i => i.id === G.msspOverflowIncId);
+        if (!_ov || _ov.resolved || _ov.analystId !== 0) G.msspOverflowIncId = null;
+      }
+      // Assign overflow if no current overflow and all real slots occupied
+      if (G.msspOverflowIncId === null && !G.analystSlots.some(s => s === null)) {
+        const _candidate = G.incidents.find(i =>
+          !i.resolved && !i.breachTriggered && i.analystId === null && i.status !== 'LESSONS_PENDING'
+        );
+        if (_candidate) {
+          _candidate.analystId = 0; // 0 = MSSP overflow sentinel
+          G.msspOverflowIncId = _candidate.id;
+          siemLog('INFO','MSSP',`Overflow capacity engaged — handling ${_candidate.techniqueCategory} incident on ${_candidate.targetId}`);
+        }
+      }
+    }
   }
 
   // Advance red team jobs
@@ -3419,7 +3518,7 @@ function tick() {
   });
   // Roll off completed red team jobs after 1 game-day
   const _rtBefore = G.redTeamJobs.length;
-  G.redTeamJobs = G.redTeamJobs.filter(j => !j.done || G.gameTime <= (j.completedAt || 0) + 1440);
+  G.redTeamJobs = G.redTeamJobs.filter(j => !j.done || G.gameTime <= (j.suppressExpiresAt || (j.completedAt || 0) + 1440));
   if (G.redTeamJobs.length !== _rtBefore) updateRedTeamJobsUI();
 
   // Recalculate stats
@@ -3494,11 +3593,12 @@ function resolveIncident(inc, earnReward = true) {
   G._dayResolved++;
   soundResolve();
 
-  // Free analyst
-  if (inc.analystId !== null) {
+  // Free analyst (analystId 0 = MSSP overflow, no slot to free)
+  if (inc.analystId !== null && inc.analystId > 0) {
     G.analystSlots[inc.analystId - 1] = null;
     G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
   }
+  if (inc.analystId === 0) G.msspOverflowIncId = null;
 
   // Remove associated threat
   const tIdx = G.threats.findIndex(t => t.id === inc.threatId);
@@ -3988,18 +4088,36 @@ function cancelSAT() {
   siemLog('WARN','HR',`${tier ? tier.name : 'Security awareness programme'} cancelled — phishing protection suspended.`);
 }
 
-function hireMSSP() {
-  if (G.mssp) return;
-  if (G.budget < 150000) { siemLog('WARN','HR','Insufficient budget for MSSP contract'); return; }
-  G.budget -= 150000;
-  G.mssp = true;
-  siemLog('OK','HR','MSSP contracted — analyst assignment now automated');
+let selectedMSSPTier = null;
+
+function enrollMSSP(tierId) {
+  const tier = MSSP_TIERS.find(t => t.id === tierId);
+  if (!tier) return;
+  const isSameTier = G.mssp === tierId;
+  const cost = isSameTier ? tier.renewal : tier.startup;
+  if (G.budget < cost) { siemLog('WARN','HR',`Insufficient budget for ${tier.name}`); return; }
+  G.budget -= cost;
+  const wasUpgrade = G.mssp && !isSameTier;
+  G.mssp = tierId;
+  G.msspExpiry = G.gameTime + MSSP_DURATION_DAYS * 1440;
+  const expiryDay = Math.floor(G.msspExpiry / 1440) + 1;
+  if (wasUpgrade) {
+    siemLog('OK','HR',`MSSP upgraded to ${tier.name} — ${tier.bonusDesc}. Expires Day ${expiryDay}.`);
+  } else if (isSameTier) {
+    siemLog('OK','HR',`${tier.name} renewed for 7 days — expires Day ${expiryDay}.`);
+  } else {
+    siemLog('OK','HR',`${tier.name} contracted — ${tier.bonusDesc}. Expires Day ${expiryDay}.`);
+  }
+  closeModal('mssp');
 }
 
 function terminateMSSP() {
   if (!G.mssp) return;
-  G.mssp = false;
-  siemLog('WARN','HR','MSSP contract terminated — manual analyst assignment required');
+  const tier = MSSP_TIERS.find(t => t.id === G.mssp);
+  G.mssp = null;
+  G.msspExpiry = null;
+  G.msspOverflowIncId = null;
+  siemLog('WARN','HR',`${tier ? tier.name : 'MSSP'} contract terminated — manual analyst assignment required.`);
 }
 
 function fireRandomEvent() {
@@ -4096,6 +4214,8 @@ function completeRedTeam(job) {
   const expiresAt = G.gameTime + 2880; // 48 game hours
   G.suppressedTechniques = G.suppressedTechniques.filter(s => s.category !== suppressCat);
   G.suppressedTechniques.push({ category: suppressCat, expiresAt });
+  job.suppressCat = suppressCat;
+  job.suppressExpiresAt = expiresAt;
   siemLog('OK','RED-TEAM',`ENGAGEMENT COMPLETE: ${job.name}`);
   siemLog('WARN','RED-TEAM',`Findings: ${detGap} detection gaps, ${discovered} new vulns, 1 suppression window`);
   siemLog('INFO','RED-TEAM',`${suppressCat} threat actors suppressed for 48h — IOCs distributed to sensors`);
@@ -4351,7 +4471,7 @@ function _initUICache() {
     'hdr-day','day-progress-fill','hdr-time','hdr-breaches','game-screen','hdr-resolved',
     'budget-display-large','stat-analysts','stat-coverage','bar-coverage',
     'stat-mttd','stat-mttr','stat-vuln','bar-vuln','stat-threats','stat-income','bar-income','stat-progress','bar-win-progress',
-    'hire-btn','hire-cost','sat-btn-cost','training-btn','hunt-btn','tabletop-btn','patch-sprint-btn','osint-btn',
+    'hire-btn','hire-cost','mssp-btn-cost','sat-btn-cost','training-btn','hunt-btn','tabletop-btn','patch-sprint-btn','osint-btn',
     'detection-action-btn','vuln-action-btn','soar-action-btn','redteam-action-btn','intel-action-btn',
     'mssp-btn','sat-btn','initiatives-section','initiatives-list','contracts-section','contracts-list',
     'incidents-list','incident-count','analyst-roster',
@@ -4676,23 +4796,16 @@ function updateUI() {
   }
   satBtn.disabled = false;
 
-  // MSSP btn
+  // MSSP btn — always opens modal; show renewal cost when active, cheapest startup when not
   const msspBtn = _ui['mssp-btn'];
+  const msspCostEl = _ui['mssp-btn-cost'] || document.getElementById('mssp-btn-cost');
   if (G.mssp) {
-    if (!msspBtn._state || msspBtn._state !== 'active') {
-      msspBtn.innerHTML = '▶ TERMINATE MSSP<span class="btn-cost">no refund</span>';
-      msspBtn.onclick = terminateMSSP;
-      msspBtn._state = 'active';
-    }
-    msspBtn.disabled = false;
+    const _activeMsspTier = MSSP_TIERS.find(t => t.id === G.mssp);
+    if (msspCostEl) msspCostEl.textContent = _activeMsspTier ? fmt$(_activeMsspTier.renewal) : 'RENEW';
   } else {
-    if (!msspBtn._state || msspBtn._state !== 'inactive') {
-      msspBtn.innerHTML = '▶ HIRE MSSP<span class="btn-cost">$150k</span>';
-      msspBtn.onclick = hireMSSP;
-      msspBtn._state = 'inactive';
-    }
-    msspBtn.disabled = G.budget < 150000;
+    if (msspCostEl) msspCostEl.textContent = fmt$(MSSP_TIERS[0].startup);
   }
+  msspBtn.disabled = false;
 
   // SOAR button: before platform — show platform cost; after — show playbook cost or MAXED
   {
@@ -4862,7 +4975,7 @@ function renderIncidents() {
 
     const noAnalysts = !G.analystSlots.some(s => s === null);
     const assignedHtml = inc.analystId !== null
-      ? `<div class="analyst-tag">ANALYST-${inc.analystId} assigned</div>`
+      ? `<div class="analyst-tag">${inc.analystId === 0 ? 'MSSP HANDLING' : `ANALYST-${inc.analystId} assigned`}</div>`
       : noAnalysts
         ? `<button class="assign-btn" disabled title="All analysts busy — hire more or wait for one to finish">⚠ ALL ANALYSTS BUSY</button>`
         : `<button class="assign-btn" data-incident-id="${inc.id}">ASSIGN ANALYST</button>`;
@@ -4906,7 +5019,7 @@ function updateRedTeamJobsUI() {
     const pct = Math.min(100, Math.round((elapsed / 120) * 100));
     const d = document.createElement('div');
     d.className = 'redteam-job';
-    d.innerHTML = `<div class="stat-row"><span class="stat-label">VULN SCAN</span><span class="stat-val">${G.scanJob.done ? 'Done' : fmtDuration(remaining)}</span></div>
+    d.innerHTML = `<div class="stat-row"><span class="stat-label">VULN SCAN</span><span class="stat-val">${G.scanJob.done ? '[DONE]' : fmtDuration(remaining)}</span></div>
       <div class="redteam-job-bar"><div class="redteam-job-fill" style="width:${pct}%"></div></div>`;
     list.appendChild(d);
   }
@@ -4916,15 +5029,23 @@ function updateRedTeamJobsUI() {
     const pct = Math.min(100, Math.round((job.elapsedMins / job.durationMins) * 100));
     const d = document.createElement('div');
     d.className = 'redteam-job';
-    d.innerHTML = `<div class="stat-row"><span class="stat-label">${job.name.substring(0,22)}</span><span class="stat-val">${job.done ? 'Done' : fmtDuration(remaining)}</span></div>
+    let html = `<div class="stat-row"><span class="stat-label">${job.name.substring(0,22)}</span><span class="stat-val">${job.done ? '[DONE]' : fmtDuration(remaining)}</span></div>
       <div class="redteam-job-bar"><div class="redteam-job-fill" style="width:${pct}%"></div></div>`;
+    if (job.done && job.suppressCat && job.suppressExpiresAt) {
+      const suppRemaining = Math.max(0, job.suppressExpiresAt - G.gameTime);
+      const suppPct = Math.min(100, (suppRemaining / 2880) * 100);
+      html += `<div style="padding-left:8px;margin-top:3px">
+        <div class="stat-row"><span class="stat-label" style="color:var(--amber);opacity:0.85">↳ SUPP: ${job.suppressCat.substring(0,16)}</span><span class="stat-val">${fmtDuration(suppRemaining)}</span></div>
+        <div class="mini-bar"><div class="mini-bar-fill warn" style="width:${suppPct}%"></div></div>
+      </div>`;
+    }
+    d.innerHTML = html;
     list.appendChild(d);
   });
 }
 
 function renderInitiatives() {
   const tabletopActive = G.gameTime < (G.tabletopBonusExpiresAt || 0);
-  const suppressed = (G.suppressedTechniques || []).filter(s => s.expiresAt > G.gameTime);
 
   // Active analyst jobs with time remaining
   const jobs = [
@@ -4935,7 +5056,7 @@ function renderInitiatives() {
     G.osintJob    ? { label: 'OSINT RESEARCH', duration: 360,  job: G.osintJob    } : null,
   ].filter(Boolean);
 
-  const hasAny = jobs.length > 0 || G.analystSpeedBonus > 0 || tabletopActive || G.osintCharges > 0 || suppressed.length > 0;
+  const hasAny = jobs.length > 0 || G.analystSpeedBonus > 0 || tabletopActive || G.osintCharges > 0;
   _ui['initiatives-section'].style.display = hasAny ? '' : 'none';
   if (!hasAny) return;
 
@@ -4962,12 +5083,6 @@ function renderInitiatives() {
   if (G.osintCharges > 0) {
     html += `<div class="stat-row"><span class="stat-label">OSINT CHARGES</span><span class="stat-val">${G.osintCharges} left</span></div>`;
   }
-  suppressed.forEach(s => {
-    const remaining = Math.max(0, s.expiresAt - G.gameTime);
-    const pct = Math.min(100, (remaining / 2880) * 100);
-    html += `<div class="stat-row" style="margin-top:4px"><span class="stat-label">SUPP: ${s.category.substring(0,10)}</span><span class="stat-val">${fmtDuration(remaining)}</span></div>`;
-    html += `<div class="mini-bar"><div class="mini-bar-fill warn" style="width:${pct}%"></div></div>`;
-  });
 
   _ui['initiatives-list'].innerHTML = html;
 }
@@ -4975,7 +5090,7 @@ function renderInitiatives() {
 function renderContracts() {
   const allFeeds = [...INTEL_FEEDS, ...INTEL_FEEDS_W2, ...INTEL_FEEDS_W3, ...INTEL_FEEDS_W4];
   const soarPbCount = G.soar ? Object.values(G.soarPlaybooks).filter(l => l > 0).length : 0;
-  const hasAny = G.mssp || !!G.sat || G.soar || G.consultant || G.activeIntelFeeds.length > 0;
+  const hasAny = !!G.mssp || !!G.sat || G.soar || G.consultant || G.activeIntelFeeds.length > 0;
   _ui['contracts-section'].style.display = hasAny ? '' : 'none';
   if (!hasAny) return;
 
@@ -4985,7 +5100,13 @@ function renderContracts() {
     _intelBarEls = {};
     _intelTimeEls = {};
     let html = '';
-    if (G.mssp) html += `<div class="stat-row"><span class="stat-label">MSSP</span><span class="stat-val">ACTIVE</span></div>`;
+    if (G.mssp) {
+      const _msspT = MSSP_TIERS.find(t => t.id === G.mssp);
+      const _msspRem = Math.max(0, (G.msspExpiry || 0) - G.gameTime);
+      const _msspPct = Math.min(100, (_msspRem / (MSSP_DURATION_DAYS * 1440)) * 100);
+      html += `<div class="stat-row" style="margin-top:5px"><span class="stat-label">${_msspT ? _msspT.name : 'MSSP'}</span><span class="stat-val" id="intel-time-mssp">${fmtDuration(_msspRem)}</span></div>`;
+      html += `<div class="mini-bar"><div class="mini-bar-fill warn" id="intel-bar-mssp" style="width:${_msspPct}%"></div></div>`;
+    }
     if (G.sat) {
       const _satT = SAT_TIERS.find(t => t.id === G.sat);
       const _satRem = Math.max(0, (G.satExpiry || 0) - G.gameTime);
@@ -5020,11 +5141,21 @@ function renderContracts() {
       _intelBarEls[fid] = document.getElementById(`intel-bar-${fid}`);
       _intelTimeEls[fid] = document.getElementById(`intel-time-${fid}`);
     });
+    if (G.mssp) {
+      _intelBarEls['mssp'] = document.getElementById('intel-bar-mssp');
+      _intelTimeEls['mssp'] = document.getElementById('intel-time-mssp');
+    }
     if (G.sat) {
       _intelBarEls['sat'] = document.getElementById('intel-bar-sat');
       _intelTimeEls['sat'] = document.getElementById('intel-time-sat');
     }
   } else {
+    if (G.mssp) {
+      const _msspRem = Math.max(0, (G.msspExpiry || 0) - G.gameTime);
+      const _msspPct = Math.min(100, (_msspRem / (MSSP_DURATION_DAYS * 1440)) * 100);
+      if (_intelBarEls['mssp']) _intelBarEls['mssp'].style.width = `${_msspPct}%`;
+      if (_intelTimeEls['mssp']) _intelTimeEls['mssp'].textContent = fmtDuration(_msspRem);
+    }
     if (G.sat) {
       const _satRem = Math.max(0, (G.satExpiry || 0) - G.gameTime);
       const _satPct = Math.min(100, (_satRem / (SAT_DURATION_DAYS * 1440)) * 100);
@@ -5081,6 +5212,7 @@ function openModal(name) {
   if (name === 'soar') renderSoarModal();
   if (name === 'redteam') renderRedTeamModal();
   if (name === 'intel') renderIntelModal();
+  if (name === 'mssp') renderMSSPModal();
   if (name === 'sat') renderSATModal();
   if (name === 'consultant') renderConsultantModal();
   document.getElementById(`modal-${name}`).classList.add('visible');
@@ -5311,6 +5443,42 @@ function renderConsultantCard() {
   hireBtn.style.display = '';
   hireBtn.textContent = '▶ CHANGE CONSULTANT';
   hireBtn.disabled = false;
+}
+
+function renderMSSPModal() {
+  const list = document.getElementById('mssp-tiers-list');
+  list.innerHTML = '';
+  MSSP_TIERS.forEach(tier => {
+    const isCurrent = G.mssp === tier.id;
+    const cost = isCurrent ? tier.renewal : tier.startup;
+    const d = document.createElement('div');
+    d.className = `consultant-profile${selectedMSSPTier === tier.id ? ' selected' : ''}`;
+    d.onclick = () => { selectedMSSPTier = tier.id; renderMSSPModal(); };
+    const activeLabel = isCurrent && G.msspExpiry
+      ? `<span style="color:var(--green-dim);font-size:9px">● ACTIVE — ${Math.max(1, Math.ceil((G.msspExpiry - G.gameTime) / 1440))}d left</span>`
+      : '';
+    d.innerHTML = `
+      <div class="cp-name">${tier.name} ${activeLabel}</div>
+      <div class="cp-flavor">${tier.bonusDesc}</div>
+      <div class="cp-cost">${isCurrent ? `Renewal: ${fmt$(tier.renewal)}/7d` : `Contract: ${fmt$(tier.startup)} + ${fmt$(tier.renewal)}/7d renewal`}</div>
+    `;
+    list.appendChild(d);
+  });
+  const confirmBtn = document.getElementById('mssp-confirm-btn');
+  const cancelBtn = document.getElementById('mssp-cancel-btn');
+  cancelBtn.style.display = G.mssp ? '' : 'none';
+  if (selectedMSSPTier) {
+    const tier = MSSP_TIERS.find(t => t.id === selectedMSSPTier);
+    const isCurrent = G.mssp === selectedMSSPTier;
+    const cost = isCurrent ? tier.renewal : tier.startup;
+    confirmBtn.disabled = G.budget < cost;
+    confirmBtn.textContent = isCurrent
+      ? `▶ RENEW ${tier.name} (${fmt$(cost)})`
+      : `▶ CONTRACT ${tier.name} (${fmt$(cost)})`;
+  } else {
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = '▶ SELECT A TIER';
+  }
 }
 
 function renderSATModal() {
