@@ -1691,7 +1691,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
       <div class="ops-section" id="consultant-ops-section">
         <div class="ops-section-title">── PARTNERS ─────────────</div>
         <button class="action-btn" id="redteam-action-btn" onclick="openModal('redteam')">▶ RED TEAM<span class="btn-cost" id="redteam-btn-cost">$30k</span></button>
-        <button class="action-btn" id="sat-btn" onclick="hireSAT()">▶ SECURITY AWARENESS<span class="btn-cost" id="sat-btn-cost">$50k</span></button>
+        <button class="action-btn" id="sat-btn" onclick="openModal('sat')">▶ SECURITY AWARENESS<span class="btn-cost" id="sat-btn-cost">$20k</span></button>
         <button class="action-btn" id="mssp-btn" onclick="hireMSSP()">▶ HIRE MSSP<span class="btn-cost">$150k</span></button>
         <div id="consultant-card"><div style="color:var(--green-dark);font-size:10px;margin-bottom:4px">No external consultant engaged.</div></div>
         <button class="action-btn" id="hire-consultant-btn" onclick="openModal('consultant')">▶ HIRE CONSULTANT<span class="btn-cost">$75k</span></button>
@@ -1875,6 +1875,30 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
       <div id="consultant-profiles-list"></div>
       <div class="modal-actions">
         <button class="modal-action-btn" id="hire-consultant-confirm-btn" onclick="hireConsultant(selectedConsultant)" disabled>▶ SELECT A CONSULTANT</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SAT Modal -->
+<div class="modal-overlay" id="modal-sat" role="dialog" aria-modal="true" aria-label="Security awareness training">
+  <div class="modal-window">
+    <div class="modal-header">
+      <div class="modal-title">// SECURITY AWARENESS TRAINING</div>
+      <button class="modal-close" onclick="closeModal('sat')" aria-label="Close security awareness training">✕ CLOSE</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-desc">
+        Enroll employees in a security awareness programme. Active programmes intercept phishing-based
+        initial access attempts and may boost detection coverage. Programmes run for 7 game-days from purchase —
+        renew before expiry to maintain protection. Only one programme active at a time.
+        Upgrading to a different tier charges the new startup fee and cancels the current one immediately (no refund on remaining days).
+      </div>
+      <div class="section-header">SELECT PROGRAMME</div>
+      <div id="sat-tiers-list"></div>
+      <div class="modal-actions">
+        <button class="modal-action-btn" id="sat-confirm-btn" onclick="enrollSAT(selectedSATTier)" disabled>▶ SELECT A PROGRAMME</button>
+        <button class="modal-action-btn" id="sat-cancel-btn" onclick="cancelSAT();closeModal('sat')" style="display:none">▶ CANCEL PROGRAMME (no refund)</button>
       </div>
     </div>
   </div>
@@ -2308,6 +2332,39 @@ const REDTEAM_OPTIONS = [
 
 const INTEL_FEED_DURATION_DAYS = 7;           // subscription lasts 7 game-days from purchase
 const CONSULTANT_DURATION_DAYS = 7;          // engagement lasts 7 game-days from hire
+const SAT_DURATION_DAYS = 7;            // subscription lasts 7 game-days from purchase
+const SAT_TIERS = [
+  {
+    id: 'phishing',
+    name: 'PHISHING SIMULATION',
+    desc: 'Automated phishing tests against employees. Reduces email-based initial access. Narrow scope, low overhead.',
+    startup: 20000,
+    renewal: 8000,
+    intercept: 0.25,
+    coverageBonus: 0,
+    bonusDesc: '-25% phishing-based initial access',
+  },
+  {
+    id: 'program',
+    name: 'AWARENESS PROGRAM',
+    desc: 'Full curriculum: phishing, social engineering, password hygiene, device security. Employees begin self-reporting suspicious activity.',
+    startup: 50000,
+    renewal: 20000,
+    intercept: 0.40,
+    coverageBonus: 5,
+    bonusDesc: '-40% initial access attempts, +5% detection coverage',
+  },
+  {
+    id: 'hrm',
+    name: 'HUMAN RISK MGT.',
+    desc: 'Continuous behavioural training, gamified culture program, per-employee risk scoring. Workforce becomes a meaningful detection layer.',
+    startup: 100000,
+    renewal: 40000,
+    intercept: 0.60,
+    coverageBonus: 10,
+    bonusDesc: '-60% initial access attempts, +10% detection coverage',
+  },
+];
 const INTEL_FEEDS = [
   { id:'osint',  name:'OSINT Aggregator',       desc:'Open-source threat intelligence — low fidelity, broad coverage', cost:30000,  detectionBonus:5,  mttdBonus:15 },
   { id:'ioc',    name:'IOC Feed Premium',       desc:'Real-time indicators of compromise from global sensor network',   cost:55000, detectionBonus:8,  mttdBonus:25 },
@@ -2452,7 +2509,12 @@ function loadSavedState() {
     if (G.soar === undefined)            G.soar            = false;
     if (!G.soarPlaybooks)                G.soarPlaybooks   = {};
     if (G.huntJob === undefined)         G.huntJob         = null;
-    if (G.sat === undefined)             G.sat             = false;
+    if (G.sat === undefined || G.sat === false) G.sat = null;
+    if (G.satExpiry === undefined) {
+      // Migrate old saves: G.sat was boolean; treat as phishing tier with fresh 7-day window
+      G.satExpiry = G.sat ? G.gameTime + SAT_DURATION_DAYS * 1440 : null;
+      if (G.sat === true) G.sat = 'phishing';
+    }
     if (G.tabletopJob === undefined)     G.tabletopJob     = null;
     if (G.tabletopBonusExpiresAt === undefined) G.tabletopBonusExpiresAt = 0;
     if (G.patchJob === undefined)        G.patchJob        = null;
@@ -2579,7 +2641,8 @@ function initState() {
     // Threat Hunting
     huntJob: null,       // null | { completesAt: gameTimeMinutes, slotIdx: N }
     // Security Awareness Training
-    sat: false,
+    sat: null,           // null | 'phishing' | 'program' | 'hrm'
+    satExpiry: null,     // gameTime when current SAT subscription expires
     // Tabletop Exercise
     tabletopJob: null,            // null | { completesAt, slotIdx }
     tabletopBonusExpiresAt: 0,    // game-time when +15% IR speed bonus expires
@@ -2901,7 +2964,9 @@ function calcCoverage() {
     if (feed) intelBonus += feed.detectionBonus;
   });
   const eventPenalty = (G.activeRandomEvents || []).reduce((s, e) => s + (e.coveragePenalty || 0), 0);
-  return Math.min(95, Math.max(0, G.coverageBase + avgBonus + intelBonus + getConsultantBonuses().coverageBonus - eventPenalty));
+  const satTier = G.sat ? SAT_TIERS.find(t => t.id === G.sat) : null;
+  const satBonus = satTier ? satTier.coverageBonus : 0;
+  return Math.min(95, Math.max(0, G.coverageBase + avgBonus + intelBonus + satBonus + getConsultantBonuses().coverageBonus - eventPenalty));
 }
 
 function calcMTTD() {
@@ -2931,8 +2996,9 @@ function spawnThreat() {
   const actor = pick(ACTORS);
   const cat = pick(TECHNIQUE_CATS);
 
-  // SAT intercepts 35% of Initial Access attempts
-  if (G.sat && cat === 'Initial Access' && Math.random() < 0.35) {
+  // SAT intercepts Initial Access attempts based on tier
+  const _satTier = G.sat ? SAT_TIERS.find(t => t.id === G.sat) : null;
+  if (_satTier && cat === 'Initial Access' && Math.random() < _satTier.intercept) {
     siemLog('INFO','SAT','Phishing attempt identified and reported by employee — threat neutralised at entry point');
     return;
   }
@@ -3092,6 +3158,15 @@ function tick() {
     }
   }
 
+  // Expire SAT subscription
+  if (G.sat && G.satExpiry !== null && G.gameTime >= G.satExpiry) {
+    const _expiredTier = SAT_TIERS.find(t => t.id === G.sat);
+    G.sat = null;
+    G.satExpiry = null;
+    G.coverage = calcCoverage();
+    siemLog('WARN','HR',`Security awareness programme expired — ${_expiredTier ? _expiredTier.name : 'SAT'} subscription lapsed. Re-enroll to maintain protection.`);
+  }
+
   // Expire consultant engagement
   if (G.consultant && G.consultantExpiry !== null && G.gameTime >= G.consultantExpiry) {
     const c = CONSULTANTS.find(c => c.id === G.consultant.id);
@@ -3134,16 +3209,6 @@ function tick() {
       } else {
         G.budget -= msspFee;
         siemLog('INFO','FINANCE',`MSSP fee deducted: -${fmt$(msspFee)}`);
-      }
-    }
-    if (G.sat) {
-      const satFee = 10000;
-      if (G.budget < satFee) {
-        G.sat = false;
-        siemLog('CRIT','FINANCE','Security awareness programme cancelled — insufficient funds. Phishing protection suspended.');
-      } else {
-        G.budget -= satFee;
-        siemLog('INFO','FINANCE',`SAT programme fee deducted: -${fmt$(satFee)}`);
       }
     }
     if (G.consultant && G.budget <= 0) {
@@ -3812,6 +3877,7 @@ function purchaseSoarPlaybook(cat) {
 
 let selectedRedTeam = null;
 let selectedConsultant = null;
+let selectedSATTier = null;
 let consultantBriefingCollapsed = false;
 
 function toggleBriefing() {
@@ -3886,18 +3952,35 @@ function startOSINT() {
   siemLog('OK','OSINT','Analyst profiling active threat actors — TTP research underway');
 }
 
-function hireSAT() {
-  if (G.sat) return;
-  if (G.budget < 50000) { siemLog('WARN','HR','Insufficient budget for security awareness programme'); return; }
-  G.budget -= 50000;
-  G.sat = true;
-  siemLog('OK','HR','Security awareness programme activated — employees enrolled in phishing simulation training ($10k/cycle)');
+function enrollSAT(tierId) {
+  const tier = SAT_TIERS.find(t => t.id === tierId);
+  if (!tier) return;
+  const isSameTier = G.sat === tierId;
+  const cost = isSameTier ? tier.renewal : tier.startup;
+  if (G.budget < cost) { siemLog('WARN','HR',`Insufficient budget for ${tier.name}`); return; }
+  G.budget -= cost;
+  const wasUpgrade = G.sat && !isSameTier;
+  G.sat = tierId;
+  G.satExpiry = G.gameTime + SAT_DURATION_DAYS * 1440;
+  G.coverage = calcCoverage();
+  const expiryDay = Math.floor(G.satExpiry / 1440) + 1;
+  if (wasUpgrade) {
+    siemLog('OK','HR',`SAT programme upgraded to ${tier.name} — ${tier.bonusDesc}. Expires Day ${expiryDay}.`);
+  } else if (isSameTier) {
+    siemLog('OK','HR',`${tier.name} renewed for 7 days — expires Day ${expiryDay}.`);
+  } else {
+    siemLog('OK','HR',`${tier.name} enrolled — ${tier.bonusDesc}. Expires Day ${expiryDay}.`);
+  }
+  closeModal('sat');
 }
 
 function cancelSAT() {
   if (!G.sat) return;
-  G.sat = false;
-  siemLog('WARN','HR','Security awareness programme cancelled — phishing protection suspended');
+  const tier = SAT_TIERS.find(t => t.id === G.sat);
+  G.sat = null;
+  G.satExpiry = null;
+  G.coverage = calcCoverage();
+  siemLog('WARN','HR',`${tier ? tier.name : 'Security awareness programme'} cancelled — phishing protection suspended.`);
 }
 
 function hireMSSP() {
@@ -4263,7 +4346,7 @@ function _initUICache() {
     'hdr-day','day-progress-fill','hdr-time','hdr-breaches','game-screen','hdr-resolved',
     'budget-display-large','stat-analysts','stat-coverage','bar-coverage',
     'stat-mttd','stat-mttr','stat-vuln','bar-vuln','stat-threats','stat-income','bar-income','stat-progress','bar-win-progress',
-    'hire-btn','hire-cost','training-btn','hunt-btn','tabletop-btn','patch-sprint-btn','osint-btn',
+    'hire-btn','hire-cost','sat-btn-cost','training-btn','hunt-btn','tabletop-btn','patch-sprint-btn','osint-btn',
     'detection-action-btn','vuln-action-btn','soar-action-btn','redteam-action-btn','intel-action-btn',
     'mssp-btn','sat-btn','initiatives-section','initiatives-list','contracts-section','contracts-list',
     'incidents-list','incident-count','analyst-roster',
@@ -4577,23 +4660,16 @@ function updateUI() {
     updateTabBadge();
   }
 
-  // SAT btn
+  // SAT btn — always opens modal; cost shows cheapest entry or renewal
   const satBtn = _ui['sat-btn'];
+  const satBtnCostEl = _ui['sat-btn-cost'] || document.getElementById('sat-btn-cost');
   if (G.sat) {
-    if (!satBtn._state || satBtn._state !== 'active') {
-      satBtn.innerHTML = '▶ CANCEL AWARENESS<span class="btn-cost">no refund</span>';
-      satBtn.onclick = cancelSAT;
-      satBtn._state = 'active';
-    }
-    satBtn.disabled = false;
+    const _activeTier = SAT_TIERS.find(t => t.id === G.sat);
+    if (satBtnCostEl) satBtnCostEl.textContent = _activeTier ? fmt$(_activeTier.renewal) : 'RENEW';
   } else {
-    if (!satBtn._state || satBtn._state !== 'inactive') {
-      satBtn.innerHTML = '▶ SECURITY AWARENESS<span class="btn-cost">$50k</span>';
-      satBtn.onclick = hireSAT;
-      satBtn._state = 'inactive';
-    }
-    satBtn.disabled = G.budget < 50000;
+    if (satBtnCostEl) satBtnCostEl.textContent = fmt$(SAT_TIERS[0].startup);
   }
+  satBtn.disabled = false;
 
   // MSSP btn
   const msspBtn = _ui['mssp-btn'];
@@ -4894,7 +4970,7 @@ function renderInitiatives() {
 function renderContracts() {
   const allFeeds = [...INTEL_FEEDS, ...INTEL_FEEDS_W2, ...INTEL_FEEDS_W3, ...INTEL_FEEDS_W4];
   const soarPbCount = G.soar ? Object.values(G.soarPlaybooks).filter(l => l > 0).length : 0;
-  const hasAny = G.mssp || G.sat || G.soar || G.consultant || G.activeIntelFeeds.length > 0;
+  const hasAny = G.mssp || !!G.sat || G.soar || G.consultant || G.activeIntelFeeds.length > 0;
   _ui['contracts-section'].style.display = hasAny ? '' : 'none';
   if (!hasAny) return;
 
@@ -4905,7 +4981,13 @@ function renderContracts() {
     _intelTimeEls = {};
     let html = '';
     if (G.mssp) html += `<div class="stat-row"><span class="stat-label">MSSP</span><span class="stat-val">ACTIVE</span></div>`;
-    if (G.sat)  html += `<div class="stat-row"><span class="stat-label">SAT</span><span class="stat-val">ACTIVE</span></div>`;
+    if (G.sat) {
+      const _satT = SAT_TIERS.find(t => t.id === G.sat);
+      const _satRem = Math.max(0, (G.satExpiry || 0) - G.gameTime);
+      const _satPct = Math.min(100, (_satRem / (SAT_DURATION_DAYS * 1440)) * 100);
+      html += `<div class="stat-row" style="margin-top:5px"><span class="stat-label">${_satT ? _satT.name : 'SAT'}</span><span class="stat-val" id="intel-time-sat">${fmtDuration(_satRem)}</span></div>`;
+      html += `<div class="mini-bar"><div class="mini-bar-fill warn" id="intel-bar-sat" style="width:${_satPct}%"></div></div>`;
+    }
     if (G.soar) {
       const pbLabel = soarPbCount > 0 ? `${soarPbCount} playbook${soarPbCount !== 1 ? 's' : ''}` : 'ACTIVE';
       html += `<div class="stat-row"><span class="stat-label">SOAR</span><span class="stat-val">${pbLabel}</span></div>`;
@@ -4933,7 +5015,17 @@ function renderContracts() {
       _intelBarEls[fid] = document.getElementById(`intel-bar-${fid}`);
       _intelTimeEls[fid] = document.getElementById(`intel-time-${fid}`);
     });
+    if (G.sat) {
+      _intelBarEls['sat'] = document.getElementById('intel-bar-sat');
+      _intelTimeEls['sat'] = document.getElementById('intel-time-sat');
+    }
   } else {
+    if (G.sat) {
+      const _satRem = Math.max(0, (G.satExpiry || 0) - G.gameTime);
+      const _satPct = Math.min(100, (_satRem / (SAT_DURATION_DAYS * 1440)) * 100);
+      if (_intelBarEls['sat']) _intelBarEls['sat'].style.width = `${_satPct}%`;
+      if (_intelTimeEls['sat']) _intelTimeEls['sat'].textContent = fmtDuration(_satRem);
+    }
     if (G.consultant) {
       const remaining = Math.max(0, (G.consultantExpiry || 0) - G.gameTime);
       const pct = Math.min(100, (remaining / (CONSULTANT_DURATION_DAYS * 1440)) * 100);
@@ -4984,6 +5076,7 @@ function openModal(name) {
   if (name === 'soar') renderSoarModal();
   if (name === 'redteam') renderRedTeamModal();
   if (name === 'intel') renderIntelModal();
+  if (name === 'sat') renderSATModal();
   if (name === 'consultant') renderConsultantModal();
   document.getElementById(`modal-${name}`).classList.add('visible');
 }
@@ -5213,6 +5306,43 @@ function renderConsultantCard() {
   hireBtn.style.display = '';
   hireBtn.textContent = '▶ CHANGE CONSULTANT';
   hireBtn.disabled = false;
+}
+
+function renderSATModal() {
+  const list = document.getElementById('sat-tiers-list');
+  list.innerHTML = '';
+  SAT_TIERS.forEach(tier => {
+    const isCurrent = G.sat === tier.id;
+    const cost = isCurrent ? tier.renewal : tier.startup;
+    const d = document.createElement('div');
+    d.className = `consultant-profile${selectedSATTier === tier.id ? ' selected' : ''}`;
+    d.onclick = () => { selectedSATTier = tier.id; renderSATModal(); };
+    const activeLabel = isCurrent && G.satExpiry
+      ? `<span style="color:var(--green-dim);font-size:9px">● ACTIVE — ${Math.max(1, Math.ceil((G.satExpiry - G.gameTime) / 1440))}d left</span>`
+      : '';
+    d.innerHTML = `
+      <div class="cp-name">${tier.name} ${activeLabel}</div>
+      <div class="cp-flavor">${tier.desc}</div>
+      <div class="cp-bonus">Effect: ${tier.bonusDesc}</div>
+      <div class="cp-cost">${isCurrent ? `Renewal: ${fmt$(tier.renewal)}/7d` : `Enrolment: ${fmt$(tier.startup)} + ${fmt$(tier.renewal)}/7d renewal`}</div>
+    `;
+    list.appendChild(d);
+  });
+  const confirmBtn = document.getElementById('sat-confirm-btn');
+  const cancelBtn = document.getElementById('sat-cancel-btn');
+  cancelBtn.style.display = G.sat ? '' : 'none';
+  if (selectedSATTier) {
+    const tier = SAT_TIERS.find(t => t.id === selectedSATTier);
+    const isCurrent = G.sat === selectedSATTier;
+    const cost = isCurrent ? tier.renewal : tier.startup;
+    confirmBtn.disabled = G.budget < cost;
+    confirmBtn.textContent = isCurrent
+      ? `▶ RENEW ${tier.name} (${fmt$(cost)})`
+      : `▶ ENROLL IN ${tier.name} (${fmt$(cost)})`;
+  } else {
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = '▶ SELECT A PROGRAMME';
+  }
 }
 
 function renderConsultantModal() {
