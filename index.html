@@ -4829,15 +4829,15 @@ function renderInitiatives() {
 
   let html = '';
 
-  // Analyst jobs first — most actionable, with shrinking timer bars
+  // Analyst jobs — green progress bars growing left-to-right
   jobs.forEach(({ label, duration, job }) => {
     const remaining = Math.max(0, job.completesAt - G.gameTime);
-    const pct = Math.min(100, (remaining / duration) * 100);
+    const pct = Math.min(100, ((duration - remaining) / duration) * 100);
     html += `<div class="stat-row" style="margin-top:4px"><span class="stat-label">${label}</span><span class="stat-val">${fmtDuration(remaining)}</span></div>`;
     html += `<div class="mini-bar"><div class="mini-bar-fill" style="width:${pct}%"></div></div>`;
   });
 
-  // Persistent bonuses and charges below
+  // Time-limited bonuses — amber bars draining right-to-left
   if (G.analystSpeedBonus > 0) {
     html += `<div class="stat-row"><span class="stat-label">IR SPEED BONUS</span><span class="stat-val">+${Math.round(G.analystSpeedBonus * 100)}%</span></div>`;
   }
@@ -4845,7 +4845,7 @@ function renderInitiatives() {
     const remaining = Math.max(0, G.tabletopBonusExpiresAt - G.gameTime);
     const pct = Math.min(100, (remaining / 2880) * 100);
     html += `<div class="stat-row" style="margin-top:4px"><span class="stat-label">TABLETOP BOOST</span><span class="stat-val">${fmtDuration(remaining)}</span></div>`;
-    html += `<div class="mini-bar"><div class="mini-bar-fill" style="width:${pct}%"></div></div>`;
+    html += `<div class="mini-bar"><div class="mini-bar-fill warn" style="width:${pct}%"></div></div>`;
   }
   if (G.osintCharges > 0) {
     html += `<div class="stat-row"><span class="stat-label">OSINT CHARGES</span><span class="stat-val">${G.osintCharges} left</span></div>`;
@@ -4854,7 +4854,7 @@ function renderInitiatives() {
     const remaining = Math.max(0, s.expiresAt - G.gameTime);
     const pct = Math.min(100, (remaining / 2880) * 100);
     html += `<div class="stat-row" style="margin-top:4px"><span class="stat-label">SUPP: ${s.category.substring(0,10)}</span><span class="stat-val">${fmtDuration(remaining)}</span></div>`;
-    html += `<div class="mini-bar"><div class="mini-bar-fill" style="width:${pct}%"></div></div>`;
+    html += `<div class="mini-bar"><div class="mini-bar-fill warn" style="width:${pct}%"></div></div>`;
   });
 
   _ui['initiatives-list'].innerHTML = html;
