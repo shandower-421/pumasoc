@@ -2029,19 +2029,19 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
           <span class="help-cap-desc">Offline for 24 game-hours. On return, permanently boosts <em>all</em> analysts' IR stage speed by +10%. Three trainings caps the bonus. Do it early before incident waves hit.</span>
         </div>
         <div class="help-cap-row">
-          <span class="help-cap-name">THREAT HUNT — $60k · 8h · surfaces 1–3 hidden threats</span>
+          <span class="help-cap-name">THREAT HUNT — $60k · 12h · surfaces 1–3 hidden threats</span>
           <span class="help-cap-desc">Proactive hunt for lurking undetected threats. On return, creates incidents for any found — turning silent dwell into cases you can close. Use when MTTD is high and you suspect threats are accumulating invisibly.</span>
         </div>
         <div class="help-cap-row">
-          <span class="help-cap-name">TABLETOP EXERCISE — $25k · 4h · +15% IR speed for 48h</span>
+          <span class="help-cap-name">TABLETOP EXERCISE — $25k · 8h · +15% IR speed for 48h</span>
           <span class="help-cap-desc">IR team runs through a simulated scenario. On completion, grants a temporary +15% speed boost lasting 48 game-hours — visible in the posture panel. Stack with training bonus for maximum throughput during a surge.</span>
         </div>
         <div class="help-cap-row">
-          <span class="help-cap-name">PATCH SPRINT — $25k · 3h · free-patches all LOW vulns</span>
+          <span class="help-cap-name">PATCH SPRINT — $25k · 8h · free-patches all LOW vulns</span>
           <span class="help-cap-desc">Analyst focuses entirely on remediation. On completion, patches every discovered LOW-severity vulnerability at no additional cost. Only available when low vulns are outstanding. Excellent value early in the game.</span>
         </div>
         <div class="help-cap-row">
-          <span class="help-cap-name">OSINT RESEARCH — $40k · 6h · 3 guaranteed-detection charges</span>
+          <span class="help-cap-name">OSINT RESEARCH — $40k · 12h · 3 guaranteed-detection charges</span>
           <span class="help-cap-desc">Analyst profiles active threat actors. On completion, loads 3 charges — next 3 threats that spawn are immediately detected regardless of Coverage %, each logged with OSINT attribution in SIEM. Use before anticipated high-activity periods.</span>
         </div>
 
@@ -2107,7 +2107,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
         </div>
         <div class="help-cap-row">
           <span class="help-cap-name">ENGINEER (Medium) — $500k start, 2 analysts, 25% coverage</span>
-          <span class="help-cap-desc">Hire a third analyst <em>immediately</em>. Send one to training as soon as coverage is above 40%. Buy SAT before the incident wave peaks around day 2. OSINT research is strong here — 6h is affordable when you have 3 analysts.</span>
+          <span class="help-cap-desc">Hire a third analyst <em>immediately</em>. Send one to training as soon as coverage is above 40%. Buy SAT before the incident wave peaks around day 2. OSINT research is strong here — 12h is affordable when you have 3 analysts.</span>
         </div>
         <div class="help-cap-row">
           <span class="help-cap-name">HUNTER (Hard) — $300k start, 1 analyst, 10% coverage</span>
@@ -4015,7 +4015,7 @@ function startHunt() {
   G.budget -= 60000;
   G.analystSlots[freeIdx] = 'HUNTING';
   G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
-  G.huntJob = { completesAt: G.gameTime + 480, slotIdx: freeIdx };
+  G.huntJob = { completesAt: G.gameTime + 720, slotIdx: freeIdx };
   siemLog('OK','HUNT','Analyst deployed on threat hunt — active sweep of environment underway');
 }
 
@@ -4028,7 +4028,7 @@ function startTabletop() {
   G.budget -= 25000;
   G.analystSlots[freeIdx] = 'TABLETOP';
   G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
-  G.tabletopJob = { completesAt: G.gameTime + 240, slotIdx: freeIdx };
+  G.tabletopJob = { completesAt: G.gameTime + 480, slotIdx: freeIdx };
   siemLog('OK','HR','Tabletop exercise underway — IR team rehearsing response procedures');
 }
 
@@ -4043,7 +4043,7 @@ function startPatchSprint() {
   G.budget -= 25000;
   G.analystSlots[freeIdx] = 'PATCHING';
   G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
-  G.patchJob = { completesAt: G.gameTime + 180, slotIdx: freeIdx };
+  G.patchJob = { completesAt: G.gameTime + 480, slotIdx: freeIdx };
   siemLog('OK','VULN',`Patch sprint initiated — analyst remediating ${lowVulns.length} low-severity vulnerability${lowVulns.length > 1 ? 's' : ''}`);
 }
 
@@ -4056,7 +4056,7 @@ function startOSINT() {
   G.budget -= 40000;
   G.analystSlots[freeIdx] = 'OSINT';
   G.analystBusy = G.analystSlots.filter(s => s !== null && s !== 'TRAINING' && s !== 'HUNTING' && s !== 'TABLETOP' && s !== 'PATCHING' && s !== 'OSINT').length;
-  G.osintJob = { completesAt: G.gameTime + 360, slotIdx: freeIdx };
+  G.osintJob = { completesAt: G.gameTime + 720, slotIdx: freeIdx };
   siemLog('OK','OSINT','Analyst profiling active threat actors — TTP research underway');
 }
 
@@ -5057,10 +5057,10 @@ function renderInitiatives() {
   // Active analyst jobs with time remaining
   const jobs = [
     G.trainingJob ? { label: 'TRAINING',       duration: 1440, job: G.trainingJob } : null,
-    G.huntJob     ? { label: 'THREAT HUNT',    duration: 480,  job: G.huntJob     } : null,
-    G.tabletopJob ? { label: 'TABLETOP EX.',   duration: 240,  job: G.tabletopJob } : null,
-    G.patchJob    ? { label: 'PATCH SPRINT',   duration: 180,  job: G.patchJob    } : null,
-    G.osintJob    ? { label: 'OSINT RESEARCH', duration: 360,  job: G.osintJob    } : null,
+    G.huntJob     ? { label: 'THREAT HUNT',    duration: 720,  job: G.huntJob     } : null,
+    G.tabletopJob ? { label: 'TABLETOP EX.',   duration: 480,  job: G.tabletopJob } : null,
+    G.patchJob    ? { label: 'PATCH SPRINT',   duration: 480,  job: G.patchJob    } : null,
+    G.osintJob    ? { label: 'OSINT RESEARCH', duration: 720,  job: G.osintJob    } : null,
   ].filter(Boolean);
 
   const hasAny = jobs.length > 0 || G.analystSpeedBonus > 0 || tabletopActive || G.osintCharges > 0;
