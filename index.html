@@ -1135,8 +1135,8 @@ body::after {
 
 /* Help button pulse — drawn attention for new players */
 @keyframes btn-pulse {
-  0%, 100% { box-shadow: 0 0 4px var(--green-dim); }
-  50%       { box-shadow: 0 0 12px var(--green), 0 0 20px var(--green-dim); }
+  0%, 100% { box-shadow: 0 0 4px var(--amber); color: var(--amber); border-color: var(--amber); }
+  50%       { box-shadow: 0 0 12px var(--amber), 0 0 20px rgba(255,176,0,0.4); color: var(--amber); border-color: var(--amber); }
 }
 .btn-pulse { animation: btn-pulse 1.2s ease-in-out infinite; }
 
