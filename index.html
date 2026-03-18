@@ -955,7 +955,7 @@ body::after {
   font-size: 9px; letter-spacing: 1px; color: var(--green-dark);
   border-top: 1px solid var(--border); padding-top: 5px; margin: 6px 0 3px;
 }
-.score-dim { color: var(--green-dark); }
+.score-dim { color: var(--green-dim); }
 .score-green { color: var(--green); }
 .score-amber { color: var(--amber); }
 .score-red { color: var(--red); }
@@ -2136,7 +2136,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
   <div class="overlay-text" id="win-subtitle">7 days survived. Infrastructure secured.</div>
   <div class="score-card" id="win-score-card"></div>
   <button class="overlay-btn" onclick="restartGame()">↺ NEW OPERATION</button>
-  <button class="overlay-btn" id="continue-w2-btn" style="display:none;margin-top:6px;border-color:var(--amber);color:var(--amber)" onclick="continueToWeek2()">▶ EXTEND OPERATIONS — WEEK 2</button>
+  <button class="overlay-btn" id="continue-w2-btn" style="display:none;margin-top:6px;border-color:var(--amber);color:var(--amber);text-shadow:0 0 6px var(--amber)" onclick="continueToWeek2()">▶ EXTEND OPERATIONS — WEEK 2</button>
 </div>
 
 <script>
@@ -2619,6 +2619,7 @@ function initState() {
     // Scoring accumulators
     totalDwellResolved: 0,
     totalIncome: 0,
+    cheatCount: 0,
   };
 }
 
@@ -2751,6 +2752,8 @@ const expandedActorCards = new Set(); // incident IDs with actor profile expande
 const _newIncidentIds = new Set();    // IDs for entrance animation, cleared after first render
 let _prevBudget = null;               // for budget flash
 let _prevCoverage = 0;                // for coverage bar level-up flash
+let _prevCoverageRaw = null;          // raw (non-rounded) for sub-1% change detection
+let _prevMttd = null;                 // for MTTD flash
 let _crtFlickerTimeout = null;        // for cancellation on new game
 let _uiTick = 0;                      // counts updateUI() calls; used to throttle slow renders
 let _intelDisplay = 4;                // cached "X tracked" value; avoids rnd() every frame
@@ -3541,12 +3544,17 @@ function buildScoreCardHTML(s) {
   html += infoRow('DAYS SURVIVED',       `${s.daysCount} d`);
   html += infoRow('BREACHES THIS WEEK',  `${s.breachCount}`);
   if (G.week >= 2) html += infoRow('CAMPAIGN TOTAL', `${s.campaignBreaches} / ${MAX_BREACHES}`);
-  html += infoRow('DETECTION COVERAGE',  `${s.coverage}%`);
+  html += infoRow('DETECTION COVERAGE',  `${Math.round(s.coverage)}%`);
   html += infoRow('AVG DETECTION TIME',  `${s.mttdMins} min`);
   html += infoRow('AVG RESOLUTION TIME', s.mttrMins > 0 ? `${s.mttrMins} min` : '—');
   html += infoRow('UNKNOWN VULNS',       `${s.unknownVulns}`);
   html += infoRow('UNPATCHED VULNS',     `${s.unpatchedVulns}`);
-  html += infoRow('TOTAL BUDGET SPENT',  fmt$(s.totalSpent));
+  if (G.cheatCount > 0) {
+    html += `<div class="score-row"><span class="score-amber">TOTAL BUDGET SPENT ⚠</span><span class="score-amber">${fmt$(s.totalSpent)}</span></div>`;
+    html += `<div style="text-align:right;font-size:9px;color:var(--amber);margin:-1px 0 3px">(creative accounting detected ×${G.cheatCount})</div>`;
+  } else {
+    html += infoRow('TOTAL BUDGET SPENT', fmt$(s.totalSpent));
+  }
 
   html += infoRow('DIFFICULTY', (DIFFICULTIES[selectedDifficulty]?.label || selectedDifficulty).toUpperCase());
 
@@ -4414,15 +4422,30 @@ function updateUI() {
   const covBar = _ui['bar-coverage'];
   covBar.style.width = `${cov}%`;
   covBar.className = `mini-bar-fill${cov < 40 ? ' crit' : cov < 60 ? ' warn' : ''}`;
-  if (cov > _prevCoverage) {
-    covBar.classList.remove('bar-levelup');
-    void covBar.offsetWidth;
-    covBar.classList.add('bar-levelup');
+  if (_prevCoverageRaw !== null && G.coverage !== _prevCoverageRaw) {
+    const covUp = G.coverage > _prevCoverageRaw;
+    const covEl = _ui['stat-coverage'];
+    covEl.classList.remove('stat-flash-up', 'stat-flash-down');
+    void covEl.offsetWidth;
+    covEl.classList.add(covUp ? 'stat-flash-up' : 'stat-flash-down');
+    if (covUp) {
+      covBar.classList.remove('bar-levelup');
+      void covBar.offsetWidth;
+      covBar.classList.add('bar-levelup');
+    }
   }
+  _prevCoverageRaw = G.coverage;
   _prevCoverage = cov;
 
-  _ui['stat-mttd'].textContent = `${G.mttd} min`;
-  _ui['stat-mttd'].className = `stat-val${G.mttd > 120 ? ' warn' : ''}`;
+  const mttdEl = _ui['stat-mttd'];
+  mttdEl.textContent = `${G.mttd} min`;
+  mttdEl.classList.toggle('warn', G.mttd > 120);
+  if (_prevMttd !== null && G.mttd !== _prevMttd) {
+    mttdEl.classList.remove('stat-flash-up', 'stat-flash-down');
+    void mttdEl.offsetWidth;
+    mttdEl.classList.add(G.mttd < _prevMttd ? 'stat-flash-up' : 'stat-flash-down');
+  }
+  _prevMttd = G.mttd;
 
   const vs = Math.max(0, G.vulnScore - getIntelVulnBonus());
   _ui['stat-vuln'].textContent = vs;
@@ -5145,6 +5168,7 @@ document.addEventListener('keydown', e => {
       _konamiIdx = 0;
       if (G && !G.gameOver) {
         G.budget += 500000;
+        G.cheatCount = (G.cheatCount || 0) + 1;
         siemLog('CRIT', 'SYSTEM', '[ UNAUTHORIZED BUDGET INJECTION DETECTED ] — +$500k — this incident will be logged.');
         siemLog('INFO', 'SYSTEM', '...just kidding. good taste in input sequences. — dev team');
         updateUI();
@@ -5268,6 +5292,8 @@ function restartGame() {
   _newIncidentIds.clear();
   _prevBudget = null;
   _prevCoverage = 0;
+  _prevCoverageRaw = null;
+  _prevMttd = null;
   _activeTab = 'incidents';
   document.getElementById('gameover-overlay').classList.remove('visible');
   document.getElementById('win-overlay').classList.remove('visible');
@@ -5472,6 +5498,7 @@ function startGame() {
   document.getElementById('hdr-breach-max').textContent = `/${MAX_BREACHES}`;
 
   updateUI();
+  updateMuteBtn();
 
   // Initial SIEM entries
   const diff = DIFFICULTIES[selectedDifficulty];
