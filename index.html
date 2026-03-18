@@ -302,6 +302,16 @@ body::after {
   letter-spacing: 1px;
   line-height: 1;
 }
+.budget-sub-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9px;
+  color: var(--green-dim);
+  margin: 6px 0 1px;
+  letter-spacing: 1px;
+}
+.budget-sub-label { color: var(--green-dark); }
 
 /* Main layout */
 #main {
@@ -1580,6 +1590,16 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
       <div id="budget-panel">
         <div class="budget-label">AVAILABLE BUDGET</div>
         <div id="budget-display-large">$500k</div>
+        <div class="budget-sub-row">
+          <span class="budget-sub-label">NEXT INCOME</span>
+          <span id="stat-income">6h</span>
+        </div>
+        <div class="mini-bar"><div class="mini-bar-fill" id="bar-income" style="width:0%"></div></div>
+        <div class="budget-sub-row">
+          <span class="budget-sub-label">WIN PROGRESS</span>
+          <span id="stat-progress">Day 1/7</span>
+        </div>
+        <div class="mini-bar"><div class="mini-bar-fill" id="bar-win-progress" style="width:0%"></div></div>
       </div>
       <div class="ops-section">
         <div class="ops-section-title">── POSTURE ──────────────</div>
@@ -1587,6 +1607,11 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
           <span class="stat-label">ANALYSTS FREE</span>
           <span class="stat-val" id="stat-analysts">2/2</span>
         </div>
+        <div class="stat-row">
+          <span class="stat-label">VULN SCORE</span>
+          <span class="stat-val warn" id="stat-vuln">65</span>
+        </div>
+        <div class="mini-bar"><div class="mini-bar-fill warn" id="bar-vuln" style="width:65%"></div></div>
         <div class="stat-row">
           <span class="stat-label">COVERAGE</span>
           <span class="stat-val" id="stat-coverage">25%</span>
@@ -1597,49 +1622,21 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
           <span class="stat-val warn" id="stat-mttd">240 min</span>
         </div>
         <div class="stat-row">
-          <span class="stat-label">VULN SCORE</span>
-          <span class="stat-val warn" id="stat-vuln">65</span>
+          <span class="stat-label">MTTR</span>
+          <span class="stat-val" id="stat-mttr">—</span>
         </div>
-        <div class="mini-bar"><div class="mini-bar-fill warn" id="bar-vuln" style="width:65%"></div></div>
         <div class="stat-row">
           <span class="stat-label">ACTIVE THREATS</span>
           <span class="stat-val" id="stat-threats">0</span>
         </div>
-        <div class="stat-row" id="row-mssp" style="display:none">
-          <span class="stat-label">MSSP</span>
-          <span class="stat-val" id="stat-mssp">ACTIVE</span>
-        </div>
-        <div class="stat-row" id="row-sat" style="display:none">
-          <span class="stat-label">SAT</span>
-          <span class="stat-val" id="stat-sat">ACTIVE</span>
-        </div>
-        <div class="stat-row" id="row-tabletop" style="display:none">
-          <span class="stat-label">TABLETOP BOOST</span>
-          <span class="stat-val" id="stat-tabletop">+15%</span>
-        </div>
-        <div class="stat-row" id="row-osint" style="display:none">
-          <span class="stat-label">OSINT CHARGES</span>
-          <span class="stat-val" id="stat-osint">3</span>
-        </div>
-        <div class="stat-row" id="row-ir-bonus" style="display:none">
-          <span class="stat-label">IR SPEED BONUS</span>
-          <span class="stat-val" id="stat-ir-bonus">+0%</span>
-        </div>
       </div>
-      <div class="ops-section">
-        <div class="ops-section-title">── INTEL ─────────────────</div>
-        <div class="stat-row">
-          <span class="stat-label">THREAT ACTORS</span>
-          <span class="stat-val" id="stat-actors">0 tracked</span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">NEXT INCOME</span>
-          <span class="stat-val" id="stat-income">6h</span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">WIN PROGRESS</span>
-          <span class="stat-val" id="stat-progress">Day 1/30</span>
-        </div>
+      <div class="ops-section" id="initiatives-section" style="display:none">
+        <div class="ops-section-title">── INITIATIVES ──────────</div>
+        <div id="initiatives-list"></div>
+      </div>
+      <div class="ops-section" id="contracts-section" style="display:none">
+        <div class="ops-section-title">── CONTRACTS ────────────</div>
+        <div id="contracts-list"></div>
       </div>
       <div class="ops-section" id="redteam-jobs-section" style="display:none">
         <div class="ops-section-title">── ACTIVE ENGAGEMENTS ───</div>
@@ -2671,6 +2668,15 @@ function fmtTime(mins) {
   const mn = dm % 60;
   return { day, str: `${String(h).padStart(2,'0')}:${String(mn).padStart(2,'0')}` };
 }
+function fmtDuration(mins) {
+  if (mins <= 0) return '0h';
+  const d = Math.floor(mins / 1440);
+  const h = Math.floor((mins % 1440) / 60);
+  const m = Math.floor(mins % 60);
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h`;
+  return `${m}m`;
+}
 function fmtDwell(mins) {
   if (mins < 60) return `${Math.floor(mins)}m`;
   return `${Math.floor(mins/60)}h${Math.floor(mins%60)}m`;
@@ -2754,6 +2760,9 @@ let _prevBudget = null;               // for budget flash
 let _prevCoverage = 0;                // for coverage bar level-up flash
 let _prevCoverageRaw = null;          // raw (non-rounded) for sub-1% change detection
 let _prevMttd = null;                 // for MTTD flash
+let _contractsStructureKey = null;    // for contracts section rebuild detection
+let _intelBarEls = {};                // feedId → bar fill element ref
+let _intelTimeEls = {};               // feedId → time text element ref
 let _crtFlickerTimeout = null;        // for cancellation on new game
 let _uiTick = 0;                      // counts updateUI() calls; used to throttle slow renders
 let _intelDisplay = 4;                // cached "X tracked" value; avoids rnd() every frame
@@ -4240,10 +4249,10 @@ function _initUICache() {
   const ids = [
     'hdr-day','day-progress-fill','hdr-time','hdr-breaches','game-screen','hdr-resolved',
     'budget-display-large','stat-analysts','stat-coverage','bar-coverage',
-    'stat-mttd','stat-vuln','bar-vuln','stat-threats','stat-actors','stat-income','stat-progress',
+    'stat-mttd','stat-mttr','stat-vuln','bar-vuln','stat-threats','stat-income','bar-income','stat-progress','bar-win-progress',
     'hire-btn','training-btn','hunt-btn','tabletop-btn','patch-sprint-btn','osint-btn',
     'detection-action-btn','vuln-action-btn','soar-action-btn','redteam-action-btn','intel-action-btn',
-    'mssp-btn','sat-btn','row-mssp','row-sat','row-tabletop','stat-tabletop','row-osint','stat-osint','row-ir-bonus','stat-ir-bonus',
+    'mssp-btn','sat-btn','initiatives-section','initiatives-list','contracts-section','contracts-list',
     'incidents-list','incident-count','analyst-roster',
     'redteam-jobs-section','redteam-jobs-list',
     'active-events-section','active-events-list',
@@ -4414,9 +4423,9 @@ function updateUI() {
   _prevBudget = G.budget;
 
   // Stats panel
-  const trainingSlots = G.analystSlots.filter(s => s === 'TRAINING').length;
-  const effectiveFree = G.analystTotal - G.analystBusy - trainingSlots;
-  _ui['stat-analysts'].textContent = `${effectiveFree}/${G.analystTotal}${trainingSlots > 0 ? ' (1 training)' : ''}`;
+  const freeAnalysts = G.analystSlots.filter(s => s === null).length;
+  const busyAnalysts = G.analystTotal - freeAnalysts;
+  _ui['stat-analysts'].textContent = `${freeAnalysts}/${G.analystTotal}${busyAnalysts > 0 ? ` (${busyAnalysts} busy)` : ''}`;
   const cov = Math.round(G.coverage);
   _ui['stat-coverage'].textContent = `${cov}%`;
   const covBar = _ui['bar-coverage'];
@@ -4447,6 +4456,10 @@ function updateUI() {
   }
   _prevMttd = G.mttd;
 
+  const mttr = G.totalResolved > 0 ? Math.round((G.totalDwellResolved || 0) / G.totalResolved) : 0;
+  _ui['stat-mttr'].textContent = mttr > 0 ? `${mttr} min` : '—';
+  _ui['stat-mttr'].classList.toggle('warn', mttr > 120);
+
   const vs = Math.max(0, G.vulnScore - getIntelVulnBonus());
   _ui['stat-vuln'].textContent = vs;
   _ui['stat-vuln'].className = `stat-val${vs > 60 ? ' crit' : vs > 40 ? ' warn' : ''}`;
@@ -4456,16 +4469,10 @@ function updateUI() {
   const activeThreats = G.threats.filter(t => !t.breachTriggered).length;
   _ui['stat-threats'].textContent = activeThreats;
 
-  const intelCount = G.activeIntelFeeds.length;
-  if (intelCount > 0) {
-    _ui['stat-actors'].textContent = `${ACTORS.length} tracked`;
-  } else {
-    // Only refresh the random display every 50 ticks (~5s) to avoid pointless DOM churn
-    if (_uiTick % 50 === 0) _intelDisplay = rnd(3, 6);
-    _ui['stat-actors'].textContent = `${_intelDisplay} tracked`;
-  }
   _ui['stat-income'].textContent = `${Math.round(G.nextIncomeIn / 60)}h`;
+  _ui['bar-income'].style.width = `${Math.max(0, Math.min(100, Math.round((1 - G.nextIncomeIn / INCOME_INTERVAL_MINS) * 100)))}%`;
   _ui['stat-progress'].textContent = `Day ${t.day}/${WIN_DAYS * (G.week || 1)}`;
+  _ui['bar-win-progress'].style.width = `${dayPct}%`;
 
   // Hire btn
   _ui['hire-btn'].disabled = G.analystTotal >= MAX_ANALYSTS || G.budget < ANALYST_COST;
@@ -4665,19 +4672,9 @@ function updateUI() {
     _ui['redteam-action-btn'].disabled = G.budget < minRedteamCost;
   }
 
-  // MSSP, SAT & IR bonus posture indicators
-  _ui['row-mssp'].style.display = G.mssp ? '' : 'none';
-  _ui['row-sat'].style.display = G.sat ? '' : 'none';
-  _ui['row-ir-bonus'].style.display = G.analystSpeedBonus > 0 ? '' : 'none';
-  _ui['stat-ir-bonus'].textContent = `+${Math.round(G.analystSpeedBonus * 100)}%`;
-  const tabletopActive = G.gameTime < G.tabletopBonusExpiresAt;
-  _ui['row-tabletop'].style.display = tabletopActive ? '' : 'none';
-  if (tabletopActive) {
-    const tabRem = Math.max(0, G.tabletopBonusExpiresAt - G.gameTime);
-    _ui['stat-tabletop'].textContent = `+15% (${Math.round(tabRem/60)}h)`;
-  }
-  _ui['row-osint'].style.display = G.osintCharges > 0 ? '' : 'none';
-  _ui['stat-osint'].textContent = `${G.osintCharges} charge${G.osintCharges !== 1 ? 's' : ''}`;
+  // Initiatives & Contracts sections
+  if (slow) renderInitiatives();
+  renderContracts();
 
   // Active random events — throttled
   if (slow) updateActiveEventsUI();
@@ -4818,6 +4815,80 @@ function updateRedTeamJobsUI() {
       <div class="redteam-job-bar"><div class="redteam-job-fill" style="width:${pct}%"></div></div>`;
     list.appendChild(d);
   });
+}
+
+function renderInitiatives() {
+  const tabletopActive = G.gameTime < (G.tabletopBonusExpiresAt || 0);
+  const suppressed = (G.suppressedTechniques || []).filter(s => s.expiresAt > G.gameTime);
+  const consultant = G.consultant ? CONSULTANTS.find(c => c.id === G.consultant.id) : null;
+  const hasAny = G.analystSpeedBonus > 0 || tabletopActive || G.osintCharges > 0 || consultant || suppressed.length > 0;
+  _ui['initiatives-section'].style.display = hasAny ? '' : 'none';
+  if (!hasAny) return;
+  let html = '';
+  if (G.analystSpeedBonus > 0) {
+    html += `<div class="stat-row"><span class="stat-label">IR SPEED BONUS</span><span class="stat-val">+${Math.round(G.analystSpeedBonus * 100)}%</span></div>`;
+  }
+  if (tabletopActive) {
+    const tabRem = Math.max(0, G.tabletopBonusExpiresAt - G.gameTime);
+    html += `<div class="stat-row"><span class="stat-label">TABLETOP BOOST</span><span class="stat-val">+15% (${Math.round(tabRem/60)}h)</span></div>`;
+  }
+  if (G.osintCharges > 0) {
+    html += `<div class="stat-row"><span class="stat-label">OSINT CHARGES</span><span class="stat-val">${G.osintCharges} left</span></div>`;
+  }
+  if (consultant) {
+    const b = consultant.bonus;
+    html += `<div class="stat-row"><span class="stat-label">CONSULTANT</span><span class="stat-val">${consultant.name.split(' ')[0]}</span></div>`;
+    if (b.coverageBonus) html += `<div class="stat-row"><span class="stat-label" style="padding-left:8px">↳ coverage</span><span class="stat-val">+${b.coverageBonus}%</span></div>`;
+    if (b.mttdBonus)     html += `<div class="stat-row"><span class="stat-label" style="padding-left:8px">↳ MTTD</span><span class="stat-val">-${b.mttdBonus}min</span></div>`;
+    if (b.vulnBonus)     html += `<div class="stat-row"><span class="stat-label" style="padding-left:8px">↳ vuln</span><span class="stat-val">-${b.vulnBonus}</span></div>`;
+  }
+  suppressed.forEach(s => {
+    const rem = Math.round((s.expiresAt - G.gameTime) / 60);
+    html += `<div class="stat-row"><span class="stat-label">SUPPRESSED</span><span class="stat-val">${s.category.substring(0,10)} ${rem}h</span></div>`;
+  });
+  _ui['initiatives-list'].innerHTML = html;
+}
+
+function renderContracts() {
+  const allFeeds = [...INTEL_FEEDS, ...INTEL_FEEDS_W2, ...INTEL_FEEDS_W3, ...INTEL_FEEDS_W4];
+  const soarPbCount = G.soar ? Object.values(G.soarPlaybooks).filter(l => l > 0).length : 0;
+  const hasAny = G.mssp || G.sat || G.soar || G.activeIntelFeeds.length > 0;
+  _ui['contracts-section'].style.display = hasAny ? '' : 'none';
+  if (!hasAny) return;
+
+  const structureKey = `${G.mssp}|${G.sat}|${G.soar}|${soarPbCount}|${G.activeIntelFeeds.slice().sort().join(',')}`;
+  if (structureKey !== _contractsStructureKey) {
+    _contractsStructureKey = structureKey;
+    _intelBarEls = {};
+    _intelTimeEls = {};
+    let html = '';
+    if (G.mssp) html += `<div class="stat-row"><span class="stat-label">MSSP</span><span class="stat-val">ACTIVE</span></div>`;
+    if (G.sat)  html += `<div class="stat-row"><span class="stat-label">SAT</span><span class="stat-val">ACTIVE</span></div>`;
+    if (G.soar) {
+      const pbLabel = soarPbCount > 0 ? `${soarPbCount} playbook${soarPbCount !== 1 ? 's' : ''}` : 'ACTIVE';
+      html += `<div class="stat-row"><span class="stat-label">SOAR</span><span class="stat-val">${pbLabel}</span></div>`;
+    }
+    G.activeIntelFeeds.forEach(fid => {
+      const feed = allFeeds.find(f => f.id === fid);
+      const name = feed ? feed.name : fid;
+      const remaining = Math.max(0, (G.intelFeedExpiry[fid] || 0) - G.gameTime);
+      const pct = Math.min(100, (remaining / (INTEL_FEED_DURATION_DAYS * 1440)) * 100);
+      html += `<div class="stat-row" style="margin-top:5px"><span class="stat-label">${name}</span><span class="stat-val" id="intel-time-${fid}">${fmtDuration(remaining)}</span></div>`;
+      html += `<div class="mini-bar"><div class="mini-bar-fill warn" id="intel-bar-${fid}" style="width:${pct}%"></div></div>`;
+    });
+    _ui['contracts-list'].innerHTML = html;
+    G.activeIntelFeeds.forEach(fid => {
+      _intelBarEls[fid] = document.getElementById(`intel-bar-${fid}`);
+      _intelTimeEls[fid] = document.getElementById(`intel-time-${fid}`);
+    });
+  } else {
+    G.activeIntelFeeds.forEach(fid => {
+      const remaining = Math.max(0, (G.intelFeedExpiry[fid] || 0) - G.gameTime);
+      const pct = Math.min(100, (remaining / (INTEL_FEED_DURATION_DAYS * 1440)) * 100);
+      if (_intelBarEls[fid]) _intelBarEls[fid].style.width = `${pct}%`;
+      if (_intelTimeEls[fid]) _intelTimeEls[fid].textContent = fmtDuration(remaining);
+    });
+  }
 }
 
 function updateActiveEventsUI() {
@@ -5294,6 +5365,9 @@ function restartGame() {
   _prevCoverage = 0;
   _prevCoverageRaw = null;
   _prevMttd = null;
+  _contractsStructureKey = null;
+  _intelBarEls = {};
+  _intelTimeEls = {};
   _activeTab = 'incidents';
   document.getElementById('gameover-overlay').classList.remove('visible');
   document.getElementById('win-overlay').classList.remove('visible');
