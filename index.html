@@ -1495,9 +1495,9 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
   /* Touch-friendly interactive elements */
   .action-btn { padding: 8px 8px; min-height: 38px; font-size: 11px; }
   .assign-btn { padding: 6px 10px; min-height: 36px; font-size: 10px; }
-  .speed-btn { padding: 5px 7px; min-height: 36px; }
-  button#pause-btn { padding: 5px 8px; min-height: 36px; }
-  button#mute-btn { padding: 3px 5px; min-height: 36px; }
+  .speed-btn { padding: 5px 7px; min-height: 36px; color: var(--green); border-color: var(--green-dim); }
+  button#pause-btn { padding: 5px 8px; min-height: 36px; border-color: var(--amber); }
+  button#mute-btn { padding: 3px 5px; min-height: 36px; border-color: var(--green-dim); }
   button#newgame-btn { padding: 5px 8px; min-height: 36px; font-size: 9px; }
 
   /* Full-width modals */
@@ -1510,8 +1510,15 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
   .diff-option { padding: 10px 12px; }
 
   #spd-4 ~ .header-gap { display: none; }  /* hide gaps after speed buttons */
-  button#newgame-btn { font-size: 0; padding: 3px 5px; min-height: 36px; }
-  button#newgame-btn::after { content: 'NEW'; font-size: 8px; }
+  button#newgame-btn {
+    font-size: 0; padding: 3px 5px; min-height: 36px; width: 28px;
+    background: no-repeat center/14px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300ff41' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 4v6h6'/%3E%3Cpath d='M3.51 15a9 9 0 1 0 2.13-9.36L1 10'/%3E%3C/svg%3E");
+  }
+  button#newgame-btn.confirm {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ff3333' stroke-width='3' stroke-linecap='round'%3E%3Cline x1='6' y1='6' x2='18' y2='18'/%3E%3Cline x1='18' y1='6' x2='6' y2='18'/%3E%3C/svg%3E");
+    background-size: 16px;
+    border-color: var(--red) !important;
+  }
 
   /* Overlay titles: scale down to fit narrow screens */
   #gameover-overlay .title,
@@ -5691,17 +5698,20 @@ function newGameClick() {
     clearTimeout(_newGameConfirmTimer);
     _newGameConfirmTimer = null;
     btn.textContent = 'NEW GAME';
+    btn.classList.remove('confirm');
     btn.style.color = '';
     btn.style.borderColor = '';
     restartGame();
   } else {
     // First click — ask for confirmation
     btn.textContent = 'CONFIRM?';
+    btn.classList.add('confirm');
     btn.style.color = 'var(--red)';
     btn.style.borderColor = 'var(--red)';
     _newGameConfirmTimer = setTimeout(() => {
       _newGameConfirmTimer = null;
       btn.textContent = 'NEW GAME';
+      btn.classList.remove('confirm');
       btn.style.color = '';
       btn.style.borderColor = '';
     }, 3000);
