@@ -2013,7 +2013,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
           <li>Incident card appears in the <strong>centre panel</strong> with a breach countdown.</li>
           <li>Click <strong>ASSIGN ANALYST</strong> — a free analyst begins working it.</li>
           <li>Analyst works through: <span class="help-stage">TRIAGE → CONTAIN → ERADICATE → RECOVER</span></li>
-          <li>A <strong>LESSONS LEARNED</strong> sign-off appears after — click it for a per-category IR speed bonus.</li>
+          <li>A <strong>LESSONS LEARNED</strong> sign-off appears after — click it for a +1% IR speed bonus in that category (stacks up to 25%).</li>
         </ol>
 
         <div class="help-section-title" role="heading" aria-level="3">KEY STATS</div>
@@ -3432,7 +3432,7 @@ function tick() {
     const tabletopBonus = G.gameTime < G.tabletopBonusExpiresAt ? 0.15 : 0;
     const msspSpeedBonus = _msspTier ? _msspTier.irSpeedBonus : 0;
     const overflowPenalty = inc.analystId === 0 ? 0.6 : 1; // MSSP overflow works at 60% speed
-    const speedMult = (1 + G.analystSpeedBonus + soarBonus + tabletopBonus + msspSpeedBonus) * (1 + Math.min(0.25, lessonCount * 0.10)) * overflowPenalty;
+    const speedMult = (1 + G.analystSpeedBonus + soarBonus + tabletopBonus + msspSpeedBonus) * (1 + Math.min(0.25, lessonCount * 0.01)) * overflowPenalty;
     inc.stageProgress += delta * speedMult;
     if (inc.stageProgress >= stage.durationMins) {
       inc.stageProgress = 0;
@@ -3699,17 +3699,12 @@ function completeLessonsLearned(incidentId) {
   const cat = inc.techniqueCategory;
   const prev = G.lessonsLearned[cat] || 0;
 
-  if (prev >= 3) {
+  if (prev >= 25) {
     siemLog('INFO', `SOC-A${inc.analystId}`, `LESSONS LEARNED filed: ${cat} — team already at peak proficiency for this category`);
   } else {
-    // 55% chance the debrief yields actionable improvement
-    if (Math.random() < 0.55) {
-      G.lessonsLearned[cat] = prev + 1;
-      const newBonus = Math.min(25, (prev + 1) * 10);
-      siemLog('OK', `SOC-A${inc.analystId}`, `LESSONS LEARNED: ${cat} — IR speed +${newBonus}% bonus applied`);
-    } else {
-      siemLog('WARN', `SOC-A${inc.analystId}`, `LESSONS LEARNED filed: ${cat} — no actionable findings from this debrief`);
-    }
+    G.lessonsLearned[cat] = prev + 1;
+    const newBonus = prev + 1;
+    siemLog('OK', `SOC-A${inc.analystId}`, `LESSONS LEARNED: ${cat} — IR speed +${newBonus}% (total ${newBonus}%)`);
   }
 
   // Now fully resolve
@@ -4825,10 +4820,10 @@ function renderIncidents() {
         const btn = card.querySelector('[data-lessons-id]');
         if (btn) {
           const lessonCount = G.lessonsLearned[inc.techniqueCategory] || 0;
-          const alreadyMaxed = lessonCount >= 3;
+          const alreadyMaxed = lessonCount >= 25;
           const bonusPreview = alreadyMaxed
             ? 'MAX PROFICIENCY REACHED'
-            : `+${Math.min(25, (lessonCount + 1) * 10)}% IR speed for ${inc.techniqueCategory}`;
+            : `+1% IR speed for ${inc.techniqueCategory} (total ${lessonCount + 1}%)`;
           btn.className = urgent ? 'lessons-btn crit' : warning ? 'lessons-btn warn' : 'lessons-btn';
           btn.textContent = `▶ LESSONS LEARNED [${countdown}] — ${bonusPreview}`;
         }
@@ -4873,10 +4868,10 @@ function renderIncidents() {
       card.classList.add('lessons-pending');
       if (urgent) card.classList.add('critical');
       const lessonCount = G.lessonsLearned[inc.techniqueCategory] || 0;
-      const alreadyMaxed = lessonCount >= 3;
+      const alreadyMaxed = lessonCount >= 25;
       const bonusPreview = alreadyMaxed
         ? `MAX PROFICIENCY REACHED`
-        : `+${Math.min(25, (lessonCount + 1) * 10)}% IR speed for ${inc.techniqueCategory}`;
+        : `+1% IR speed for ${inc.techniqueCategory} (total ${lessonCount + 1}%)`;
       const stagesHtml = IR_STAGES.map(s => `<span class="ir-stage done">${s.name}</span>`).join('');
       const timeColor = urgent ? 'var(--red)' : 'var(--amber)';
       const h = Math.floor(remaining / 60);
