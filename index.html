@@ -3732,6 +3732,7 @@ function triggerBreach(threat, reason, incident) {
         type: 'breach_effect',
         name: `[${target}] ${eff.name}`,
         endsAt: G.gameTime + eff.duration,
+        totalDuration: eff.duration,
         coveragePenalty: eff.coveragePenalty || 0,
         vulnPenalty: 0,
         spawnPenalty: eff.spawnPenalty || 0,
@@ -4250,6 +4251,7 @@ function fireRandomEvent() {
     G.activeRandomEvents.push({
       type: ev.type, name: ev.name,
       endsAt: G.gameTime + ev.duration,
+      totalDuration: ev.duration,
       coveragePenalty: ev.coveragePenalty || 0,
       vulnPenalty: ev.vulnPenalty || 0,
     });
@@ -5125,8 +5127,9 @@ function updateActiveEventsUI() {
     const d = document.createElement('div');
     d.className = 'redteam-job';
     d.style.color = 'var(--red)';
-    d.innerHTML = `<div class="stat-row"><span class="stat-label">${ev.name}</span><span class="stat-val">${fmtDuration(remaining)}</span></div>
-      <div class="redteam-job-bar"><div class="redteam-job-fill" style="width:${Math.min(100, Math.round((remaining / (ev.type === 'ddos' ? 480 : 240)) * 100))}%;background:var(--red)"></div></div>`;
+    const barPct = ev.totalDuration > 0 ? Math.min(100, Math.round((remaining / ev.totalDuration) * 100)) : 0;
+    d.innerHTML = `<div class="stat-row"><span class="stat-label" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0">${ev.name}</span><span class="stat-val" style="flex-shrink:0;padding-left:4px">${fmtDuration(remaining)}</span></div>
+      <div class="redteam-job-bar"><div class="redteam-job-fill" style="width:${barPct}%;background:var(--red)"></div></div>`;
     list.appendChild(d);
   });
 }
