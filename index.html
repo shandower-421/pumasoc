@@ -2391,6 +2391,42 @@ const NOISE_EVENTS = [
   ['WARN','NET','Unusual outbound DNS query volume from WORK-03 — investigating'],
 ];
 
+const TRIAGE_QUIPS = [
+  'Pulled the alert. Yep, this one\'s real. Coffee\'s going cold.',
+  'Confirmed malicious. Not a drill. Not a false positive. Not my lunch break anymore.',
+  'IOCs validated. This actor read the playbook — just not ours.',
+  'Initial triage done. It\'s exactly as bad as the alert suggested.',
+  'Scope identified. Good news: we caught it. Bad news: it exists.',
+  'Alert correlation complete. Three alerts, one actor, zero surprise.',
+  'Triaged. Whoever wrote this detection rule, I owe you a coffee.',
+  'First look complete. Someone\'s getting a sternly worded incident report.',
+  'Validated the IOCs. This threat actor has commitment issues — persistence is sloppy.',
+  'Triage complete. On a scale of 1 to SolarWinds, this is manageable.',
+];
+const CONTAIN_QUIPS = [
+  'Network segment isolated. The actor is now yelling into the void.',
+  'Containment in place. Firewall rules tighter than our change management process.',
+  'Lateral movement blocked. They zigged, we zagged.',
+  'Isolated the affected host. It\'s in timeout now.',
+  'Containment confirmed. This perimeter is now a very expensive brick wall.',
+  'Cut off C2 comms. Actor\'s callback is going straight to voicemail.',
+  'Blast radius contained. Not today, threat actor. Not today.',
+  'Affected systems quarantined. Like COVID protocols but for servers.',
+  'Segmented the network. The actor can have that VLAN. There\'s nothing on it.',
+  'C2 channel severed. Hope they saved their work.',
+];
+const ERADICATE_QUIPS = [
+  'Persistence mechanisms removed. All of them. Yes, I checked twice.',
+  'Cleaned the toolkit off disk. Left a README: "don\'t come back."',
+  'Malware removed, backdoors sealed, cron jobs purged. Scorched earth.',
+  'Wiped their implant. It wasn\'t even obfuscated. Honestly, insulting.',
+  'Eradication complete. The forensic image, however, will haunt me.',
+  'Rootkit removed. Whoever wrote this malware should be embarrassed.',
+  'Artefacts purged. Registry, scheduled tasks, the works. This box is clean.',
+  'Removed 14 persistence mechanisms. Fourteen. They really wanted to stay.',
+  'Eradication done. Their dropper had a typo in it. "Softwear." Unbelievable.',
+  'Threat removed. If they phone home now, nobody\'s answering.',
+];
 const RESOLVE_QUIPS = [
   'Threat actor evicted. Systems sanitised. Root cause documented.',
   'Kill chain severed. Zero confirmed data loss. Good containment.',
@@ -2404,6 +2440,12 @@ const RESOLVE_QUIPS = [
   'Actor evicted. Not their best work, honestly.',
   'IR stages complete. Detection rule already submitted to eng.',
   'Lessons learned filed. Coverage gap closing.',
+  'Incident closed. Adding this actor to my "I told you so" spreadsheet.',
+  'All clear. Updating my resume to include "defeated nation-state actor."',
+  'Recovery verified. Systems green. I\'m taking a 5-minute break. Don\'t page me.',
+  'Post-mortem written. Executive summary: "we were right, they were wrong."',
+  'Incident resolved. The only persistence left is my grudge against this actor.',
+  'Case closed. Forwarding IOCs to the community. You\'re welcome, everyone.',
 ];
 
 const RANDOM_EVENTS = [
@@ -3274,6 +3316,7 @@ function assignAnalystToIncident(incidentId, silent = false) {
   inc.analystId = slotIdx + 1;
   inc.status = 'TRIAGING';
   siemLog('OK', 'SOC-ANALYST', `Analyst ${inc.analystId} assigned to incident #${incidentId} — ${inc.actor}::${inc.technique}`);
+  if (Math.random() < 0.3) siemLog('INFO', `SOC-A${inc.analystId}`, pick(TRIAGE_QUIPS));
   updateUI();
 }
 
@@ -3474,6 +3517,9 @@ function tick() {
       } else {
         inc.status = IR_STAGES[inc.stageIdx].name;
         siemLog('INFO', `SOC-A${inc.analystId}`, `${inc.actor} :: ${inc.technique} → ${inc.status}`);
+        const phaseQuips = { CONTAIN: CONTAIN_QUIPS, ERADICATE: ERADICATE_QUIPS, RECOVER: RESOLVE_QUIPS };
+        const quipPool = phaseQuips[inc.status];
+        if (quipPool && Math.random() < 0.3) siemLog('INFO', `SOC-A${inc.analystId}`, pick(quipPool));
       }
     }
   });
