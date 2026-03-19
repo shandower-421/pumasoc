@@ -1230,6 +1230,19 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
   animation: blink 1s step-end infinite;
   text-align: center;
 }
+#demo-attract-bar {
+  text-align: center;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--green-dim);
+  margin-top: 10px;
+  height: 13px;
+  min-height: 13px;
+}
+.demo-mode-badge {
+  color: var(--amber) !important;
+  animation: blink 1s step-end infinite;
+}
 
 /* ===================== HELP OVERLAY ===================== */
 #help-overlay {
@@ -1554,6 +1567,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
       </div>
     </div>
     <div id="diff-confirm">▋ PRESS [ENTER] TO DEPLOY</div>
+    <div id="demo-attract-bar"></div>
   </div>
 </div>
 
@@ -2882,6 +2896,10 @@ let _prevCoverage = 0;                // for coverage bar level-up flash
 let _prevCoverageRaw = null;          // raw (non-rounded) for sub-1% change detection
 let _prevMttd = null;                 // for MTTD flash
 let _helpPausedGame = false;          // true if openHelp() caused an auto-pause
+let _demoMode = false;                // attract / demo mode active
+let _demoPilotInterval  = null;       // setInterval handle for autopilot
+let _demoAttractInterval = null;      // setInterval handle for attract countdown
+let _demoAttractSecs    = 0;          // seconds remaining on attract timer
 let _contractsStructureKey = null;    // for contracts section rebuild detection
 let _intelBarEls = {};                // feedId → bar fill element ref
 let _intelTimeEls = {};               // feedId → time text element ref
@@ -3580,7 +3598,12 @@ function tick() {
   // Check win condition
   const t = fmtTime(G.gameTime);
   if (t.day > WIN_DAYS * G.week && !G.gameOver) {
-    triggerWin();
+    if (_demoMode) {
+      // Demo loops: restart quietly rather than showing win screen
+      setTimeout(() => { if (_demoMode) { exitDemoMode(); setTimeout(startDemoMode, 800); } }, 500);
+    } else {
+      triggerWin();
+    }
   }
 
   updateUI();
@@ -3690,7 +3713,12 @@ function triggerBreach(threat, reason, incident) {
   }
 
   if (G.breaches >= MAX_BREACHES) {
-    triggerGameOver(`${G.breaches} successful breaches — attacker persistence established across company infrastructure.`);
+    if (_demoMode) {
+      G.breaches = 1; // reset — demo never game-overs
+      siemLog('WARN', 'DEMO', '[ SIMULATION ] Breach threshold reached — resetting environment for continuous demonstration');
+    } else {
+      triggerGameOver(`${G.breaches} successful breaches — attacker persistence established across company infrastructure.`);
+    }
   } else if (G.breaches === MAX_BREACHES - 1) {
     siemLog('CRIT', 'BREACH-CTRL', `⚠ ONE BREACH FROM GAME OVER — DEFEND ALL ASSETS`);
   }
@@ -5787,6 +5815,144 @@ function restartGame() {
   renderDifficultySelection();
   document.addEventListener('keydown', onDifficultyKey);
   document.getElementById('difficulty-screen').addEventListener('click', onDifficultyClick);
+  _startAttractTimer();
+}
+
+// ================================================================
+// DEMO / ATTRACT MODE
+// ================================================================
+
+const DEMO_ATTRACT_DELAY = 60; // seconds of idle before auto-launch
+
+function _startAttractTimer() {
+  _stopAttractTimer();
+  _demoAttractSecs = DEMO_ATTRACT_DELAY;
+  _updateAttractBar();
+  _demoAttractInterval = setInterval(() => {
+    _demoAttractSecs--;
+    _updateAttractBar();
+    if (_demoAttractSecs <= 0) { _stopAttractTimer(); startDemoMode(); }
+  }, 1000);
+}
+
+function _stopAttractTimer() {
+  if (_demoAttractInterval) { clearInterval(_demoAttractInterval); _demoAttractInterval = null; }
+  _demoAttractSecs = 0;
+  _updateAttractBar();
+}
+
+function _resetAttractTimer() {
+  if (_demoAttractInterval) { _demoAttractSecs = DEMO_ATTRACT_DELAY; _updateAttractBar(); }
+}
+
+function _updateAttractBar() {
+  const el = document.getElementById('demo-attract-bar');
+  if (!el) return;
+  el.textContent = _demoAttractSecs > 0
+    ? `// ATTRACT MODE IN ${_demoAttractSecs}s  ──  [*] TO LAUNCH NOW`
+    : '';
+}
+
+function _onDemoExit(e) {
+  if (e.type === 'keydown' && (e.key === 'Tab' || e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt')) return;
+  exitDemoMode();
+}
+
+function startDemoMode() {
+  _stopAttractTimer();
+  _demoMode = true;
+  // Detach difficulty screen listeners so they don't double-fire
+  document.removeEventListener('keydown', onDifficultyKey);
+  document.getElementById('difficulty-screen').removeEventListener('click', onDifficultyClick);
+  document.getElementById('difficulty-screen').style.display = 'none';
+  selectedDifficulty = 'analyst'; // Engineer: $500k budget, 2 analysts, active threats
+  startGame();
+  // Override the diff-badge to show DEMO
+  const badge = document.getElementById('diff-badge');
+  badge.textContent = '// DEMO';
+  badge.className = 'demo-mode-badge';
+  // Autopilot fires every 3 real-seconds
+  if (_demoPilotInterval) clearInterval(_demoPilotInterval);
+  _demoPilotInterval = setInterval(_demoPilot, 3000);
+  // Any interaction exits demo (slight delay so the * keyup doesn't immediately fire exit)
+  setTimeout(() => {
+    document.addEventListener('keydown', _onDemoExit);
+    document.addEventListener('click', _onDemoExit);
+  }, 400);
+}
+
+function exitDemoMode() {
+  if (!_demoMode) return;
+  _demoMode = false;
+  if (_demoPilotInterval) { clearInterval(_demoPilotInterval); _demoPilotInterval = null; }
+  document.removeEventListener('keydown', _onDemoExit);
+  document.removeEventListener('click', _onDemoExit);
+  closeHelp();
+  restartGame();
+}
+
+function _demoPilot() {
+  if (!G || !_demoMode || G.paused || G.gameOver) return;
+
+  // ── 0. Hire up to 4 analysts when budget is comfortable ──
+  // Activity functions require analystTotal > 1, and we want spare capacity for tasks.
+  // Thresholds scale with headcount so we don't blow the entire budget on salaries.
+  const hireBudgetThreshold = [0, 200000, 150000, 200000][Math.min(3, G.analystTotal)] || 200000;
+  if (G.analystTotal < 4 && G.budget >= hireBudgetThreshold) hireAnalyst();
+
+  // ── 1. Assign free analysts to any open incidents (always highest priority) ──
+  G.incidents
+    .filter(i => !i.resolved && !i.breachTriggered && i.analystId === null)
+    .forEach(inc => assignAnalystToIncident(inc.id));
+
+  // ── 2. Analyst activities (only if 2+ slots free so at least 1 stays for incidents) ──
+  const freeSlots = G.analystSlots.slice(0, G.analystTotal).filter(s => s === null).length;
+  if (freeSlots >= 2 && Math.random() < 0.45) {
+    const opts = [];
+    if (!G.huntJob     && G.budget >= 60000)  opts.push(startHunt);
+    if (!G.tabletopJob && G.budget >= 25000)  opts.push(startTabletop);
+    if (!G.osintJob    && G.budget >= 40000)  opts.push(startOSINT);
+    if (!G.patchJob    && G.budget >= 25000   && G.vulns.some(v => v.discovered && !v.patched && v.severity === 'LOW')) opts.push(startPatchSprint);
+    if (!G.trainingJob && G.budget >= 50000   && G.analystSpeedBonus < 0.30 && G.analystTotal >= 2) opts.push(startTraining);
+    if (opts.length) opts[Math.floor(Math.random() * opts.length)]();
+  }
+
+  // ── 3. Detection rule upgrades ──
+  if (Math.random() < 0.35 && G.budget > 75000) {
+    const upgradeable = TECHNIQUE_CATS.filter(cat => {
+      const lvl = G.rules[cat] || 0;
+      return lvl < 5 && G.budget >= RULE_UPGRADE_COSTS[lvl];
+    });
+    if (upgradeable.length) upgradeRule(upgradeable[Math.floor(Math.random() * upgradeable.length)]);
+  }
+
+  // ── 4. Threat intel feeds ──
+  if (Math.random() < 0.2 && G.budget > 100000) {
+    const available = INTEL_FEEDS.filter(f => !G.activeIntelFeeds.includes(f.id) && G.budget >= f.cost);
+    if (available.length) purchaseIntelFeed(available[Math.floor(Math.random() * available.length)].id);
+  }
+
+  // ── 5. Red team engagements ──
+  if (Math.random() < 0.15 && G.budget > 80000) {
+    const available = REDTEAM_OPTIONS.filter(o =>
+      !G.redTeamJobs.some(j => j.type === o.id && !j.done) && G.budget >= o.cost
+    );
+    if (available.length) {
+      selectedRedTeam = available[Math.floor(Math.random() * available.length)].id;
+      launchRedTeam();
+      selectedRedTeam = null;
+    }
+  }
+
+  // ── 6. Vulnerability scan ──
+  if (!G.scanJob && G.budget > 20000 && Math.random() < 0.25) runVulnScan();
+
+  // ── 7. Patch critical vulns when flush ──
+  if (G.budget > 100000 && Math.random() < 0.2 &&
+      G.vulns.some(v => v.discovered && !v.patched && v.severity !== 'LOW')) patchCritical();
+
+  // ── 8. Buy SAT early (cheap tier, big visual impact) ──
+  if (!G.sat && G.budget > 75000 && G.gameTime < 2880 && Math.random() < 0.35) enrollSAT('phishing');
 }
 
 // ================================================================
@@ -5906,6 +6072,7 @@ function openDifficultyScreen(e) {
   renderDifficultySelection();
   document.addEventListener('keydown', onDifficultyKey);
   document.getElementById('difficulty-screen').addEventListener('click', onDifficultyClick);
+  _startAttractTimer();
 }
 
 function renderDifficultySelection() {
@@ -5915,6 +6082,8 @@ function renderDifficultySelection() {
 }
 
 function onDifficultyKey(e) {
+  if (e.key === '*') { e.preventDefault(); startDemoMode(); return; }
+  _resetAttractTimer(); // any other key resets the idle countdown
   if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
     e.preventDefault();
     diffIdx = (diffIdx - 1 + DIFF_KEYS.length) % DIFF_KEYS.length;
@@ -5936,6 +6105,7 @@ function onDifficultyKey(e) {
 }
 
 function onDifficultyClick(e) {
+  _resetAttractTimer();
   const opt = e.target.closest('.diff-option');
   if (opt) {
     const i = parseInt(opt.dataset.idx);
@@ -5948,6 +6118,7 @@ function onDifficultyClick(e) {
 }
 
 function confirmDifficulty() {
+  _stopAttractTimer();
   selectedDifficulty = DIFF_KEYS[diffIdx];
   document.removeEventListener('keydown', onDifficultyKey);
   document.getElementById('difficulty-screen').removeEventListener('click', onDifficultyClick);
@@ -6009,13 +6180,15 @@ function startGame() {
 
   // Help auto-show: first-time players see the manual immediately (game auto-pauses).
   // Returning players get a 60-second pulse on the ? button as a soft reminder.
-  if (!localStorage.getItem('puma-seen-help')) {
-    localStorage.setItem('puma-seen-help', '1');
-    openHelp();
-  } else {
-    const helpBtn = document.getElementById('help-btn');
-    helpBtn.classList.add('btn-pulse');
-    setTimeout(() => helpBtn.classList.remove('btn-pulse'), 60000);
+  if (!_demoMode) {
+    if (!localStorage.getItem('puma-seen-help')) {
+      localStorage.setItem('puma-seen-help', '1');
+      openHelp();
+    } else {
+      const helpBtn = document.getElementById('help-btn');
+      helpBtn.classList.add('btn-pulse');
+      setTimeout(() => helpBtn.classList.remove('btn-pulse'), 60000);
+    }
   }
 }
 
