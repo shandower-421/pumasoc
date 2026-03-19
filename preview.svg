@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <rect width="1200" height="630" fill="#020c03"/>
+  <!-- Subtle scanline effect -->
+  <rect width="1200" height="630" fill="url(#scan)" opacity="0.06"/>
+  <defs>
+    <pattern id="scan" width="1" height="4" patternUnits="userSpaceOnUse">
+      <rect width="1" height="2" fill="#00ff41"/>
+    </pattern>
+  </defs>
+  <!-- Border -->
+  <rect x="2" y="2" width="1196" height="626" fill="none" stroke="#00aa2b" stroke-width="1.5"/>
+  <!-- ASCII Logo -->
+  <text x="220" y="190" font-family="monospace" font-size="46" fill="#00ff41" letter-spacing="2">
+    ____  _   _ __  __   _    ____   ___   ____
+  </text>
+  <text x="220" y="242" font-family="monospace" font-size="46" fill="#00ff41" letter-spacing="2">
+   |  _ \| | | |  \/  | / \  / ___| / _ \ / ___|
+  </text>
+  <text x="220" y="294" font-family="monospace" font-size="46" fill="#00ff41" letter-spacing="2">
+   | |_) | | | | |\/| |/ _ \ \___ \| | | | |
+  </text>
+  <text x="220" y="346" font-family="monospace" font-size="46" fill="#00ff41" letter-spacing="2">
+   |  __/| |_| | |  | / ___ \ ___) | |_| | |___
+  </text>
+  <text x="220" y="398" font-family="monospace" font-size="46" fill="#00ff41" letter-spacing="2">
+   |_|    \___/|_|  |_/_/   \_\____/ \___/ \____|
+  </text>
+  <!-- Subtitle -->
+  <text x="600" y="478" font-family="monospace" font-size="22" fill="#00aa2b" text-anchor="middle" letter-spacing="4">
+    SECURITY OPERATIONS CENTER  //  THREAT MANAGEMENT PLATFORM
+  </text>
+  <!-- Tagline -->
+  <text x="600" y="560" font-family="monospace" font-size="17" fill="#ffb000" text-anchor="middle" letter-spacing="2">
+    Hire analysts · Detect threats · Patch vulns · Survive 7 days
+  </text>
+  <!-- Cursor blink -->
+  <text x="198" y="398" font-family="monospace" font-size="46" fill="#00ff41">▋</text>
+</svg>

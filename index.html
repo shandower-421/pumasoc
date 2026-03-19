@@ -10,6 +10,17 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <title>PumaSOC — Security Operations Center</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='3' fill='%23020c03'/><text x='3' y='23' font-size='20' fill='%2300ff41' font-family='monospace' font-weight='bold'>&gt;_</text></svg>">
+<meta name="description" content="PumaSOC — A retro terminal SOC management game. Hire analysts, detect threats, patch vulnerabilities, and survive 7 game days against nation-state adversaries.">
+<meta property="og:title" content="PumaSOC — Security Operations Center">
+<meta property="og:description" content="Retro cyberpunk SOC management game. Hire analysts, detect threats, patch vulns. Can you hold the line for 7 days?">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://shandower-421.github.io/pumasoc/">
+<meta property="og:image" content="https://shandower-421.github.io/pumasoc/preview.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="PumaSOC — Security Operations Center">
+<meta name="twitter:description" content="Retro cyberpunk SOC management game. Hire analysts, detect threats, patch vulns. Can you hold the line for 7 days?">
+<meta name="twitter:image" content="https://shandower-421.github.io/pumasoc/preview.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
@@ -1116,6 +1127,8 @@ body::after {
   font-size: 11px;
   color: var(--amber);
   margin: 3px 0;
+  overflow: hidden;
+  min-width: 0;
 }
 .redteam-job-bar {
   height: 2px;
@@ -2197,12 +2210,14 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
   <div class="overlay-text" id="gameover-reason"></div>
   <div class="overlay-text" id="gameover-stats"></div>
   <div class="score-card" id="gameover-score-card"></div>
+  <button class="overlay-btn share-btn" onclick="shareScore('gameover')" style="margin-top:4px;font-size:10px;border-color:var(--green-dim);color:var(--green-dim);padding:5px 16px">⎘ COPY SCORECARD</button>
   <button class="overlay-btn" onclick="restartGame()">↺ RESTART OPERATIONS</button>
 </div>
 <div id="win-overlay" role="alertdialog" aria-modal="true" aria-label="Mission complete">
   <div class="title">■ MISSION COMPLETE ■</div>
   <div class="overlay-text" id="win-subtitle">7 days survived. Infrastructure secured.</div>
   <div class="score-card" id="win-score-card"></div>
+  <button class="overlay-btn share-btn" onclick="shareScore('win')" style="margin-top:4px;font-size:10px;border-color:var(--green-dim);color:var(--green-dim);padding:5px 16px">⎘ COPY SCORECARD</button>
   <button class="overlay-btn" onclick="restartGame()">↺ NEW OPERATION</button>
   <button class="overlay-btn" id="continue-w2-btn" style="display:none;margin-top:6px;border-color:var(--amber);color:var(--amber);text-shadow:0 0 6px var(--amber)" onclick="continueToWeek2()">▶ EXTEND OPERATIONS — WEEK 2</button>
 </div>
@@ -3834,6 +3849,49 @@ function buildScoreCardHTML(s) {
   html += `<div class="score-total"><span class="score-grade ${wcls}">${s.grade}</span><span class="score-label">${s.label}</span></div>`;
 
   return html;
+}
+
+function buildShareText(s) {
+  const diff = (DIFFICULTIES[selectedDifficulty]?.label || selectedDifficulty).toUpperCase();
+  const week = G.week > 1 ? `  Campaign: Week ${G.week}` : '';
+  const lines = [
+    `■ PumaSOC — DEBRIEF ■`,
+    ``,
+    `  GRADE  ${s.grade}  ${s.label}`,
+    `  ${diff}${week}`,
+    ``,
+    `  Days Survived   ${s.daysCount}`,
+    `  Breaches        ${s.breachCount} / ${MAX_BREACHES}`,
+    `  Coverage        ${Math.round(s.coverage)}%`,
+    `  MTTD            ${s.mttdMins} min`,
+    `  MTTR            ${s.mttrMins > 0 ? s.mttrMins + ' min' : '—'}`,
+    `  Unpatched Vulns ${s.unpatchedVulns}`,
+    ``,
+    `  https://shandower-421.github.io/pumasoc/`,
+  ];
+  return lines.join('\n');
+}
+
+function shareScore(overlayType) {
+  const s = computeFinalScore();
+  const text = buildShareText(s);
+  const btn = document.querySelector(`#${overlayType === 'win' ? 'win' : 'gameover'}-overlay .share-btn`);
+  const reset = () => { if (btn) setTimeout(() => { btn.textContent = '⎘ COPY SCORECARD'; }, 2000); };
+  navigator.clipboard.writeText(text).then(() => {
+    if (btn) btn.textContent = '✓ COPIED TO CLIPBOARD';
+    reset();
+  }).catch(() => {
+    // Fallback for non-secure contexts
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (btn) btn.textContent = '✓ COPIED TO CLIPBOARD';
+    reset();
+  });
 }
 
 function triggerGameOver(reason) {
@@ -5577,8 +5635,10 @@ document.addEventListener('keydown', e => {
     if (e.key === '3') setSpeed(3);
     if (e.key === '4') setSpeed(4);
   }
-  if (e.key === '?') openHelp();
-  if (e.key === 'm' || e.key === 'M') toggleMute();
+  const onGameScreen = document.getElementById('game-screen').classList.contains('visible');
+  if (onGameScreen && e.key === '?') openHelp();
+  // M — only fire when game screen is active; prevents accidental mute on difficulty/boot screens
+  if (onGameScreen && (e.key === 'm' || e.key === 'M') && !['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) toggleMute();
 });
 
 // Delegated listener for briefing toggle — survives DOM re-renders every tick
@@ -5675,6 +5735,13 @@ function newGameClick() {
 function restartGame() {
   clearSavedState();
   clearInterval(tickInterval);
+  // Clear any pending new-game confirmation so the button resets cleanly
+  if (_newGameConfirmTimer) {
+    clearTimeout(_newGameConfirmTimer);
+    _newGameConfirmTimer = null;
+    const nb = document.getElementById('newgame-btn');
+    if (nb) { nb.textContent = 'NEW GAME'; nb.style.color = ''; nb.style.borderColor = ''; }
+  }
   tickInterval = null;
   if (_crtFlickerTimeout) { clearTimeout(_crtFlickerTimeout); _crtFlickerTimeout = null; }
   expandedActorCards.clear();
