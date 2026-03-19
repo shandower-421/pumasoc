@@ -526,13 +526,13 @@ body::after {
   align-items: center;
   margin-bottom: 3px;
 }
-.incident-actor { color: var(--red); font-size: 11px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.incident-actor { color: var(--red); font-size: 11px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 0 6px rgba(255,51,51,0.55); }
 .incident-target { color: var(--amber); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%; }
 .incident-technique { color: var(--green-dim); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .incident-dwell { font-size: 10px; }
 .dwell-ok { color: var(--green-dim); }
-.dwell-warn { color: var(--amber); }
-.dwell-crit { color: var(--red); animation: blink 0.7s step-end infinite; }
+.dwell-warn { color: var(--amber); text-shadow: 0 0 4px rgba(255,170,0,0.4); }
+.dwell-crit { color: var(--red); text-shadow: 0 0 6px var(--red); animation: blink 0.7s step-end infinite; }
 .ir-stages {
   display: flex;
   gap: 3px;
