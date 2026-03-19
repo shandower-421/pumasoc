@@ -214,7 +214,9 @@ body::after {
   display: none;
   width: 100vw;
   height: 100vh;
+  height: 100dvh; /* dynamic viewport height — fixes Chrome Android address-bar issue */
   flex-direction: column;
+  overflow: hidden;
 }
 #game-screen.visible { display: flex; }
 
@@ -278,13 +280,22 @@ body::after {
 }
 #pause-btn {
   background: none; border: 1px solid var(--amber); color: var(--amber);
-  font-family: var(--font); font-size: 10px;
+  font-family: var(--font); font-size: 0;
   padding: 3px 8px; cursor: pointer; margin-left: 4px;
   min-height: 26px;
   transition: background 0.1s, color 0.1s;
 }
+#pause-btn::after { content: '\23F8'; font-size: 13px; }
+#pause-btn[aria-pressed="true"]::after { content: '\25B6'; }
 #pause-btn:hover { background: var(--amber); color: var(--bg); }
 #pause-btn:active { transform: scale(0.95); }
+#mute-btn {
+  font-size: 0; width: 28px; height: 26px;
+  background: no-repeat center/16px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300ff41' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11 5L6 9H2v6h4l5 4V5z'/%3E%3Cpath d='M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07'/%3E%3C/svg%3E");
+}
+#mute-btn[aria-pressed="true"] {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11 5L6 9H2v6h4l5 4V5z'/%3E%3Cline x1='23' y1='9' x2='17' y2='15'/%3E%3Cline x1='17' y1='9' x2='23' y2='15'/%3E%3C/svg%3E");
+}
 .header-spacer { flex: 1; }
 .header-gap { flex-shrink: 0; width: 12px; }
 #day-progress-bar {
@@ -1400,11 +1411,12 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 /* MOBILE: single column with tab navigation */
 @media (max-width: 767px) {
   /* Header compression */
-  #header { height: auto; min-height: 30px; padding: 3px 6px; gap: 0; }
+  #header { height: auto; min-height: 30px; padding: 3px 4px; gap: 0; position: sticky; top: 0; z-index: 50; }
+  .header-gap { width: 6px; }  /* tighter gaps on mobile */
   #header-title { font-size: 10px; margin-right: 6px; letter-spacing: 1px; }
   #diff-badge { display: none; }
   #live-indicator { display: none; }
-  .header-stat { margin-right: 8px; font-size: 10px; }
+  .header-stat { margin-right: 4px; font-size: 10px; }
   #hdr-resolved-wrap { display: none; }
   .header-spacer { display: none; }
 
@@ -1481,21 +1493,22 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
   .action-btn { padding: 8px 8px; min-height: 38px; font-size: 11px; }
   .assign-btn { padding: 6px 10px; min-height: 36px; font-size: 10px; }
   .speed-btn { padding: 5px 7px; min-height: 36px; }
-  button#pause-btn { padding: 5px 10px; min-height: 36px; }
-  button#mute-btn { padding: 5px 10px; min-height: 36px; }
+  button#pause-btn { padding: 5px 8px; min-height: 36px; }
+  button#mute-btn { padding: 3px 5px; min-height: 36px; }
   button#newgame-btn { padding: 5px 8px; min-height: 36px; font-size: 9px; }
 
   /* Full-width modals */
-  .modal-window { width: 98vw; max-width: 98vw; max-height: 82vh; overflow-y: auto; }
-  #help-overlay > div { width: 98vw; max-width: 98vw; max-height: 90vh; overflow-y: auto; }
+  .modal-window { width: 98vw; max-width: 98vw; max-height: 82vh; max-height: 82dvh; overflow-y: auto; }
+  #help-overlay > div { width: 98vw; max-width: 98vw; max-height: 90vh; max-height: 90dvh; overflow-y: auto; }
 
   /* Difficulty screen on mobile */
   #difficulty-screen { padding: 20px 12px; }
   #diff-options { flex-direction: column; gap: 8px; }
   .diff-option { padding: 10px 12px; }
 
-  /* Hide header controls that overflow — sound can be toggled elsewhere */
-  #mute-btn, #newgame-btn { display: none; }
+  /* Hide new-game button and its surrounding gaps; keep mute for sound access */
+  #newgame-btn { display: none; }
+  #spd-4 ~ .header-gap { display: none; }  /* hide gaps after speed buttons to fit mute btn */
 
   /* Overlay titles: scale down to fit narrow screens */
   #gameover-overlay .title,
@@ -1510,6 +1523,10 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
     align-items: flex-start;
     justify-content: flex-start;
   }
+}
+
+@media (max-width: 399px) {
+  #header-title { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1620,11 +1637,11 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
     <div class="header-spacer"></div>
     <button class="speed-btn" id="help-btn" onclick="openHelp()" aria-label="How to play" title="Help [?]" style="color:var(--accent);border-color:var(--accent)">?</button>
     <div class="header-gap"></div>
+    <button id="pause-btn" onclick="togglePause()" aria-label="Pause game" aria-pressed="false">PAUSE</button>
     <button class="speed-btn active" id="spd-1" onclick="setSpeed(1)" aria-label="Speed 1×" aria-pressed="true">1×</button>
     <button class="speed-btn" id="spd-2" onclick="setSpeed(2)" aria-label="Speed 2×" aria-pressed="false">2×</button>
     <button class="speed-btn" id="spd-3" onclick="setSpeed(3)" aria-label="Speed 3×" aria-pressed="false">3×</button>
     <button class="speed-btn" id="spd-4" onclick="setSpeed(4)" aria-label="Speed 4×" aria-pressed="false">4×</button>
-    <button id="pause-btn" onclick="togglePause()" aria-label="Pause game" aria-pressed="false">PAUSE</button>
     <div class="header-gap"></div>
     <button class="speed-btn active" id="mute-btn" onclick="toggleMute()" aria-label="Toggle sound" aria-pressed="false">SOUND</button>
     <div class="header-gap"></div>
