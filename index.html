@@ -5064,7 +5064,7 @@ function updateRedTeamJobsUI() {
     const d = document.createElement('div');
     d.className = 'redteam-job';
     const _scanSub = G.scanJob.done && (G.scanJob.foundHigh + G.scanJob.foundMed + G.scanJob.foundLow > 0)
-      ? `<div style="padding-left:8px;margin-top:3px"><div class="stat-row"><span class="stat-label" style="opacity:0.8">↳ ${G.scanJob.foundHigh}H / ${G.scanJob.foundMed}M / ${G.scanJob.foundLow}L found</span></div></div>`
+      ? `<div style="padding-left:8px;margin-top:3px"><div class="stat-row"><span class="stat-label" style="opacity:0.9">↳ <span style="color:var(--red)">${G.scanJob.foundHigh}H</span> / <span style="color:var(--amber)">${G.scanJob.foundMed}M</span> / ${G.scanJob.foundLow}L found</span></div></div>`
       : (G.scanJob.done ? `<div style="padding-left:8px;margin-top:3px"><div class="stat-row"><span class="stat-label" style="opacity:0.8">↳ No new vulnerabilities</span></div></div>` : '');
     d.innerHTML = `<div class="stat-row"><span class="stat-label">VULN SCAN</span><span class="stat-val">${G.scanJob.done ? '[DONE]' : fmtDuration(remaining)}</span></div>
       <div class="redteam-job-bar"><div class="redteam-job-fill" style="width:${pct}%"></div></div>${_scanSub}`;
@@ -5076,7 +5076,7 @@ function updateRedTeamJobsUI() {
     const pct = Math.min(100, Math.round((job.elapsedMins / job.durationMins) * 100));
     const d = document.createElement('div');
     d.className = 'redteam-job';
-    let html = `<div class="stat-row"><span class="stat-label">${job.name.substring(0,22)}</span><span class="stat-val">${job.done ? '[DONE]' : fmtDuration(remaining)}</span></div>
+    let html = `<div class="stat-row"><span class="stat-label" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0">${job.name}</span><span class="stat-val" style="flex-shrink:0;padding-left:4px">${job.done ? '[DONE]' : fmtDuration(remaining)}</span></div>
       <div class="redteam-job-bar"><div class="redteam-job-fill" style="width:${pct}%"></div></div>`;
     if (job.done && job.suppressCat && job.suppressExpiresAt) {
       const suppRemaining = Math.max(0, job.suppressExpiresAt - G.gameTime);
