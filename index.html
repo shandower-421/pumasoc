@@ -340,6 +340,9 @@ body::after {
   display: flex;
   align-items: center;
   gap: 6px;
+  /* heading resets — element may be h2 */
+  margin: 0;
+  font-weight: normal;
 }
 .panel-title-dot {
   width: 6px; height: 6px;
@@ -790,6 +793,9 @@ body::after {
   font-size: 12px;
   letter-spacing: 2px;
   text-shadow: 0 0 6px var(--green);
+  /* heading resets */
+  margin: 0;
+  font-weight: normal;
 }
 .modal-close {
   background: none;
@@ -1302,6 +1308,8 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
   padding-bottom: 2px;
   margin: 8px 0 4px;
   text-transform: uppercase;
+  /* heading resets */
+  font-weight: normal;
 }
 .help-col:first-child .help-section-title:first-child { margin-top: 0; }
 .help-col:last-child .help-section-title:first-child { margin-top: 0; }
@@ -1487,7 +1495,10 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
   #gameover-overlay.visible > *, #win-overlay.visible > *,
   .bar-levelup,
   body.crt-flicker,
-  .siem-entry[data-sev="CRIT"] {
+  .siem-entry[data-sev="CRIT"],
+  .btn-pulse,
+  .demo-mode-badge,
+  .dwell-crit {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     animation-delay: 0s !important;
@@ -1501,7 +1512,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 <!-- ===================== BOOT SCREEN ===================== -->
 <div id="boot-screen">
   <div id="boot-logo">
-    <div class="logo-ascii"> ____  _   _ __  __   _    ____   ___   ____
+    <div class="logo-ascii" role="img" aria-label="PumaSOC"> ____  _   _ __  __   _    ____   ___   ____
 |  _ \| | | |  \/  | / \  / ___| / _ \ / ___|
 | |_) | | | | |\/| |/ _ \ \___ \| | | | |
 |  __/| |_| | |  | / ___ \ ___) | |_| | |___
@@ -1515,7 +1526,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 <!-- ===================== DIFFICULTY SCREEN ===================== -->
 <div id="difficulty-screen" style="display:none">
   <div id="diff-logo">
-    <div class="logo-ascii"> ____  _   _ __  __   _    ____   ___   ____
+    <div class="logo-ascii" role="img" aria-label="PumaSOC"> ____  _   _ __  __   _    ____   ___   ____
 |  _ \| | | |  \/  | / \  / ___| / _ \ / ___|
 | |_) | | | | |\/| |/ _ \ \___ \| | | | |
 |  __/| |_| | |  | / ___ \ ___) | |_| | |___
@@ -1525,8 +1536,8 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
   <div id="diff-box">
     <div id="diff-title">── SELECT ENGAGEMENT PROFILE ──────────────────────────────</div>
     <div id="diff-subtitle">Use [↑↓] or [1-3] to select. [ENTER] to confirm.</div>
-    <div id="diff-options">
-      <div class="diff-option" data-idx="0">
+    <div id="diff-options" role="radiogroup" aria-label="Select difficulty">
+      <div class="diff-option" data-idx="0" role="radio" aria-checked="false" tabindex="-1">
         <div class="diff-key">[1]</div>
         <div class="diff-body">
           <div class="diff-name apprentice">Analyst</div>
@@ -1539,7 +1550,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
           </div>
         </div>
       </div>
-      <div class="diff-option selected" data-idx="1">
+      <div class="diff-option selected" data-idx="1" role="radio" aria-checked="true" tabindex="0">
         <div class="diff-key">[2]</div>
         <div class="diff-body">
           <div class="diff-name analyst">Engineer</div>
@@ -1552,7 +1563,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
           </div>
         </div>
       </div>
-      <div class="diff-option" data-idx="2">
+      <div class="diff-option" data-idx="2" role="radio" aria-checked="false" tabindex="-1">
         <div class="diff-key">[3]</div>
         <div class="diff-body">
           <div class="diff-name adversary">Hunter</div>
@@ -1601,7 +1612,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
   <div id="main">
     <!-- LEFT: Status -->
     <div class="panel" id="status-panel">
-      <div class="panel-title">
+      <div class="panel-title" role="heading" aria-level="2">
         <div class="panel-title-dot" style="background:var(--green)"></div>
         STATUS
       </div>
@@ -1668,7 +1679,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 
     <!-- CENTER: Incidents (full height) -->
     <div id="incidents-panel">
-      <div class="panel-title">
+      <div class="panel-title" role="heading" aria-level="2">
         <div class="panel-title-dot" style="background:var(--amber)"></div>
         ACTIVE INCIDENTS
         <span style="margin-left:auto;color:var(--green-dark);font-size:9px" id="incident-count">0 active</span>
@@ -1680,7 +1691,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 
     <!-- RIGHT: Operations (purchases only) -->
     <div class="panel" id="ops-panel">
-      <div class="panel-title" style="border-right:none">
+      <div class="panel-title" role="heading" aria-level="2" style="border-right:none">
         <div class="panel-title-dot" style="background:var(--green)"></div>
         OPERATIONS
       </div>
@@ -1766,7 +1777,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 <div class="modal-overlay" id="modal-detection" role="dialog" aria-modal="true" aria-label="Detection engineering">
   <div class="modal-window">
     <div class="modal-header">
-      <div class="modal-title">// DETECTION ENGINEERING</div>
+      <div class="modal-title" role="heading" aria-level="2">// DETECTION ENGINEERING</div>
       <button class="modal-close" onclick="closeModal('detection')" aria-label="Close detection engineering">✕ CLOSE</button>
     </div>
     <div class="modal-body">
@@ -1786,7 +1797,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 <div class="modal-overlay" id="modal-soar" role="dialog" aria-modal="true" aria-label="SOAR platform">
   <div class="modal-window">
     <div class="modal-header">
-      <div class="modal-title">// SOAR PLATFORM</div>
+      <div class="modal-title" role="heading" aria-level="2">// SOAR PLATFORM</div>
       <button class="modal-close" onclick="closeModal('soar')" aria-label="Close SOAR platform">✕ CLOSE</button>
     </div>
     <div class="modal-body">
@@ -1810,7 +1821,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 <div class="modal-overlay" id="modal-vuln" role="dialog" aria-modal="true" aria-label="Vulnerability management">
   <div class="modal-window">
     <div class="modal-header">
-      <div class="modal-title">// VULNERABILITY MANAGEMENT</div>
+      <div class="modal-title" role="heading" aria-level="2">// VULNERABILITY MANAGEMENT</div>
       <button class="modal-close" onclick="closeModal('vuln')" aria-label="Close vulnerability management">✕ CLOSE</button>
     </div>
     <div class="modal-body">
@@ -1834,7 +1845,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 <div class="modal-overlay" id="modal-redteam" role="dialog" aria-modal="true" aria-label="Red team operations">
   <div class="modal-window">
     <div class="modal-header">
-      <div class="modal-title">// RED TEAM OPERATIONS</div>
+      <div class="modal-title" role="heading" aria-level="2">// RED TEAM OPERATIONS</div>
       <button class="modal-close" onclick="closeModal('redteam')" aria-label="Close red team operations">✕ CLOSE</button>
     </div>
     <div class="modal-body">
@@ -1856,7 +1867,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 <div class="modal-overlay" id="modal-intel" role="dialog" aria-modal="true" aria-label="Threat intelligence">
   <div class="modal-window">
     <div class="modal-header">
-      <div class="modal-title">// THREAT INTELLIGENCE</div>
+      <div class="modal-title" role="heading" aria-level="2">// THREAT INTELLIGENCE</div>
       <button class="modal-close" onclick="closeModal('intel')" aria-label="Close threat intelligence">✕ CLOSE</button>
     </div>
     <div class="modal-body">
@@ -1874,7 +1885,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 <div class="modal-overlay" id="modal-consultant" role="dialog" aria-modal="true" aria-label="Retain a consultant">
   <div class="modal-window">
     <div class="modal-header">
-      <div class="modal-title">// RETAIN A CONSULTANT</div>
+      <div class="modal-title" role="heading" aria-level="2">// RETAIN A CONSULTANT</div>
       <button class="modal-close" onclick="closeModal('consultant')" aria-label="Close consultant">✕ CLOSE</button>
     </div>
     <div class="modal-body">
@@ -1897,7 +1908,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 <div class="modal-overlay" id="modal-mssp" role="dialog" aria-modal="true" aria-label="MSSP contract">
   <div class="modal-window">
     <div class="modal-header">
-      <div class="modal-title">// MANAGED SECURITY SERVICES</div>
+      <div class="modal-title" role="heading" aria-level="2">// MANAGED SECURITY SERVICES</div>
       <button class="modal-close" onclick="closeModal('mssp')" aria-label="Close MSSP">✕ CLOSE</button>
     </div>
     <div class="modal-body">
@@ -1920,7 +1931,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 <div class="modal-overlay" id="modal-sat" role="dialog" aria-modal="true" aria-label="Security awareness training">
   <div class="modal-window">
     <div class="modal-header">
-      <div class="modal-title">// SECURITY AWARENESS TRAINING</div>
+      <div class="modal-title" role="heading" aria-level="2">// SECURITY AWARENESS TRAINING</div>
       <button class="modal-close" onclick="closeModal('sat')" aria-label="Close security awareness training">✕ CLOSE</button>
     </div>
     <div class="modal-body">
@@ -1961,10 +1972,10 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 
       <!-- PAGE 1: OVERVIEW -->
       <div class="help-page active" id="help-page-overview">
-        <div class="help-section-title">OBJECTIVE</div>
+        <div class="help-section-title" role="heading" aria-level="3">OBJECTIVE</div>
         <p>Survive <strong>7 game days</strong> as a SOC operator. Defend company infrastructure against nation-state and criminal threat actors. You lose if <strong>3 breaches</strong> succeed.</p>
 
-        <div class="help-section-title">THE THREAT LOOP</div>
+        <div class="help-section-title" role="heading" aria-level="3">THE THREAT LOOP</div>
         <p>Every few minutes a threat actor attempts an intrusion. It is checked against your <strong>Coverage %</strong>:</p>
         <ul>
           <li><span class="help-ok">Detected</span> → CRIT fires in SIEM, incident created — assign an analyst immediately.</li>
@@ -1972,7 +1983,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
           <li><span class="help-crit">Breach</span> → undetected dwell expires, or a detected incident goes unhandled too long.</li>
         </ul>
 
-        <div class="help-section-title">RESPONDING TO INCIDENTS</div>
+        <div class="help-section-title" role="heading" aria-level="3">RESPONDING TO INCIDENTS</div>
         <ol>
           <li>CRIT alert fires in the <strong>SIEM strip</strong> at the bottom.</li>
           <li>Incident card appears in the <strong>centre panel</strong> with a breach countdown.</li>
@@ -1981,7 +1992,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
           <li>A <strong>LESSONS LEARNED</strong> sign-off appears after — click it for a per-category IR speed bonus.</li>
         </ol>
 
-        <div class="help-section-title">KEY STATS</div>
+        <div class="help-section-title" role="heading" aria-level="3">KEY STATS</div>
         <ul>
           <li><strong>Coverage %</strong> — detection chance on spawn. Your primary defence. Target 50%+ immediately.</li>
           <li><strong>MTTD</strong> — Mean Time to Detect: how long before an undetected threat is eventually caught. Lower is safer.</li>
@@ -1990,16 +2001,16 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
           <li><strong>Budget</strong> — hits zero and paid services (MSSP, SAT, Consultant) auto-cancel. Idle money doesn't defend you. Spend it.</li>
         </ul>
 
-        <div class="help-section-title">RANDOM EVENTS</div>
+        <div class="help-section-title" role="heading" aria-level="3">RANDOM EVENTS</div>
         <p>Crises fire periodically — DDoS barrages, zero-days, tool outages, insider threats, budget audits. Shown as <span class="help-crit">ACTIVE EVENTS</span> in the left panel. Events may cut Coverage %, drain budget, or spike threat rates. Ride them out.</p>
 
-        <div class="help-section-title">NETWORK MAP</div>
+        <div class="help-section-title" role="heading" aria-level="3">NETWORK MAP</div>
         <p>The minimap in the left panel shows your infrastructure in real time. <span class="help-ok">Green</span> = healthy. <span class="help-warn">Amber</span> = vulnerable (unpatched CVEs). <span class="help-crit">Red</span> = under attack or breached. Animated packets show active threats moving through the network.</p>
       </div>
 
       <!-- PAGE 2: CAPABILITIES -->
       <div class="help-page" id="help-page-capabilities">
-        <div class="help-section-title">DETECTION &amp; INTELLIGENCE</div>
+        <div class="help-section-title" role="heading" aria-level="3">DETECTION &amp; INTELLIGENCE</div>
         <div class="help-cap-row">
           <span class="help-cap-name">DETECTION ENG — $25k–$50k per upgrade</span>
           <span class="help-cap-desc">Upgrade SIEM detection rules across all 12 MITRE ATT&amp;CK technique categories (up to level 5 each). Each level raises Coverage % and adds a category-specific detection bonus. Your highest-ROI investment — prioritise this above almost everything else.</span>
@@ -2009,19 +2020,19 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
           <span class="help-cap-desc">Subscribe to commercial threat intel feeds for passive Coverage % boosts and MTTD reductions. Each feed targets specific actor categories and stacks with Detection Engineering. Buy the cheapest feeds first — ROI diminishes as you stack them.</span>
         </div>
 
-        <div class="help-section-title">VULNERABILITY MANAGEMENT</div>
+        <div class="help-section-title" role="heading" aria-level="3">VULNERABILITY MANAGEMENT</div>
         <div class="help-cap-row">
           <span class="help-cap-name">VULN MGMT — $15k scan, variable patch costs</span>
           <span class="help-cap-desc">Run a scan to discover CVEs across your infrastructure. Patch individually (HIGH: $8–12k, MED: $3–6k, LOW: $1–3k), patch all criticals at a small discount, or patch everything with a 15% bulk discount. Vuln Score directly accelerates threat spawn rate.</span>
         </div>
 
-        <div class="help-section-title">AUTOMATED RESPONSE</div>
+        <div class="help-section-title" role="heading" aria-level="3">AUTOMATED RESPONSE</div>
         <div class="help-cap-row">
           <span class="help-cap-name">SOAR PLATFORM — $100k platform + $20k per playbook</span>
           <span class="help-cap-desc">Security Orchestration, Automation and Response. The platform alone does nothing — deploy playbooks per ATT&amp;CK category ($20k each, 12 total). Each playbook adds +25% speed to TRIAGE and CONTAIN stages for that technique. Best purchased mid-game when incidents are overwhelming analysts.</span>
         </div>
 
-        <div class="help-section-title">ADVERSARIAL TESTING</div>
+        <div class="help-section-title" role="heading" aria-level="3">ADVERSARIAL TESTING</div>
         <div class="help-cap-row">
           <span class="help-cap-name">RED TEAM — $30k–$150k per engagement</span>
           <span class="help-cap-desc">Commission a penetration test. While the engagement runs, that attack category is suppressed — all threats in it auto-detect. On completion you receive a coverage bonus and SIEM rule improvement for that category. Use it to shore up a detection blind spot while engineers catch up.</span>
@@ -2030,13 +2041,13 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 
       <!-- PAGE 3: TEAM & PARTNERS -->
       <div class="help-page" id="help-page-team">
-        <div class="help-section-title">ANALYST STAFFING</div>
+        <div class="help-section-title" role="heading" aria-level="3">ANALYST STAFFING</div>
         <div class="help-cap-row">
           <span class="help-cap-name">HIRE ANALYST — $75k</span>
           <span class="help-cap-desc">Each analyst handles one active incident at a time. Maximum 8. Hire early — analysts are your throughput ceiling and the most common bottleneck.</span>
         </div>
 
-        <div class="help-section-title">ANALYST ACTIVITIES (consume one slot for the duration)</div>
+        <div class="help-section-title" role="heading" aria-level="3">ANALYST ACTIVITIES (consume one slot for the duration)</div>
         <div class="help-cap-row">
           <span class="help-cap-name">SEND TO TRAINING — $50k · 24h · permanent +10% IR speed (max +30%)</span>
           <span class="help-cap-desc">Offline for 24 game-hours. On return, permanently boosts <em>all</em> analysts' IR stage speed by +10%. Three trainings caps the bonus. Do it early before incident waves hit.</span>
@@ -2058,7 +2069,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
           <span class="help-cap-desc">Analyst profiles active threat actors. On completion, loads 3 charges — next 3 threats that spawn are immediately detected regardless of Coverage %, each logged with OSINT attribution in SIEM. Use before anticipated high-activity periods.</span>
         </div>
 
-        <div class="help-section-title">PARTNERS</div>
+        <div class="help-section-title" role="heading" aria-level="3">PARTNERS</div>
         <div class="help-cap-row">
           <span class="help-cap-name">SECURITY AWARENESS TRAINING — $20k–$100k setup + $15k–$40k/cycle</span>
           <span class="help-cap-desc">Three tiers blocking 25%–60% of Initial Access attempts at the employee layer — the threat never enters your environment. Higher tiers also add up to +10% detection coverage. Ongoing cost; auto-cancels on budget shortfall. Even the base tier pays for itself within a few income cycles.</span>
@@ -2078,7 +2089,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 
         <p style="line-height:1.65;margin-bottom:12px">Survive a week and you can <strong style="color:var(--green)">extend the engagement</strong>. Your budget, analysts, and SOAR platform carry over. Everything else is subject to the natural entropy of a real security program.</p>
 
-        <div class="help-section-title">WHAT CHANGES BETWEEN WEEKS</div>
+        <div class="help-section-title" role="heading" aria-level="3">WHAT CHANGES BETWEEN WEEKS</div>
 
         <div class="help-cap-row" style="margin-bottom:4px">
           <span class="help-cap-name" style="color:var(--amber)">Detection Rule Decay</span>
@@ -2113,7 +2124,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 
       <!-- PAGE 5: STRATEGY -->
       <div class="help-page" id="help-page-strategy">
-        <div class="help-section-title">FIRST MOVES BY DIFFICULTY</div>
+        <div class="help-section-title" role="heading" aria-level="3">FIRST MOVES BY DIFFICULTY</div>
         <div class="help-cap-row">
           <span class="help-cap-name">ANALYST (Easy) — $800k start, 3 analysts, 45% coverage</span>
           <span class="help-cap-desc">Hire a Consultant day 1 for guided spending. Push Coverage above 60% fast. Buy Security Awareness Training early — it pays for itself within 2 income cycles. Run a Tabletop once your team is stable.</span>
@@ -2127,7 +2138,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
           <span class="help-cap-desc">First $75k goes on a second analyst — no exceptions. Patch sprints and OSINT are your best early tools. Don't buy SOAR or MSSP until coverage is above 40%. Every dollar counts; avoid analyst activities until you have 3+ on the team.</span>
         </div>
 
-        <div class="help-section-title">GENERAL STRATEGY</div>
+        <div class="help-section-title" role="heading" aria-level="3">GENERAL STRATEGY</div>
         <ul>
           <li><strong>Coverage first.</strong> Everything else is secondary until you can detect most threats on spawn.</li>
           <li><strong>Never let analysts sit idle when incidents are open.</strong> Unhandled incidents breach. If all incidents are covered and a slot is free, run an analyst activity.</li>
@@ -2137,15 +2148,15 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
           <li><strong>Budget is a weapon, not a score.</strong> Idle money doesn't defend you. Invest aggressively early.</li>
         </ul>
 
-        <div class="help-section-title">SCORING</div>
+        <div class="help-section-title" role="heading" aria-level="3">SCORING</div>
         <p>Your final grade is determined by posture at end-of-operation: breaches are a hard floor (3 = F, 2 = D, 1 = C). For zero-breach runs, grade is based on Coverage %, MTTD, unpatched vulnerabilities, and open incidents at game end (S / A / B).</p>
 
-        <div class="help-section-title">CONTROLS</div>
+        <div class="help-section-title" role="heading" aria-level="3">CONTROLS</div>
         <ul>
           <li><strong>SPACE</strong> — pause / resume &nbsp;|&nbsp; <strong>1 2 3 4</strong> — set speed &nbsp;|&nbsp; <strong>?</strong> — help &nbsp;|&nbsp; <strong>M</strong> — mute</li>
         </ul>
 
-        <div class="help-section-title">SIEM FEED</div>
+        <div class="help-section-title" role="heading" aria-level="3">SIEM FEED</div>
         <p><strong>Click the strip</strong> at the bottom to expand the full event history. <span class="help-crit">CRIT</span> = immediate action needed. <span class="help-warn">WARN</span> = monitor. <span class="help-ok">OK/INFO</span> = informational. Use the filter buttons to focus on ALERTS or INCIDENTS only.</p>
       </div>
 
@@ -2959,6 +2970,19 @@ function siemLog(severity, source, msg, extra) {
   document.getElementById('siem-count').textContent = `${siemEntryCount} events`;
 }
 
+function _siemPopoutFocusTrap(e) {
+  if (e.key !== 'Tab') return;
+  const popout = document.getElementById('siem-popout');
+  const focusable = [...popout.querySelectorAll('button:not([disabled]), [tabindex="0"]')];
+  if (focusable.length === 0) return;
+  const first = focusable[0], last = focusable[focusable.length - 1];
+  if (e.shiftKey) {
+    if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+  } else {
+    if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+}
+
 function openSiemPopout() {
   const popout = document.getElementById('siem-popout');
   const feed = document.getElementById('siem-popout-feed');
@@ -2968,11 +2992,18 @@ function openSiemPopout() {
   popout.classList.add('visible');
   document.getElementById('siem-strip').setAttribute('aria-expanded', 'true');
   requestAnimationFrame(() => requestAnimationFrame(() => { feed.scrollTop = 999999; }));
+  // Focus first interactive element and trap keyboard within popout
+  const firstBtn = popout.querySelector('button:not([disabled])');
+  if (firstBtn) firstBtn.focus();
+  document.addEventListener('keydown', _siemPopoutFocusTrap);
 }
 
 function closeSiemPopout() {
   document.getElementById('siem-popout').classList.remove('visible');
   document.getElementById('siem-strip').setAttribute('aria-expanded', 'false');
+  document.removeEventListener('keydown', _siemPopoutFocusTrap);
+  // Return focus to the strip toggle
+  document.getElementById('siem-strip').focus();
 }
 
 function setSiemFilter(f) {
@@ -5888,7 +5919,8 @@ function exitDemoMode() {
   document.removeEventListener('keydown', _onDemoExit);
   document.removeEventListener('click', _onDemoExit);
   closeHelp();
-  restartGame();
+  siemLog('INFO', 'DEMO', '[ SIMULATION ENDED ] Returning to main menu — press [ENTER] to begin live operations');
+  setTimeout(restartGame, 600); // brief pause so the log line is visible before transition
 }
 
 function _demoPilot() {
@@ -5938,9 +5970,11 @@ function _demoPilot() {
       !G.redTeamJobs.some(j => j.type === o.id && !j.done) && G.budget >= o.cost
     );
     if (available.length) {
+      // Store previous selection and restore after — avoids polluting modal state
+      const _prev = selectedRedTeam;
       selectedRedTeam = available[Math.floor(Math.random() * available.length)].id;
       launchRedTeam();
-      selectedRedTeam = null;
+      selectedRedTeam = _prev;
     }
   }
 
@@ -6077,7 +6111,10 @@ function openDifficultyScreen(e) {
 
 function renderDifficultySelection() {
   document.querySelectorAll('.diff-option').forEach((el, i) => {
-    el.classList.toggle('selected', i === diffIdx);
+    const selected = i === diffIdx;
+    el.classList.toggle('selected', selected);
+    el.setAttribute('aria-checked', selected ? 'true' : 'false');
+    el.setAttribute('tabindex', selected ? '0' : '-1');
   });
 }
 
