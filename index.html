@@ -1072,7 +1072,6 @@ body::after {
   margin-top: 4px;
   font-size: 10px;
   color: var(--green);
-  text-shadow: 0 0 4px var(--green);
 }
 /* consultant profile cards in modal */
 .consultant-profile {
@@ -1520,7 +1519,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
           <div class="diff-name apprentice">Analyst</div>
           <div class="diff-tagline">Established internal security program — well-funded and operationally mature</div>
           <div class="diff-stats">
-            <span class="diff-stat pos">Budget $1.2M  (+$75k/cycle)</span>
+            <span class="diff-stat pos">Budget $800k  (+$75k/cycle)</span>
             <span class="diff-stat pos">Coverage 45%  (rules pre-deployed)</span>
             <span class="diff-stat pos">Analysts 3  (one pre-hired)</span>
             <span class="diff-stat pos">Vuln Score 45  (critical CVEs patched)</span>
@@ -1992,7 +1991,7 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
           <span class="help-cap-desc">Upgrade SIEM detection rules across all 12 MITRE ATT&amp;CK technique categories (up to level 5 each). Each level raises Coverage % and adds a category-specific detection bonus. Your highest-ROI investment — prioritise this above almost everything else.</span>
         </div>
         <div class="help-cap-row">
-          <span class="help-cap-name">THREAT INTEL — $50k–$250k per feed</span>
+          <span class="help-cap-name">THREAT INTEL — $30k–$190k per feed</span>
           <span class="help-cap-desc">Subscribe to commercial threat intel feeds for passive Coverage % boosts and MTTD reductions. Each feed targets specific actor categories and stacks with Detection Engineering. Buy the cheapest feeds first — ROI diminishes as you stack them.</span>
         </div>
 
@@ -2047,12 +2046,12 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
 
         <div class="help-section-title">PARTNERS</div>
         <div class="help-cap-row">
-          <span class="help-cap-name">SECURITY AWARENESS TRAINING — $50k setup + $10k/cycle</span>
-          <span class="help-cap-desc">Blocks 35% of all Initial Access threat spawns at the employee layer — the threat never enters your environment. Ongoing cost; auto-cancels on insufficient budget. Cheap early insurance on any difficulty.</span>
+          <span class="help-cap-name">SECURITY AWARENESS TRAINING — $20k–$100k setup + $15k–$40k/cycle</span>
+          <span class="help-cap-desc">Three tiers blocking 25%–60% of Initial Access attempts at the employee layer — the threat never enters your environment. Higher tiers also add up to +10% detection coverage. Ongoing cost; auto-cancels on budget shortfall. Even the base tier pays for itself within a few income cycles.</span>
         </div>
         <div class="help-cap-row">
-          <span class="help-cap-name">MSSP — $150k setup + $15k/cycle</span>
-          <span class="help-cap-desc">Auto-assigns free analysts to unhandled incidents each tick. A safety net so incidents never breach simply because you missed the alert. Expensive — only worth it when you're consistently running out of free analysts.</span>
+          <span class="help-cap-name">MSSP — $100k–$350k setup + $10k–$50k/cycle</span>
+          <span class="help-cap-desc">Three tiers: Alert Monitoring (auto-assign incidents), Co-Managed SOC (+ auto-sign lessons learned, +10% IR speed), Fully Managed SOC (+ overflow analyst capacity, +15% IR speed). A safety net that escalates from triage assist to full co-management. Only worth it when you're consistently running out of free analysts.</span>
         </div>
         <div class="help-cap-row">
           <span class="help-cap-name">CONSULTANT — $75k engagement fee</span>
@@ -5456,7 +5455,6 @@ function renderConsultantCard() {
     <div class="consultant-name">${c.name}</div>
     <div class="consultant-title">${c.title}</div>
     <div class="consultant-header">
-      <div class="consultant-bonus">● ACTIVE &nbsp;${c.bonusDesc}${G.consultantExpiry ? ` — ${Math.max(1, Math.ceil((G.consultantExpiry - G.gameTime) / 1440))}d left` : ''}</div>
       <button class="briefing-toggle" data-action="toggle-briefing">${collapseLabel}</button>
     </div>
     <div class="consultant-advice${consultantBriefingCollapsed ? ' collapsed' : ''}">
