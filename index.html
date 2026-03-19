@@ -5049,6 +5049,10 @@ function renderContracts() {
     _intelBarEls = {};
     _intelTimeEls = {};
     let html = '';
+    if (G.soar) {
+      const pbLabel = soarPbCount > 0 ? `${soarPbCount} playbook${soarPbCount !== 1 ? 's' : ''}` : 'ACTIVE';
+      html += `<div class="stat-row"><span class="stat-label">SOAR</span><span class="stat-val">${pbLabel}</span></div>`;
+    }
     if (G.mssp) {
       const _msspT = MSSP_TIERS.find(t => t.id === G.mssp);
       const _msspRem = Math.max(0, (G.msspExpiry || 0) - G.gameTime);
@@ -5062,10 +5066,6 @@ function renderContracts() {
       const _satPct = Math.min(100, (_satRem / (SAT_DURATION_DAYS * 1440)) * 100);
       html += `<div class="stat-row" style="margin-top:5px"><span class="stat-label">${_satT ? _satT.name : 'SAT'}</span><span class="stat-val" id="intel-time-sat">${fmtDuration(_satRem)}</span></div>`;
       html += `<div class="mini-bar"><div class="mini-bar-fill warn" id="intel-bar-sat" style="width:${_satPct}%"></div></div>`;
-    }
-    if (G.soar) {
-      const pbLabel = soarPbCount > 0 ? `${soarPbCount} playbook${soarPbCount !== 1 ? 's' : ''}` : 'ACTIVE';
-      html += `<div class="stat-row"><span class="stat-label">SOAR</span><span class="stat-val">${pbLabel}</span></div>`;
     }
     if (G.consultant) {
       const remaining = Math.max(0, (G.consultantExpiry || 0) - G.gameTime);
