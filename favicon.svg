@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Dark terminal background -->
+  <rect width="32" height="32" rx="4" fill="#020c03"/>
+  <!-- Green glow halo behind the shield -->
+  <ellipse cx="16" cy="17" rx="10" ry="9" fill="#00ff41" opacity="0.08"/>
+  <!-- Shield body -->
+  <path d="M16 4 L26 8 L26 17 Q26 24 16 29 Q6 24 6 17 L6 8 Z" fill="#010a02" stroke="#00aa2b" stroke-width="1.2"/>
+  <!-- Inner shield highlight -->
+  <path d="M16 7 L23 10.5 L23 17 Q23 22 16 26 Q9 22 9 17 L9 10.5 Z" fill="none" stroke="#00ff41" stroke-width="0.6" opacity="0.5"/>
+  <!-- Terminal prompt — centred in shield -->
+  <text x="16" y="20" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#00ff41">&gt;_</text>
+</svg>
