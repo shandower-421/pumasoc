@@ -5578,6 +5578,7 @@ document.addEventListener('keydown', e => {
     if (e.key === '4') setSpeed(4);
   }
   if (e.key === '?') openHelp();
+  if (e.key === 'm' || e.key === 'M') toggleMute();
 });
 
 // Delegated listener for briefing toggle — survives DOM re-renders every tick
