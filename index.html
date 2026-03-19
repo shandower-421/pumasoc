@@ -1116,6 +1116,7 @@ body::after {
   border-color: var(--green);
   background: var(--surface-lg);
 }
+.consultant-profile.unavailable { opacity: 0.38; cursor: not-allowed; pointer-events: none; }
 .cp-name { color: var(--green); font-size: 12px; letter-spacing: 1px; margin-bottom: 2px; }
 .cp-title { color: var(--green-dim); font-size: 9px; margin-bottom: 5px; }
 .cp-flavor { color: var(--green-dim); font-size: 10px; line-height: 1.5; margin-bottom: 5px; }
@@ -5408,8 +5409,9 @@ function renderMSSPModal() {
   MSSP_TIERS.forEach(tier => {
     const isCurrent = G.mssp === tier.id;
     const cost = isCurrent ? tier.renewal : tier.startup;
+    const canAfford = G.budget >= cost;
     const d = document.createElement('div');
-    d.className = `consultant-profile${selectedMSSPTier === tier.id ? ' selected' : ''}`;
+    d.className = `consultant-profile${selectedMSSPTier === tier.id ? ' selected' : ''}${!canAfford ? ' unavailable' : ''}`;
     d.onclick = () => { selectedMSSPTier = tier.id; renderMSSPModal(); };
     const activeLabel = isCurrent && G.msspExpiry
       ? `<span style="color:var(--green-dim);font-size:9px">● ACTIVE — ${Math.max(1, Math.ceil((G.msspExpiry - G.gameTime) / 1440))}d left</span>`
@@ -5444,8 +5446,9 @@ function renderSATModal() {
   SAT_TIERS.forEach(tier => {
     const isCurrent = G.sat === tier.id;
     const cost = isCurrent ? tier.renewal : tier.startup;
+    const canAfford = G.budget >= cost;
     const d = document.createElement('div');
-    d.className = `consultant-profile${selectedSATTier === tier.id ? ' selected' : ''}`;
+    d.className = `consultant-profile${selectedSATTier === tier.id ? ' selected' : ''}${!canAfford ? ' unavailable' : ''}`;
     d.onclick = () => { selectedSATTier = tier.id; renderSATModal(); };
     const activeLabel = isCurrent && G.satExpiry
       ? `<span style="color:var(--green-dim);font-size:9px">● ACTIVE — ${Math.max(1, Math.ceil((G.satExpiry - G.gameTime) / 1440))}d left</span>`
@@ -5480,8 +5483,9 @@ function renderConsultantModal() {
   list.innerHTML = '';
   CONSULTANTS.forEach(c => {
     const isCurrent = G.consultant && G.consultant.id === c.id;
+    const canAfford = G.budget >= c.cost;
     const d = document.createElement('div');
-    d.className = `consultant-profile${selectedConsultant === c.id ? ' selected' : ''}`;
+    d.className = `consultant-profile${selectedConsultant === c.id ? ' selected' : ''}${!canAfford && !isCurrent ? ' unavailable' : ''}`;
     d.onclick = () => { selectedConsultant = c.id; renderConsultantModal(); };
     d.innerHTML = `
       <div class="cp-name">${c.name} ${isCurrent ? `<span style="color:var(--green-dim);font-size:9px">● ACTIVE${G.consultantExpiry ? ` — ${Math.max(1, Math.ceil((G.consultantExpiry - G.gameTime) / 1440))}d left` : ''}</span>` : ''}</div>
