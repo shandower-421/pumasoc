@@ -4101,11 +4101,18 @@ function enrollMSSP(tierId) {
   if (G.budget < cost) { siemLog('WARN','HR',`Insufficient budget for ${tier.name}`); return; }
   G.budget -= cost;
   const wasUpgrade = G.mssp && !isSameTier;
+  // If switching away from a tier that had overflow, free any overflow incident
+  if (!tier.overflow && G.msspOverflowIncId !== null) {
+    const ovInc = G.incidents.find(i => i.id === G.msspOverflowIncId);
+    if (ovInc) ovInc.analystId = null;
+    G.msspOverflowIncId = null;
+  }
   G.mssp = tierId;
   G.msspExpiry = G.gameTime + MSSP_DURATION_DAYS * 1440;
+  selectedMSSPTier = tierId; // keep selection in sync with active tier
   const expiryDay = Math.floor(G.msspExpiry / 1440) + 1;
   if (wasUpgrade) {
-    siemLog('OK','HR',`MSSP upgraded to ${tier.name} — ${tier.bonusDesc}. Expires Day ${expiryDay}.`);
+    siemLog('OK','HR',`MSSP tier changed to ${tier.name} — ${tier.bonusDesc}. Expires Day ${expiryDay}.`);
   } else if (isSameTier) {
     siemLog('OK','HR',`${tier.name} renewed for 7 days — expires Day ${expiryDay}.`);
   } else {
@@ -4117,9 +4124,15 @@ function enrollMSSP(tierId) {
 function terminateMSSP() {
   if (!G.mssp) return;
   const tier = MSSP_TIERS.find(t => t.id === G.mssp);
+  // Free any MSSP overflow incident before clearing state
+  if (G.msspOverflowIncId !== null) {
+    const ovInc = G.incidents.find(i => i.id === G.msspOverflowIncId);
+    if (ovInc) ovInc.analystId = null;
+  }
   G.mssp = null;
   G.msspExpiry = null;
   G.msspOverflowIncId = null;
+  selectedMSSPTier = null; // clear selection so modal doesn't re-enroll old tier
   siemLog('WARN','HR',`${tier ? tier.name : 'MSSP'} contract terminated — manual analyst assignment required.`);
 }
 
@@ -5460,6 +5473,8 @@ function renderConsultantCard() {
 }
 
 function renderMSSPModal() {
+  // Default selection: active tier (for easy renewal); nothing if no contract
+  if (selectedMSSPTier === null) selectedMSSPTier = G.mssp || null;
   const list = document.getElementById('mssp-tiers-list');
   list.innerHTML = '';
   MSSP_TIERS.forEach(tier => {
