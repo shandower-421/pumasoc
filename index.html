@@ -4125,7 +4125,7 @@ function continueToNextWeek() {
   G.won = false;
   G.weekBreaches = 0;
   G.totalDwellResolved = 0;
-  G.totalIncome = 0;
+  // G.totalIncome stays cumulative across weeks for end-card budget math
 
   // Signature decay — adversaries adapted TTPs (deeper decay in later weeks)
   const decayAmount = G.week >= 4 ? 2 : G.week >= 3 ? 2 : 1;
@@ -4983,7 +4983,7 @@ function updateUI() {
     const canScan      = unknownVulns && !scanRunning;
     const patchable    = G.vulns.filter(v => v.discovered && !v.patched);
     const minPatch     = patchable.length > 0 ? Math.min(...patchable.map(v => v.cost || 5000)) : Infinity;
-    const minVulnCost  = Math.min(canScan ? 10000 : Infinity, minPatch);
+    const minVulnCost  = Math.min(canScan ? 15000 : Infinity, minPatch);
     const vulnCostEl   = document.getElementById('vuln-btn-cost');
     if (vulnCostEl) vulnCostEl.textContent = minVulnCost === Infinity ? 'CLEAR' : fmt$(minVulnCost);
     _ui['vuln-action-btn'].disabled = G.budget < minVulnCost;
@@ -5750,7 +5750,7 @@ function renderConsultantCard() {
   `;
   hireBtn.style.display = '';
   hireBtn.textContent = '▶ CHANGE CONSULTANT';
-  hireBtn.disabled = false;
+  hireBtn.disabled = G.budget < 75000;
 }
 
 function renderMSSPModal() {
