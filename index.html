@@ -1685,29 +1685,29 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
       </div>
       <div class="ops-section">
         <div class="ops-section-title">── POSTURE ──────────────</div>
-        <div class="stat-row">
+        <div class="stat-row" id="tip-analysts">
           <span class="stat-label">ANALYSTS FREE</span>
           <span class="stat-val" id="stat-analysts">2/2</span>
         </div>
-        <div class="stat-row">
+        <div class="stat-row" id="tip-vuln">
           <span class="stat-label">VULN SCORE</span>
           <span class="stat-val warn" id="stat-vuln">65</span>
         </div>
         <div class="mini-bar"><div class="mini-bar-fill warn" id="bar-vuln" style="width:65%"></div></div>
-        <div class="stat-row">
+        <div class="stat-row" id="tip-coverage">
           <span class="stat-label">COVERAGE</span>
           <span class="stat-val" id="stat-coverage">25%</span>
         </div>
         <div class="mini-bar"><div class="mini-bar-fill" id="bar-coverage" style="width:25%"></div></div>
-        <div class="stat-row">
+        <div class="stat-row" id="tip-mttd">
           <span class="stat-label">MTTD</span>
           <span class="stat-val warn" id="stat-mttd">240 min</span>
         </div>
-        <div class="stat-row">
+        <div class="stat-row" id="tip-mttr">
           <span class="stat-label">MTTR</span>
           <span class="stat-val" id="stat-mttr">—</span>
         </div>
-        <div class="stat-row">
+        <div class="stat-row" id="tip-threats">
           <span class="stat-label">ACTIVE THREATS</span>
           <span class="stat-val" id="stat-threats">0</span>
         </div>
@@ -1751,27 +1751,27 @@ body.crt-flicker { animation: crt-flicker-anim 0.22s linear; }
       <div class="ops-section">
         <div class="ops-section-title">── STAFFING ─────────────</div>
         <div id="analyst-roster"></div>
-        <button class="action-btn" id="hire-btn" onclick="hireAnalyst()">▶ HIRE ANALYST<span class="btn-cost" id="hire-cost">$75k</span></button>
-        <button class="action-btn" id="training-btn" onclick="startTraining()">▶ SEND TO TRAINING<span class="btn-cost">$50k</span></button>
-        <button class="action-btn" id="hunt-btn" onclick="startHunt()">▶ THREAT HUNT<span class="btn-cost">$60k</span></button>
-        <button class="action-btn" id="tabletop-btn" onclick="startTabletop()">▶ TABLETOP EXERCISE<span class="btn-cost">$25k</span></button>
-        <button class="action-btn" id="patch-sprint-btn" onclick="startPatchSprint()">▶ PATCH SPRINT<span class="btn-cost">$25k</span></button>
-        <button class="action-btn" id="osint-btn" onclick="startOSINT()">▶ OSINT RESEARCH<span class="btn-cost">$40k</span></button>
+        <button class="action-btn" id="hire-btn" onclick="hireAnalyst()" title="Add a SOC analyst (max 6). More analysts = more parallel incident response.">▶ HIRE ANALYST<span class="btn-cost" id="hire-cost">$75k</span></button>
+        <button class="action-btn" id="training-btn" onclick="startTraining()" title="+10% IR speed for all analysts (max +30%). Ties up one analyst during training.">▶ SEND TO TRAINING<span class="btn-cost">$50k</span></button>
+        <button class="action-btn" id="hunt-btn" onclick="startHunt()" title="Proactively discover hidden threats. Requires one free analyst for 4 game hours.">▶ THREAT HUNT<span class="btn-cost">$60k</span></button>
+        <button class="action-btn" id="tabletop-btn" onclick="startTabletop()" title="+15% IR speed bonus for 2 game hours. Requires one free analyst.">▶ TABLETOP EXERCISE<span class="btn-cost">$25k</span></button>
+        <button class="action-btn" id="patch-sprint-btn" onclick="startPatchSprint()" title="Remediate low-severity vulnerabilities. Requires one free analyst.">▶ PATCH SPRINT<span class="btn-cost">$25k</span></button>
+        <button class="action-btn" id="osint-btn" onclick="startOSINT()" title="Gather open-source intelligence. May reveal threat actor TTPs or vulnerabilities.">▶ OSINT RESEARCH<span class="btn-cost">$40k</span></button>
       </div>
       <div class="ops-section">
         <div class="ops-section-title">── CAPABILITIES ─────────</div>
-        <button class="action-btn" id="detection-action-btn" onclick="openModal('detection')">▶ DETECTION ENG<span class="btn-cost" id="detection-btn-cost">$25k</span></button>
-        <button class="action-btn" id="vuln-action-btn" onclick="openModal('vuln')">▶ VULN MGMT<span class="btn-cost" id="vuln-btn-cost">$10k</span></button>
-        <button class="action-btn" id="soar-action-btn" onclick="openModal('soar')">▶ SOAR PLATFORM<span class="btn-cost" id="soar-btn-cost">$100k</span></button>
-        <button class="action-btn" id="intel-action-btn" onclick="openModal('intel')">▶ THREAT INTEL<span class="btn-cost" id="intel-btn-cost">$100k</span></button>
+        <button class="action-btn" id="detection-action-btn" onclick="openModal('detection')" title="Upgrade detection rules per MITRE ATT&CK category. Each level: +5% coverage, -8min MTTD.">▶ DETECTION ENG<span class="btn-cost" id="detection-btn-cost">$25k</span></button>
+        <button class="action-btn" id="vuln-action-btn" onclick="openModal('vuln')" title="Patch discovered vulnerabilities. CRIT: -15 vuln score, HIGH: -8, MED: -3 each.">▶ VULN MGMT<span class="btn-cost" id="vuln-btn-cost">$10k</span></button>
+        <button class="action-btn" id="soar-action-btn" onclick="openModal('soar')" title="Automate early IR stages. Playbooks give +25-50% speed bonus on Triage &amp; Contain.">▶ SOAR PLATFORM<span class="btn-cost" id="soar-btn-cost">$100k</span></button>
+        <button class="action-btn" id="intel-action-btn" onclick="openModal('intel')" title="Subscribe to intel feeds for detection and MTTD bonuses. Feeds expire after 7 days.">▶ THREAT INTEL<span class="btn-cost" id="intel-btn-cost">$100k</span></button>
       </div>
       <div class="ops-section" id="consultant-ops-section">
         <div class="ops-section-title">── PARTNERS ─────────────</div>
-        <button class="action-btn" id="redteam-action-btn" onclick="openModal('redteam')">▶ RED TEAM<span class="btn-cost" id="redteam-btn-cost">$30k</span></button>
-        <button class="action-btn" id="sat-btn" onclick="openModal('sat')">▶ SECURITY AWARENESS<span class="btn-cost" id="sat-btn-cost">$20k</span></button>
-        <button class="action-btn" id="mssp-btn" onclick="openModal('mssp')">▶ HIRE MSSP<span class="btn-cost" id="mssp-btn-cost">$100k</span></button>
+        <button class="action-btn" id="redteam-action-btn" onclick="openModal('redteam')" title="Hire red team for penetration testing. Discovers vulnerabilities and tests defenses.">▶ RED TEAM<span class="btn-cost" id="redteam-btn-cost">$30k</span></button>
+        <button class="action-btn" id="sat-btn" onclick="openModal('sat')" title="Train employees to resist phishing. Blocks initial access attempts + coverage bonus.">▶ SECURITY AWARENESS<span class="btn-cost" id="sat-btn-cost">$20k</span></button>
+        <button class="action-btn" id="mssp-btn" onclick="openModal('mssp')" title="Outsource SOC operations. Tiers offer auto-assign, IR speed, and overflow capacity.">▶ HIRE MSSP<span class="btn-cost" id="mssp-btn-cost">$100k</span></button>
         <div id="consultant-card"><div style="color:var(--green-dark);font-size:10px;margin-bottom:4px">No external consultant engaged.</div></div>
-        <button class="action-btn" id="hire-consultant-btn" onclick="openModal('consultant')">▶ HIRE CONSULTANT<span class="btn-cost">$75k</span></button>
+        <button class="action-btn" id="hire-consultant-btn" onclick="openModal('consultant')" title="7-day engagement. Each consultant provides unique coverage, MTTD, or vuln bonuses.">▶ HIRE CONSULTANT<span class="btn-cost">$75k</span></button>
       </div>
     </div>
   </div><!-- /#main -->
@@ -4522,6 +4522,7 @@ function _initUICache() {
     'redteam-jobs-section','redteam-jobs-list',
     'active-events-section','active-events-list',
     'consultant-card','hire-consultant-btn',
+    'tip-analysts','tip-vuln','tip-coverage','tip-mttd','tip-mttr','tip-threats',
   ];
   ids.forEach(id => { _ui[id] = document.getElementById(id); });
   _incSig = '';
@@ -4847,6 +4848,93 @@ function updateUI() {
   if (slow) {
     updateRedTeamJobsUI();
     renderConsultantCard();
+    buildTooltips();
+  }
+}
+
+function buildTooltips() {
+  // COVERAGE breakdown
+  {
+    let ruleBonus = 0;
+    TECHNIQUE_CATS.forEach(cat => { ruleBonus += G.rules[cat] * 5; });
+    const avgRuleBonus = ruleBonus / TECHNIQUE_CATS.length;
+    let intelBonus = 0;
+    G.activeIntelFeeds.forEach(fid => {
+      const feed = _ALL_FEEDS.find(f => f.id === fid);
+      if (feed) intelBonus += feed.detectionBonus;
+    });
+    const satTier = G.sat ? SAT_TIERS.find(t => t.id === G.sat) : null;
+    const satBonus = satTier ? satTier.coverageBonus : 0;
+    const consultBonus = getConsultantBonuses().coverageBonus;
+    const eventPenalty = (G.activeRandomEvents || []).reduce((s, e) => s + (e.coveragePenalty || 0), 0);
+    const parts = [`Base: ${G.coverageBase}%`];
+    if (avgRuleBonus > 0)  parts.push(`Rules: +${Math.round(avgRuleBonus)}%`);
+    if (intelBonus > 0)    parts.push(`Intel: +${intelBonus}%`);
+    if (satBonus > 0)      parts.push(`SAT: +${satBonus}%`);
+    if (consultBonus > 0)  parts.push(`Consultant: +${consultBonus}%`);
+    if (eventPenalty > 0)  parts.push(`Events: -${eventPenalty}%`);
+    parts.push(`Net: ${Math.round(G.coverage)}%`);
+    if (_ui['tip-coverage']) _ui['tip-coverage'].title = parts.join(' \u2502 ');
+  }
+  // MTTD breakdown
+  {
+    let ruleBonus = 0;
+    TECHNIQUE_CATS.forEach(cat => { ruleBonus += G.rules[cat] * 8; });
+    let intelBonus = 0;
+    G.activeIntelFeeds.forEach(fid => {
+      const feed = _ALL_FEEDS.find(f => f.id === fid);
+      if (feed) intelBonus += feed.mttdBonus;
+    });
+    const consultBonus = getConsultantBonuses().mttdBonus;
+    const parts = ['Base: 240min'];
+    if (ruleBonus > 0)    parts.push(`Rules: -${ruleBonus}`);
+    if (intelBonus > 0)   parts.push(`Intel: -${intelBonus}`);
+    if (consultBonus > 0) parts.push(`Consultant: -${consultBonus}`);
+    parts.push(`Net: ${Math.round(G.mttd)}min`);
+    if (_ui['tip-mttd']) _ui['tip-mttd'].title = parts.join(' \u2502 ');
+  }
+  // VULN SCORE breakdown
+  {
+    const crits = G.vulns.filter(v => v.discovered && !v.patched && v.severity === 'CRIT').length;
+    const highs = G.vulns.filter(v => v.discovered && !v.patched && v.severity === 'HIGH').length;
+    const meds  = G.vulns.filter(v => !v.patched && v.severity === 'MEDIUM').length;
+    const intelVulnBonus = getIntelVulnBonus();
+    const raw = crits * 15 + highs * 8 + meds * 3 + 10;
+    const parts = ['Base: 10'];
+    if (crits > 0) parts.push(`CRIT: +${crits * 15} (${crits}\u00d715)`);
+    if (highs > 0) parts.push(`HIGH: +${highs * 8} (${highs}\u00d78)`);
+    if (meds > 0)  parts.push(`MED: +${meds * 3} (${meds}\u00d73)`);
+    if (intelVulnBonus > 0) parts.push(`Intel: -${intelVulnBonus}`);
+    parts.push(`Net: ${Math.round(Math.max(0, Math.min(100, raw) - intelVulnBonus))}`);
+    if (_ui['tip-vuln']) _ui['tip-vuln'].title = parts.join(' \u2502 ');
+  }
+  // MTTR breakdown
+  {
+    const mttr = G.totalResolved > 0 ? Math.round((G.totalDwellResolved || 0) / G.totalResolved) : 0;
+    const parts = [];
+    if (G.totalResolved > 0) {
+      parts.push(`Avg: ${mttr}min (${G.totalResolved} resolved)`);
+      const speedParts = [];
+      if (G.analystSpeedBonus > 0) speedParts.push(`Training +${Math.round(G.analystSpeedBonus * 100)}%`);
+      if (G.gameTime < G.tabletopBonusExpiresAt) speedParts.push('Tabletop +15%');
+      const _msspT = G.mssp ? MSSP_TIERS.find(t => t.id === G.mssp) : null;
+      if (_msspT && _msspT.irSpeedBonus > 0) speedParts.push(`MSSP +${Math.round(_msspT.irSpeedBonus * 100)}%`);
+      if (speedParts.length > 0) parts.push('IR Speed: ' + speedParts.join(', '));
+    } else {
+      parts.push('No incidents resolved yet');
+    }
+    if (_ui['tip-mttr']) _ui['tip-mttr'].title = parts.join(' \u2502 ');
+  }
+  // ANALYSTS breakdown
+  {
+    const busy = G.analystSlots ? G.analystSlots.filter((s, i) => i < G.analystTotal && s !== null).length : 0;
+    const free = G.analystTotal - busy;
+    if (_ui['tip-analysts']) _ui['tip-analysts'].title = `Total: ${G.analystTotal} \u2502 Free: ${free} \u2502 Busy: ${busy}`;
+  }
+  // ACTIVE THREATS
+  {
+    const active = G.threats.filter(t => !t.breachTriggered).length;
+    if (_ui['tip-threats']) _ui['tip-threats'].title = `Active: ${active}`;
   }
 }
 
@@ -5121,26 +5209,35 @@ function renderContracts() {
     let html = '';
     if (G.soar) {
       const pbLabel = soarPbCount > 0 ? `${soarPbCount} playbook${soarPbCount !== 1 ? 's' : ''}` : 'ACTIVE';
-      html += `<div class="stat-row"><span class="stat-label">SOAR</span><span class="stat-val">${pbLabel}</span></div>`;
+      const pbDetails = [];
+      TECHNIQUE_CATS.forEach(cat => { const l = G.soarPlaybooks[cat] || 0; if (l > 0) pbDetails.push(`${cat}: Lv${l} (+${l * 25}%)`); });
+      const soarTip = pbDetails.length > 0
+        ? `Automates Triage+Contain phases \u2502 ${pbDetails.join(', ')}`
+        : 'Automates Triage+Contain phases \u2502 No playbooks configured yet';
+      html += `<div class="stat-row" title="${soarTip}"><span class="stat-label">SOAR</span><span class="stat-val">${pbLabel}</span></div>`;
     }
     if (G.mssp) {
       const _msspT = MSSP_TIERS.find(t => t.id === G.mssp);
       const _msspRem = Math.max(0, (G.msspExpiry || 0) - G.gameTime);
       const _msspPct = Math.min(100, (_msspRem / (MSSP_DURATION_DAYS * 1440)) * 100);
-      html += `<div class="stat-row" style="margin-top:5px"><span class="stat-label">${_msspT ? _msspT.name : 'MSSP'}</span><span class="stat-val" id="intel-time-mssp">${fmtDuration(_msspRem)}</span></div>`;
+      const msspTip = _msspT ? `${_msspT.bonusDesc} \u2502 $${(_msspT.renewal / 1000).toFixed(0)}k/renewal` : '';
+      html += `<div class="stat-row" style="margin-top:5px" title="${msspTip}"><span class="stat-label">${_msspT ? _msspT.name : 'MSSP'}</span><span class="stat-val" id="intel-time-mssp">${fmtDuration(_msspRem)}</span></div>`;
       html += `<div class="mini-bar"><div class="mini-bar-fill warn" id="intel-bar-mssp" style="width:${_msspPct}%"></div></div>`;
     }
     if (G.sat) {
       const _satT = SAT_TIERS.find(t => t.id === G.sat);
       const _satRem = Math.max(0, (G.satExpiry || 0) - G.gameTime);
       const _satPct = Math.min(100, (_satRem / (SAT_DURATION_DAYS * 1440)) * 100);
-      html += `<div class="stat-row" style="margin-top:5px"><span class="stat-label">${_satT ? _satT.name : 'SAT'}</span><span class="stat-val" id="intel-time-sat">${fmtDuration(_satRem)}</span></div>`;
+      const satTip = _satT ? `${_satT.bonusDesc} \u2502 $${(_satT.renewal / 1000).toFixed(0)}k/renewal` : '';
+      html += `<div class="stat-row" style="margin-top:5px" title="${satTip}"><span class="stat-label">${_satT ? _satT.name : 'SAT'}</span><span class="stat-val" id="intel-time-sat">${fmtDuration(_satRem)}</span></div>`;
       html += `<div class="mini-bar"><div class="mini-bar-fill warn" id="intel-bar-sat" style="width:${_satPct}%"></div></div>`;
     }
     if (G.consultant) {
       const remaining = Math.max(0, (G.consultantExpiry || 0) - G.gameTime);
       const pct = Math.min(100, (remaining / (CONSULTANT_DURATION_DAYS * 1440)) * 100);
-      html += `<div class="stat-row" style="margin-top:5px"><span class="stat-label">CONSULTING RETAINER</span><span class="stat-val" id="intel-time-consulting">${fmtDuration(remaining)}</span></div>`;
+      const c = CONSULTANTS.find(c => c.id === G.consultant.id);
+      const consultTip = c ? `${c.name}: ${c.bonusDesc} \u2502 Specialty: ${c.specialty}` : '';
+      html += `<div class="stat-row" style="margin-top:5px" title="${consultTip}"><span class="stat-label">CONSULTING RETAINER</span><span class="stat-val" id="intel-time-consulting">${fmtDuration(remaining)}</span></div>`;
       html += `<div class="mini-bar"><div class="mini-bar-fill warn" id="intel-bar-consulting" style="width:${pct}%"></div></div>`;
     }
     G.activeIntelFeeds.forEach(fid => {
@@ -5148,7 +5245,14 @@ function renderContracts() {
       const name = feed ? feed.name : fid;
       const remaining = Math.max(0, (G.intelFeedExpiry[fid] || 0) - G.gameTime);
       const pct = Math.min(100, (remaining / (INTEL_FEED_DURATION_DAYS * 1440)) * 100);
-      html += `<div class="stat-row" style="margin-top:5px"><span class="stat-label">${name}</span><span class="stat-val" id="intel-time-${fid}">${fmtDuration(remaining)}</span></div>`;
+      const feedParts = [];
+      if (feed) {
+        if (feed.detectionBonus) feedParts.push(`+${feed.detectionBonus}% detection`);
+        if (feed.mttdBonus) feedParts.push(`-${feed.mttdBonus}min MTTD`);
+        if (feed.vulnBonus) feedParts.push(`-${feed.vulnBonus} vuln score`);
+      }
+      const feedTip = feedParts.length > 0 ? feedParts.join(', ') : '';
+      html += `<div class="stat-row" style="margin-top:5px" title="${feedTip}"><span class="stat-label">${name}</span><span class="stat-val" id="intel-time-${fid}">${fmtDuration(remaining)}</span></div>`;
       html += `<div class="mini-bar"><div class="mini-bar-fill warn" id="intel-bar-${fid}" style="width:${pct}%"></div></div>`;
     });
     _ui['contracts-list'].innerHTML = html;
